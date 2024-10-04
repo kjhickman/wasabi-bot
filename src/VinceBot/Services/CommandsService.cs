@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Options;
+using VinceBot.CommandHandlers;
 using VinceBot.Discord;
 using VinceBot.Discord.Enums;
+using VinceBot.Interfaces;
 using VinceBot.Settings;
 
 namespace VinceBot.Services;
@@ -14,7 +16,7 @@ public class CommandsService : ICommandsService
     [
         new()
         {
-            Name = "ping",
+            Name = PingHandler.Name,
             Description = "Receive a pong",
             Type = ApplicationCommandType.ChatInput
         }
@@ -38,10 +40,4 @@ public class CommandsService : ICommandsService
         var url = $"https://discord.com/api/v10/applications/{_settings.ApplicationId}/commands";
         await _httpClient.PostAsJsonAsync(url, Commands, JsonContext.Default.ApplicationCommandArray);
     }
-}
-
-public interface ICommandsService
-{
-    Task RegisterGuildCommands(string guildId);
-    Task RegisterGlobalCommands();
 }

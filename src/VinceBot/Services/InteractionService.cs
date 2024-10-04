@@ -1,35 +1,38 @@
 using VinceBot.Discord;
 using VinceBot.Discord.Enums;
+using VinceBot.Interfaces;
 
 namespace VinceBot.Services;
 
 public class InteractionService : IInteractionService
 {
-    private Dictionary<string, Func<Interaction, InteractionResponse>> _handlers = new();
-    
+    private readonly IServiceProvider _serviceProvider;
+
+    public InteractionService(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+
     public async Task<InteractionResponse> HandleInteraction(Interaction interaction)
     {
-        // var name = interaction.Data?.Name;
-        // if (name is null)
-        // {
-        //     throw new NullReferenceException();
-        // }
-        // if (_handlers.TryGetValue(name, out var handler))
-        // {
-        //     var foo = handler(interaction);
-        // }
-        return new InteractionResponse
+        if (interaction.Type == InteractionType.Ping)
         {
-            Type = InteractionResponseType.ChannelMessageWithSource,
-            Data = new InteractionResponseData
-            {
-                MessageContent = "Pong!"
-            }
-        };
+            // ACK ping
+            return InteractionResponse.Pong();
+        }
+        
+        var commandName = interaction.Data?.Name;
+        if (commandName is null)
+        {
+            throw new Exception("Command name is required.");
+        }
+        
+        var handler = _serviceProvider.GetKeyedService<ICommandHandler>(commandName);
+        if (handler is null)
+        {
+            throw new Exception($"Handler not found for command: {commandName}.");
+        }
+        
+        return await handler.HandleCommand(interaction);
     }
-}
-
-public interface IInteractionService
-{
-    Task<InteractionResponse> HandleInteraction(Interaction interaction);
 }

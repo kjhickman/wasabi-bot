@@ -1,12 +1,9 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using VinceBot.Contracts;
 using VinceBot.Discord;
 using VinceBot.Discord.Enums;
 using VinceBot.Filters;
-using VinceBot.Services;
-using VinceBot.Settings;
+using VinceBot.Interfaces;
 
 namespace VinceBot.Endpoints;
 
@@ -44,12 +41,6 @@ public static class DiscordModule
         {
             Console.WriteLine("Interaction could not be deserialized.");
             return TypedResults.Problem();
-        }
-
-        if (interaction.Type == InteractionType.Ping)
-        {
-            // ACK ping
-            return TypedResults.Ok(InteractionResponse.Pong());
         }
 
         var response = await interactionService.HandleInteraction(interaction);
