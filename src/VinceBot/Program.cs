@@ -1,4 +1,5 @@
-﻿using dotenv.net;
+﻿using Amazon.SQS;
+using dotenv.net;
 using VinceBot;
 using VinceBot.CommandHandlers;
 using VinceBot.Endpoints;
@@ -16,6 +17,7 @@ builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<ICommandsService, CommandsService>();
 builder.Services.AddHttpClient();
 builder.Services.AddCommandHandlers();
+builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
 
 DotEnv.Load();
 builder.Configuration.AddEnvironmentVariables();
@@ -25,5 +27,6 @@ var app = builder.Build();
 
 app.MapGet("/", () => "Hello, world!");
 app.MapDiscordEndpoints();
+app.MapEventEndpoints();
 
 app.Run();

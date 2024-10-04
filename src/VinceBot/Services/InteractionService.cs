@@ -35,4 +35,20 @@ public class InteractionService : IInteractionService
         
         return await handler.HandleCommand(interaction);
     }
+    
+    public async Task HandleDeferredInteraction(Interaction interaction)
+    {
+        var commandName = interaction.Data?.Name;
+        if (commandName is null)
+        {
+            throw new Exception("Command name is required.");
+        }
+
+        if (_serviceProvider.GetKeyedService<ICommandHandler>(commandName) is not IDeferredCommandHandler handler)
+        {
+            throw new Exception($"Handler not found for deferred command: {commandName}.");
+        }
+        
+        await handler.HandleDeferredCommand(interaction);
+    }
 }

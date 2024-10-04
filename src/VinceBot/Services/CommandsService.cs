@@ -1,3 +1,6 @@
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using VinceBot.CommandHandlers;
 using VinceBot.Discord;
@@ -19,6 +22,12 @@ public class CommandsService : ICommandsService
             Name = PingHandler.Name,
             Description = "Receive a pong",
             Type = ApplicationCommandType.ChatInput
+        },
+        new()
+        {
+            Name = DeferredPingHandler.Name,
+            Description = "Receive a deferred pong",
+            Type = ApplicationCommandType.ChatInput
         }
     ];
 
@@ -32,12 +41,12 @@ public class CommandsService : ICommandsService
     public async Task RegisterGuildCommands(string guildId)
     {
         var url = $"https://discord.com/api/v10/applications/{_settings.ApplicationId}/guilds/{guildId}/commands";
-        await _httpClient.PostAsJsonAsync(url, Commands, JsonContext.Default.ApplicationCommandArray);
+        await _httpClient.PutAsJsonAsync(url, Commands, JsonContext.Default.ApplicationCommandArray);
     }
 
     public async Task RegisterGlobalCommands()
     {
         var url = $"https://discord.com/api/v10/applications/{_settings.ApplicationId}/commands";
-        await _httpClient.PostAsJsonAsync(url, Commands, JsonContext.Default.ApplicationCommandArray);
+        await _httpClient.PutAsJsonAsync(url, Commands, JsonContext.Default.ApplicationCommandArray);
     }
 }

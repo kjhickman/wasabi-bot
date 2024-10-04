@@ -6,4 +6,5 @@ public class DiscordSettings
     public string PublicKey { get; set; } = null!;
     public string Token { get; set; } = null!;
     public string ApplicationId { get; set; } = null!;
+    public string DeferredEventQueueUrl { get; set; } = null!;
 }
