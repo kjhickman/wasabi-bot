@@ -1,4 +1,0 @@
-﻿<Solution>
-  <Project Path="src\VinceBot.Terraform\VinceBot.Terraform.csproj" Type="Classic C#" />
-  <Project Path="src\VinceBot\VinceBot.csproj" Type="Classic C#" />
-</Solution>
