@@ -15,10 +15,15 @@ tasks:
     deps: [build]
     cmds:
       - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}
+
+  restore:
+    desc: Restore assets for CDKTF
+    cmds:
+      - dotnet restore src/WasabiBot.Terraform
   
   deploy:
       desc: Deploy via CDKTF
-      deps: [push]
+      deps: [push, restore]
       dir: src/WasabiBot.Terraform
       cmds:
         - cdktf deploy --auto-approve
