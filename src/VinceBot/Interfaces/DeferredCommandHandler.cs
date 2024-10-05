@@ -10,12 +10,12 @@ namespace VinceBot.Interfaces;
 public abstract class DeferredCommandHandler : CommandHandler
 {
     private readonly IAmazonSQS _sqs;
-    private readonly DiscordSettings _settings;
+    private readonly EnvironmentVariables _env;
     
-    protected DeferredCommandHandler(IAmazonSQS sqs, IOptions<DiscordSettings> options)
+    protected DeferredCommandHandler(IAmazonSQS sqs, IOptions<EnvironmentVariables> options)
     {
         _sqs = sqs;
-        _settings = options.Value;
+        _env = options.Value;
     }
 
     public abstract Task HandleDeferredCommand(Interaction interaction);
@@ -23,7 +23,7 @@ public abstract class DeferredCommandHandler : CommandHandler
     public override async Task<InteractionResponse> HandleCommand(Interaction interaction)
     {
         var messageJson = JsonSerializer.Serialize(interaction, JsonContext.Default.Interaction);
-        await _sqs.SendMessageAsync(_settings.DeferredEventQueueUrl, messageJson);
+        await _sqs.SendMessageAsync(_env.DISCORD_DEFERRED_EVENT_QUEUE_URL, messageJson);
 
         return new InteractionResponse
         {

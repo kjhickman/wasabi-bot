@@ -1,6 +1,6 @@
 {
   "language": "csharp",
-  "app": "dotnet run -p VinceBot.Terraform.csproj",
+  "app": "dotnet run --project VinceBot.Terraform.csproj",
   "projectId": "b5ff670d-a4a4-46b4-8d49-85a68b2add23",
   "sendCrashReports": "true",
   "terraformProviders": [

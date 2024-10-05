@@ -8,13 +8,13 @@ namespace VinceBot.Filters;
 
 public class DiscordValidationFilter : IEndpointFilter
 {
-    private readonly DiscordSettings _settings;
+    private readonly EnvironmentVariables _env;
     private readonly ILogger<DiscordValidationFilter> _logger;
 
-    public DiscordValidationFilter(IOptions<DiscordSettings> settings, ILogger<DiscordValidationFilter> logger)
+    public DiscordValidationFilter(IOptions<EnvironmentVariables> options, ILogger<DiscordValidationFilter> logger)
     {
         _logger = logger;
-        _settings = settings.Value;
+        _env = options.Value;
     }
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -39,7 +39,7 @@ public class DiscordValidationFilter : IEndpointFilter
             return TypedResults.BadRequest();
         }
 
-        var validSignature = Signature.Verify(_settings.PublicKey, signature, timestamp, requestBody);
+        var validSignature = Signature.Verify(_env.DISCORD_PUBLIC_KEY, signature, timestamp, requestBody);
         if (!validSignature)
         {
             _logger.LogInformation("Discord interaction validation failed");

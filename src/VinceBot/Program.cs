@@ -23,7 +23,7 @@ builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
 
 DotEnv.Load();
 builder.Configuration.AddEnvironmentVariables();
-builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
+builder.Services.Configure<EnvironmentVariables>(builder.Configuration);
 
 var app = builder.Build();
 

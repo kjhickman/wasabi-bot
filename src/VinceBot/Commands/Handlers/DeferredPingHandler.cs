@@ -10,7 +10,7 @@ public class DeferredPingHandler : DeferredCommandHandler
 {
     private readonly IDiscordService _discordService;
 
-    public DeferredPingHandler(IAmazonSQS sqs, IOptions<DiscordSettings> options, IDiscordService discordService) :
+    public DeferredPingHandler(IAmazonSQS sqs, IOptions<EnvironmentVariables> options, IDiscordService discordService) :
         base(sqs, options)
     {
         _discordService = discordService;

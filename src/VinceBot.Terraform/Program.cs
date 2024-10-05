@@ -1,10 +1,18 @@
-using System;
+using dotenv.net;
 using HashiCorp.Cdktf;
+using Microsoft.Extensions.Configuration;
 using VinceBot.Terraform;
-
-// ReSharper disable ObjectCreationAsStatement
+using VinceBot.Terraform.Settings;
 
 var app = new App();
-new MainStack(app, "VinceBot.CDKTF");
+
+DotEnv.Load();
+var configuration = new ConfigurationBuilder()
+    .AddEnvironmentVariables()
+    .Build();
+var environmentVariables = new EnvironmentVariables();
+configuration.Bind(environmentVariables); // TODO: validate these
+
+new VinceBotStack(app, "VinceBot.Terraform", environmentVariables);
+
 app.Synth();
-Console.WriteLine("App synth complete");

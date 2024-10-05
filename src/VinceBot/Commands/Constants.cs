@@ -4,7 +4,7 @@ using VinceBot.Discord.Enums;
 
 namespace VinceBot.Commands;
 
-public class CommandConstants
+public static class Constants
 {
     public static readonly ApplicationCommand[] Definitions =
     [
