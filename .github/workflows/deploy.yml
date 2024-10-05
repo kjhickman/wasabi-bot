@@ -52,6 +52,7 @@ jobs:
       - name: Run Terraform CDK
         uses: hashicorp/terraform-cdk-action@v5
         with:
-          mode: auto-approve-apply
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+          mode: auto-approve-apply
+          stackName: WasabiBot.Terraform
           workingDirectory: ./src/WasabiBot.Terraform
