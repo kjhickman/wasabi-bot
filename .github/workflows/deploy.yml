@@ -53,3 +53,5 @@ jobs:
         uses: hashicorp/terraform-cdk-action@v5
         with:
           mode: auto-approve-apply
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          workingDirectory: ./src/WasabiBot.Terraform
