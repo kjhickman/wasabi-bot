@@ -112,6 +112,10 @@ internal class WasabiBotStack : TerraformStack
             {
                 Variables = lambdaEnvironmentVars
             },
+            LoggingConfig = new LambdaFunctionLoggingConfig
+            {
+                LogFormat = "JSON"
+            },
             Role = lambdaRole.Arn
         });
 
