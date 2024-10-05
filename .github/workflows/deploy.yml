@@ -6,6 +6,7 @@ on:
       - main
 
 env:
+  ARCHITECTURE: x86_64
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
   DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
@@ -47,6 +48,17 @@ jobs:
       - name: Push Docker image to ECR
         run: |
           docker push ${{ steps.login-ecr.outputs.registry }}/wasabi-bot:$ENVIRONMENT
+
+      # Set up .NET Core
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # Restore CDKTF Assets
+      - name: Restore CDKTF Assets
+        run: |
+          dotnet restore src/WasabiBot.Terraform
 
       # Deploy via CDKTF
       - name: Run Terraform CDK
