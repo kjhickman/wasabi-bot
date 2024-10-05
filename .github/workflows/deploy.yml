@@ -49,7 +49,7 @@ jobs:
           docker push ${{ steps.login-ecr.outputs.registry }}/wasabi-bot:$ENVIRONMENT
 
       # Deploy via CDKTF
-      - name: Deploy via CDKTF
-        working-directory: src/WasabiBot.Terraform
-        run: |
-          cdktf deploy --auto-approve
+      - name: Run Terraform CDK
+        uses: hashicorp/terraform-cdk-action@v5
+        with:
+          mode: auto-approve-apply
