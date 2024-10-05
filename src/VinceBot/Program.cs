@@ -1,7 +1,7 @@
 ﻿using Amazon.SQS;
 using dotenv.net;
 using VinceBot;
-using VinceBot.CommandHandlers;
+using VinceBot.Commands;
 using VinceBot.Endpoints;
 using VinceBot.Interfaces;
 using VinceBot.Services;
@@ -14,7 +14,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, JsonContext.Default);
 });
 builder.Services.AddScoped<IInteractionService, InteractionService>();
-builder.Services.AddScoped<ICommandsService, CommandsService>();
+builder.Services.AddScoped<IDiscordService, DiscordService>();
 builder.Services.AddHttpClient();
 builder.Services.AddCommandHandlers();
 builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();

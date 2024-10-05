@@ -2,13 +2,13 @@ using VinceBot.Discord;
 using VinceBot.Discord.Enums;
 using VinceBot.Interfaces;
 
-namespace VinceBot.CommandHandlers;
+namespace VinceBot.Commands.Handlers;
 
-public class PingHandler : ICommandHandler
+public class PingHandler : CommandHandler
 {
     public static string Name => "ping";
 
-    public Task<InteractionResponse> HandleCommand(Interaction interaction)
+    public override Task<InteractionResponse> HandleCommand(Interaction interaction)
     {
         return Task.FromResult(new InteractionResponse
         {

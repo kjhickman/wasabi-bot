@@ -9,5 +9,5 @@ namespace VinceBot;
 [JsonSerializable(typeof(ApplicationCommand[]))]
 [JsonSerializable(typeof(ApplicationCommandRegisterRequest))]
 [JsonSerializable(typeof(RegisterCommandsRequest))]
-[JsonSerializable(typeof(SQSEvent))]
+[JsonSerializable(typeof(SqsEvent))]
 public partial class JsonContext : JsonSerializerContext;

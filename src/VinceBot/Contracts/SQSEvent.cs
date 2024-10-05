@@ -2,14 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace VinceBot.Contracts;
 
-public class SQSEvent
+public class SqsEvent
 {
     [JsonPropertyName("Records")]
-    public SQSRecord[] Records { get; set; }
-}
-
-public class SQSRecord
-{
-    [JsonPropertyName("body")]
-    public string Body { get; set; }
+    public required SqsRecord[] Records { get; set; }
 }

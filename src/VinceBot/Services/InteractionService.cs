@@ -20,35 +20,26 @@ public class InteractionService : IInteractionService
             // ACK ping
             return InteractionResponse.Pong();
         }
-        
+
         var commandName = interaction.Data?.Name;
-        if (commandName is null)
-        {
-            throw new Exception("Command name is required.");
-        }
-        
-        var handler = _serviceProvider.GetKeyedService<ICommandHandler>(commandName);
-        if (handler is null)
-        {
-            throw new Exception($"Handler not found for command: {commandName}.");
-        }
-        
+        if (commandName is null) throw new Exception("Command name is required.");
+
+        var handler = _serviceProvider.GetKeyedService<CommandHandler>(commandName);
+        if (handler is null) throw new Exception($"Handler not found for command: {commandName}.");
+
         return await handler.HandleCommand(interaction);
     }
-    
+
     public async Task HandleDeferredInteraction(Interaction interaction)
     {
         var commandName = interaction.Data?.Name;
-        if (commandName is null)
-        {
-            throw new Exception("Command name is required.");
-        }
+        if (commandName is null) throw new Exception("Command name is required.");
 
-        if (_serviceProvider.GetKeyedService<ICommandHandler>(commandName) is not IDeferredCommandHandler handler)
+        if (_serviceProvider.GetKeyedService<CommandHandler>(commandName) is not DeferredCommandHandler handler)
         {
             throw new Exception($"Handler not found for deferred command: {commandName}.");
         }
-        
+
         await handler.HandleDeferredCommand(interaction);
     }
 }

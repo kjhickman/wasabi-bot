@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using VinceBot.Contracts;
 using VinceBot.Discord;
-using VinceBot.Discord.Enums;
 using VinceBot.Filters;
 using VinceBot.Interfaces;
 
@@ -15,7 +14,7 @@ public static class DiscordModule
         discordGroup.MapPost("/interaction", HandleInteraction)
             .AddEndpointFilter<DiscordValidationFilter>();
 
-        discordGroup.MapPost("/register", async (RegisterCommandsRequest request, ICommandsService commandsService) =>
+        discordGroup.MapPost("/register", async (RegisterCommandsRequest request, IDiscordService commandsService) =>
         {
             if (request.GuildId is not null)
             {
@@ -26,7 +25,7 @@ public static class DiscordModule
             {
                 await commandsService.RegisterGlobalCommands();
             }
-            
+
             return TypedResults.Ok("Successfully registered commands!");
         });
 

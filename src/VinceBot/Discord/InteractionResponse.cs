@@ -7,7 +7,7 @@ public class InteractionResponse
 {
     [JsonPropertyName("type")]
     public InteractionResponseType Type { get; set; }
-    
+
     [JsonPropertyName("data")]
     public InteractionResponseData? Data { get; set; }
 

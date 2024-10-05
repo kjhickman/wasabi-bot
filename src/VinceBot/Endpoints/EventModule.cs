@@ -8,7 +8,7 @@ public static class EventModule
 {
     public static WebApplication MapEventEndpoints(this WebApplication app)
     {
-        app.MapPost("/events", async (SQSEvent @event, IInteractionService interactionService) =>
+        app.MapPost("/events", async (SqsEvent @event, IInteractionService interactionService) =>
         {
             foreach (var record in @event.Records)
             {
