@@ -14,7 +14,7 @@ public class GuildMember
     public string? AvatarHash { get; set; }
 
     [JsonPropertyName("roles")]
-    public string[] RoleIds { get; set; }
+    public required string[] RoleIds { get; set; }
 
     [JsonPropertyName("joined_at")]
     public DateTimeOffset JoinedAt { get; set; }

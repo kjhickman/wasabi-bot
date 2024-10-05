@@ -6,7 +6,7 @@ namespace VinceBot.Discord;
 public class InteractionDataOption
 {
     [JsonPropertyName("name")]
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
     [JsonPropertyName("type")]
     public ApplicationCommandOptionType Type { get; set; }

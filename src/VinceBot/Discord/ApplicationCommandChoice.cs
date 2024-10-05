@@ -5,8 +5,8 @@ namespace VinceBot.Discord;
 public class ApplicationCommandChoice
 {
     [JsonPropertyName("name")]
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
     [JsonPropertyName("value")]
-    public object Value { get; set; }
+    public required object Value { get; set; }
 }
