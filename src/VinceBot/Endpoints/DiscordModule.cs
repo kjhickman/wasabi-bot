@@ -38,7 +38,6 @@ public static class DiscordModule
         var interaction = await ctx.Request.ReadFromJsonAsync(JsonContext.Default.Interaction);
         if (interaction == null)
         {
-            Console.WriteLine("Interaction could not be deserialized.");
             return TypedResults.Problem();
         }
 

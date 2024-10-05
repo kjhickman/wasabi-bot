@@ -4,6 +4,6 @@ namespace VinceBot.Interfaces;
 
 public interface IInteractionService
 {
-    Task<InteractionResponse> HandleInteraction(Interaction interaction);
+    Task<InteractionResponse?> HandleInteraction(Interaction interaction);
     Task HandleDeferredInteraction(Interaction interaction);
 }

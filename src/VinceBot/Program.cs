@@ -9,6 +9,8 @@ using VinceBot.Settings;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
+builder.Logging.AddJsonConsole();
+
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, JsonContext.Default);

@@ -9,14 +9,17 @@ namespace VinceBot.Filters;
 public class DiscordValidationFilter : IEndpointFilter
 {
     private readonly DiscordSettings _settings;
+    private readonly ILogger<DiscordValidationFilter> _logger;
 
-    public DiscordValidationFilter(IOptions<DiscordSettings> settings)
+    public DiscordValidationFilter(IOptions<DiscordSettings> settings, ILogger<DiscordValidationFilter> logger)
     {
+        _logger = logger;
         _settings = settings.Value;
     }
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
+        _logger.LogInformation("Validating discord interaction");
         var request = context.HttpContext.Request;
 
         // Ensure the body can be read multiple times
@@ -32,19 +35,18 @@ public class DiscordValidationFilter : IEndpointFilter
 
         if (signature is null || timestamp is null)
         {
-            // todo: log and add these as parameters
-            Console.WriteLine("One or more headers are missing.");
+            _logger.LogError("Missing {signature} or {timestamp}", signature, timestamp);
             return TypedResults.BadRequest();
         }
 
         var validSignature = Signature.Verify(_settings.PublicKey, signature, timestamp, requestBody);
         if (!validSignature)
         {
-            Console.WriteLine("Signature verification failed.");
+            _logger.LogInformation("Discord interaction validation failed");
             return TypedResults.BadRequest();
         }
-
-        Console.WriteLine("Signature verification succeeded.");
+        
+        _logger.LogInformation("Discord interaction validated");
         return await next(context);
     }
 }
