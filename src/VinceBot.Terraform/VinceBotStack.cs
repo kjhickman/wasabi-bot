@@ -102,7 +102,7 @@ internal class VinceBotStack : TerraformStack
         var lambdaFunction = new LambdaFunction(this, "WasabiBotLambda", new LambdaFunctionConfig
         {
             FunctionName = $"{env}-{service}",
-            ImageUri = $"{vars.AWS_ACCOUNT_ID}.dkr.ecr.{region}.amazonaws.com/{service}:latest-{env}",
+            ImageUri = $"{vars.AWS_ACCOUNT_ID}.dkr.ecr.{region}.amazonaws.com/{service}:{env}",
             PackageType = "Image",
             Architectures = ["arm64"],
             MemorySize = 512,
