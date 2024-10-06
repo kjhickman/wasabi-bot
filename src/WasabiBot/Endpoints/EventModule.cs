@@ -8,21 +8,32 @@ public static class EventModule
 {
     public static WebApplication MapEventEndpoints(this WebApplication app)
     {
-        app.MapPost("/events", async (SqsEvent @event, IInteractionService interactionService) =>
+        app.MapPost("/events", async (SqsEvent @event, IInteractionService interactionService, ILogger<Program> logger) =>
         {
-            foreach (var record in @event.Records)
+            var response = new SqsBatchResponse();
+            foreach (var record in @event.Records) // TODO: parallelize
             {
-                var interaction = JsonSerializer.Deserialize(record.Body, JsonContext.Default.Interaction);
-                if (interaction is null)
+                try
                 {
-                    Console.WriteLine("Interaction could not be deserialized.");
-                    continue;
-                }
+                    var interaction = JsonSerializer.Deserialize(record.Body, JsonContext.Default.Interaction);
+                    if (interaction is null)
+                    {
+                        Console.WriteLine("Interaction could not be deserialized.");
+                        response.AddFailedMessageId(record.MessageId);
+                        continue;
+                    }
 
-                await interactionService.HandleDeferredInteraction(interaction);
+                    await interactionService.HandleDeferredInteraction(interaction);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    response.AddFailedMessageId(record.MessageId);
+                }
             }
 
-            return TypedResults.Ok();
+            logger.LogInformation(JsonSerializer.Serialize(response, JsonContext.Default.SqsBatchResponse));
+            return TypedResults.Ok(response);
         });
 
         return app;

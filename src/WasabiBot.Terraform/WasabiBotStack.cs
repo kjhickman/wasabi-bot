@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+using Amazon.ECR;
+using Amazon.ECR.Model;
 using Constructs;
 using HashiCorp.Cdktf;
 using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Api;
@@ -14,6 +15,7 @@ using HashiCorp.Cdktf.Providers.Aws.LambdaPermission;
 using HashiCorp.Cdktf.Providers.Aws.Provider;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueue;
 using WasabiBot.Terraform.Settings;
+// ReSharper disable ObjectCreationAsStatement
 
 namespace WasabiBot.Terraform;
 
@@ -38,10 +40,18 @@ internal class WasabiBotStack : TerraformStack
             // TODO: add DynamoDB locking
         });
         
+        var deferredDeadLetterQueue = new SqsQueue(this, "DeadLetterQueue", new SqsQueueConfig
+        {
+            Name = $"{env}-{service}-deferred-dlq",
+            MessageRetentionSeconds = 750,
+            VisibilityTimeoutSeconds = 30
+        });
+        
         var deferredQueue = new SqsQueue(this, "WasabiBotDeferredQueue", new SqsQueueConfig
         {
             Name = $"{env}-{service}-deferred",
-            VisibilityTimeoutSeconds = 30
+            VisibilityTimeoutSeconds = 30,
+            RedrivePolicy = $"{{\"deadLetterTargetArn\":\"{deferredDeadLetterQueue.Arn}\", \"maxReceiveCount\": 3}}"
         });
 
         var lambdaRole = new IamRole(this, "LambdaExecutionRole", new IamRoleConfig
@@ -92,6 +102,8 @@ internal class WasabiBotStack : TerraformStack
                        """
         });
         
+        var latestDigest = GetLatestImageDigestAsync(service, env).Result;
+        
         var lambdaEnvironmentVars = new Dictionary<string, string>
         {
             { nameof(vars.DISCORD_APPLICATION_ID), vars.DISCORD_APPLICATION_ID },
@@ -103,7 +115,7 @@ internal class WasabiBotStack : TerraformStack
         var lambdaFunction = new LambdaFunction(this, "WasabiBotLambda", new LambdaFunctionConfig
         {
             FunctionName = $"{env}-{service}",
-            ImageUri = $"{vars.AWS_ACCOUNT_ID}.dkr.ecr.{region}.amazonaws.com/{service}:{env}",
+            ImageUri = $"{vars.AWS_ACCOUNT_ID}.dkr.ecr.{region}.amazonaws.com/{service}@{latestDigest}",
             PackageType = "Image",
             Architectures = [vars.ARCHITECTURE],
             MemorySize = 512,
@@ -124,7 +136,8 @@ internal class WasabiBotStack : TerraformStack
             EventSourceArn = deferredQueue.Arn,
             FunctionName = lambdaFunction.FunctionName,
             BatchSize = 10,
-            Enabled = true
+            Enabled = true,
+            FunctionResponseTypes = ["ReportBatchItemFailures"]
         });
 
         var httpApi = new Apigatewayv2Api(this, "WasabiBotHttpApi", new Apigatewayv2ApiConfig
@@ -173,5 +186,23 @@ internal class WasabiBotStack : TerraformStack
         {
             Value = httpApi.ApiEndpoint
         });
+    }
+
+    private async Task<string?> GetLatestImageDigestAsync(string repository, string tag)
+    {
+        var ecrClient = new AmazonECRClient();
+
+        var request = new DescribeImagesRequest
+        {
+            RepositoryName = repository,
+            Filter = new DescribeImagesFilter { TagStatus = "TAGGED" },
+            MaxResults = 1
+        };
+
+        var response = await ecrClient.DescribeImagesAsync(request);
+        
+        var latestImage = response.ImageDetails.OrderByDescending(image => image.ImagePushedAt).FirstOrDefault(x => x.ImageTags.Contains(tag));
+
+        return latestImage?.ImageDigest;
     }
 }

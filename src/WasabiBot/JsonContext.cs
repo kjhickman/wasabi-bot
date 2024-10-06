@@ -10,4 +10,5 @@ namespace WasabiBot;
 [JsonSerializable(typeof(ApplicationCommandRegisterRequest))]
 [JsonSerializable(typeof(RegisterCommandsRequest))]
 [JsonSerializable(typeof(SqsEvent))]
+[JsonSerializable(typeof(SqsBatchResponse))]
 public partial class JsonContext : JsonSerializerContext;
