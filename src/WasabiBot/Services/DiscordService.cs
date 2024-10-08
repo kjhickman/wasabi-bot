@@ -10,9 +10,9 @@ public class DiscordService : IDiscordService
 {
     private readonly HttpClient _http;
     private readonly EnvironmentVariables _env;
-    private readonly ILogger<DiscordService> _logger;
+    private readonly ILogger _logger;
 
-    public DiscordService(HttpClient http, IOptions<EnvironmentVariables> options, ILogger<DiscordService> logger)
+    public DiscordService(HttpClient http, IOptions<EnvironmentVariables> options, ILogger logger)
     {
         _env = options.Value;
         _http = http;
@@ -22,21 +22,21 @@ public class DiscordService : IDiscordService
 
     public async Task RegisterGuildCommands(string guildId)
     {
-        _logger.LogInformation("Registering commands for guild {guildId}", guildId);
+        _logger.Information("Registering commands for guild {guildId}", guildId);
         var url = $"https://discord.com/api/v10/applications/{_env.DISCORD_APPLICATION_ID}/guilds/{guildId}/commands";
         await _http.PutAsJsonAsync(url, Constants.Definitions, JsonContext.Default.ApplicationCommandArray);
     }
 
     public async Task RegisterGlobalCommands()
     {
-        _logger.LogInformation("Registering global commands");
+        _logger.Information("Registering global commands");
         var url = $"https://discord.com/api/v10/applications/{_env.DISCORD_APPLICATION_ID}/commands";
         await _http.PutAsJsonAsync(url, Constants.Definitions, JsonContext.Default.ApplicationCommandArray);
     }
 
     public async Task CreateFollowupMessage(string token, string message)
     {
-        _logger.LogInformation("Creating followup message for interaction {token}", token);
+        _logger.Information("Creating followup message for interaction {token}", token);
         var data = new InteractionResponseData
         {
             MessageContent = message

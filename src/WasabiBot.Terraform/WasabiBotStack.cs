@@ -195,8 +195,10 @@ internal class WasabiBotStack : TerraformStack
         var request = new DescribeImagesRequest
         {
             RepositoryName = repository,
-            Filter = new DescribeImagesFilter { TagStatus = "TAGGED" },
-            MaxResults = 1
+            Filter = new DescribeImagesFilter
+            {
+                TagStatus = "TAGGED"
+            }
         };
 
         var response = await ecrClient.DescribeImagesAsync(request);

@@ -7,9 +7,9 @@ namespace WasabiBot.Services;
 public class InteractionService : IInteractionService
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<InteractionService> _logger;
+    private readonly ILogger _logger;
 
-    public InteractionService(IServiceProvider serviceProvider, ILogger<InteractionService> logger)
+    public InteractionService(IServiceProvider serviceProvider, ILogger logger)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
@@ -19,25 +19,25 @@ public class InteractionService : IInteractionService
     {
         if (interaction.Type == InteractionType.Ping)
         {
-            _logger.LogInformation("ACKing ping request");
+            _logger.Information("ACKing ping request");
             return InteractionResponse.Pong();
         }
 
         var commandName = interaction.Data?.Name;
         if (commandName is null)
         {
-            _logger.LogError("Invalid Interaction Data: missing command name");
+            _logger.Error("Invalid Interaction Data: missing command name");
             return null;
         }
 
         var handler = _serviceProvider.GetKeyedService<CommandHandler>(commandName);
         if (handler is null)
         {
-            _logger.LogError("Handler not found for command: {commandName}", commandName);
+            _logger.Error("Handler not found for command: {commandName}", commandName);
             return null;
         }
 
-        _logger.LogInformation("Handling interaction: {commandName}", commandName);
+        _logger.Information("Handling interaction: {commandName}", commandName);
         return await handler.HandleCommand(interaction);
     }
 
@@ -46,17 +46,17 @@ public class InteractionService : IInteractionService
         var commandName = interaction.Data?.Name;
         if (commandName is null)
         {
-            _logger.LogError("Invalid Interaction Data: missing command name");
+            _logger.Error("Invalid Interaction Data: missing command name");
             throw new Exception("Command name is required.");
         }
 
         if (_serviceProvider.GetKeyedService<CommandHandler>(commandName) is not DeferredCommandHandler handler)
         {
-            _logger.LogError("Handler not found for command: {commandName}", commandName);
+            _logger.Error("Handler not found for command: {commandName}", commandName);
             throw new Exception($"Handler not found for deferred command: {commandName}.");
         }
 
-        _logger.LogInformation("Handling deferred interaction: {commandName}", commandName);
+        _logger.Information("Handling deferred interaction: {commandName}", commandName);
         await handler.HandleDeferredCommand(interaction);
     }
 }

@@ -9,9 +9,9 @@ namespace WasabiBot.Filters;
 public class DiscordValidationFilter : IEndpointFilter
 {
     private readonly EnvironmentVariables _env;
-    private readonly ILogger<DiscordValidationFilter> _logger;
+    private readonly ILogger _logger;
 
-    public DiscordValidationFilter(IOptions<EnvironmentVariables> options, ILogger<DiscordValidationFilter> logger)
+    public DiscordValidationFilter(IOptions<EnvironmentVariables> options, ILogger logger)
     {
         _logger = logger;
         _env = options.Value;
@@ -19,7 +19,7 @@ public class DiscordValidationFilter : IEndpointFilter
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        _logger.LogInformation("Validating discord interaction");
+        _logger.Information("Validating discord interaction");
         var request = context.HttpContext.Request;
 
         // Ensure the body can be read multiple times
@@ -35,18 +35,18 @@ public class DiscordValidationFilter : IEndpointFilter
 
         if (signature is null || timestamp is null)
         {
-            _logger.LogError("Missing {signature} or {timestamp}", signature, timestamp);
+            _logger.Error("Missing {signature} or {timestamp}", signature, timestamp);
             return TypedResults.BadRequest();
         }
 
         var validSignature = Signature.Verify(_env.DISCORD_PUBLIC_KEY, signature, timestamp, requestBody);
         if (!validSignature)
         {
-            _logger.LogInformation("Discord interaction validation failed");
+            _logger.Information("Discord interaction validation failed");
             return TypedResults.BadRequest();
         }
         
-        _logger.LogInformation("Discord interaction validated");
+        _logger.Information("Discord interaction validated");
         return await next(context);
     }
 }

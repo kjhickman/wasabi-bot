@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Serilog.Context;
 using WasabiBot.Contracts;
 using WasabiBot.Discord;
 using WasabiBot.Filters;

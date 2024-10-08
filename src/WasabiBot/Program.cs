@@ -1,5 +1,7 @@
 ﻿using Amazon.SQS;
 using dotenv.net;
+using Serilog;
+using Serilog.Formatting.Compact;
 using WasabiBot;
 using WasabiBot.Commands;
 using WasabiBot.Endpoints;
@@ -8,8 +10,6 @@ using WasabiBot.Services;
 using WasabiBot.Settings;
 
 var builder = WebApplication.CreateSlimBuilder(args);
-
-builder.Logging.AddJsonConsole();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -24,6 +24,14 @@ builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
 DotEnv.Load();
 builder.Configuration.AddEnvironmentVariables();
 builder.Services.Configure<EnvironmentVariables>(builder.Configuration);
+
+builder.Logging.ClearProviders();
+ILogger logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .WriteTo.Console(new CompactJsonFormatter())
+    .CreateLogger();
+Log.Logger = logger;
+builder.Services.AddSingleton(logger);
 
 var app = builder.Build();
 
