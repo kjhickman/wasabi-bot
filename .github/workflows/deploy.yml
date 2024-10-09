@@ -6,6 +6,7 @@ on:
       - main
 
 env:
+  API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL }}
   ARCHITECTURE: x86_64
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
@@ -15,6 +16,32 @@ env:
   NEON_CONNECTION_STRING: ${{ secrets.NEON_CONNECTION_STRING }}
 
 jobs:
+  migrate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up .NET Core
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # Restore the project
+      - name: Restore project
+        run: dotnet restore src/WasabiBot/MigrationsRunner
+
+      # Build the project
+      - name: Build project
+        run: dotnet build src/WasabiBot/MigrationsRunner --no-restore --tl
+
+      # Migrate the database
+      - name: Migrate database
+        run: dotnet run --project src/WasabiBot.MigrationsRunner --no-build --tl
+
   deploy:
     runs-on: ubuntu-latest
 
@@ -69,3 +96,8 @@ jobs:
           mode: auto-approve-apply
           stackName: WasabiBot.Terraform
           workingDirectory: ./src/WasabiBot.Terraform
+
+      # Warm up lambda
+      - name: Warm up Lambda
+        run: |
+          curl ${{ secrets.API_GATEWAY_URL }}

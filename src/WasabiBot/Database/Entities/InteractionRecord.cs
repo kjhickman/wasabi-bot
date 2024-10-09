@@ -5,6 +5,7 @@ namespace WasabiBot.Database.Entities;
 
 public class InteractionRecord
 {
+    public required long Id { get; init; }
     public required int Type { get; init; }
     public string? Data { get; init; }
     public string? GuildId { get; init; }
@@ -27,6 +28,7 @@ public class InteractionRecord
     {
         return new InteractionRecord
         {
+            Id = long.Parse(interaction.Id),
             Type = (int)interaction.Type,
             Data = interaction.Data != null ? JsonSerializer.Serialize(interaction.Data, JsonContext.Default.InteractionData) : null,
             GuildId = interaction.GuildId,
