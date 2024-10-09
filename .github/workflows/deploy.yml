@@ -32,11 +32,11 @@ jobs:
 
       # Restore the project
       - name: Restore project
-        run: dotnet restore src/WasabiBot/MigrationsRunner
+        run: dotnet restore src/WasabiBot.MigrationsRunner
 
       # Build the project
       - name: Build project
-        run: dotnet build src/WasabiBot/MigrationsRunner --no-restore --tl
+        run: dotnet build src/WasabiBot.MigrationsRunner --no-restore --tl
 
       # Migrate the database
       - name: Migrate database
