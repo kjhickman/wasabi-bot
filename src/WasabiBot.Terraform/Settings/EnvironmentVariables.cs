@@ -10,4 +10,5 @@ public class EnvironmentVariables
     public string DISCORD_TOKEN { get; set; } = null!;
     public string DISCORD_APPLICATION_ID { get; set; } = null!;
     public string ENVIRONMENT { get; set; } = null!;
+    public string NEON_CONNECTION_STRING { get; set; } = null!;
 }

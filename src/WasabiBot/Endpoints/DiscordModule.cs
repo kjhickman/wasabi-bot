@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using Serilog.Context;
 using WasabiBot.Contracts;
+using WasabiBot.Database.Entities;
 using WasabiBot.Discord;
 using WasabiBot.Filters;
 using WasabiBot.Interfaces;
+using WasabiBot.Services;
 
 namespace WasabiBot.Endpoints;
 
@@ -34,7 +35,7 @@ public static class DiscordModule
     }
 
     public static async Task<Results<Ok<InteractionResponse>, ProblemHttpResult>> HandleInteraction(HttpContext ctx,
-        IInteractionService interactionService)
+        IInteractionService interactionService, ILogger logger, InteractionRecordService repo)
     {
         var interaction = await ctx.Request.ReadFromJsonAsync(JsonContext.Default.Interaction);
         if (interaction == null)
@@ -42,6 +43,16 @@ public static class DiscordModule
             return TypedResults.Problem();
         }
 
+        try
+        {
+            var interactionRecord = InteractionRecord.Create(interaction);
+            await repo.CreateAsync(interactionRecord);
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Failed to save the interaction.");
+        }
+        
         var response = await interactionService.HandleInteraction(interaction);
 
         return TypedResults.Ok(response);

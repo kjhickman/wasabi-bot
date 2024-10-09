@@ -1,0 +1,20 @@
+create table interaction_record (
+    id uuid primary key default gen_random_uuid(),
+    type smallint not null,
+    data jsonb,
+    guild_id text,
+    channel_id text,
+    member_nickname text,
+    member_avatar_hash text,
+    member_role_ids text[],
+    member_joined_at timestamptz,
+    member_premium_since timestamptz,
+    member_deafened boolean,
+    member_muted boolean,
+    member_permissions text,
+    user_id text not null,
+    username text not null,
+    user_global_name text not null,
+    version int not null,
+    received_at timestamptz not null
+);

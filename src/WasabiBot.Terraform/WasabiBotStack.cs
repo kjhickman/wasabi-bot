@@ -109,7 +109,8 @@ internal class WasabiBotStack : TerraformStack
             { nameof(vars.DISCORD_APPLICATION_ID), vars.DISCORD_APPLICATION_ID },
             { "DISCORD_DEFERRED_EVENT_QUEUE_URL", deferredQueue.Url },
             { nameof(vars.DISCORD_PUBLIC_KEY), vars.DISCORD_PUBLIC_KEY },
-            { nameof(vars.DISCORD_TOKEN), vars.DISCORD_TOKEN }
+            { nameof(vars.DISCORD_TOKEN), vars.DISCORD_TOKEN },
+            { "ConnectionStrings__Postgres", vars.NEON_CONNECTION_STRING },
         };
         
         var lambdaFunction = new LambdaFunction(this, "WasabiBotLambda", new LambdaFunctionConfig

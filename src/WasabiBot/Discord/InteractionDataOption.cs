@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using WasabiBot.Discord.Enums;
 
@@ -12,8 +13,11 @@ public class InteractionDataOption
     public ApplicationCommandOptionType Type { get; set; }
 
     [JsonPropertyName("value")]
-    public string? Value { get; set; }
+    public JsonElement? Value { get; set; }
 
     [JsonPropertyName("options")]
     public IEnumerable<InteractionDataOption>? Options { get; set; }
+
+    [JsonPropertyName("focused")]
+    public bool? Focused { get; set; }
 }

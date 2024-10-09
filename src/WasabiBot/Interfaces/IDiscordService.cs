@@ -1,5 +1,3 @@
-using WasabiBot.Discord;
-
 namespace WasabiBot.Interfaces;
 
 public interface IDiscordService

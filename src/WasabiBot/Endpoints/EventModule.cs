@@ -8,7 +8,7 @@ public static class EventModule
 {
     public static WebApplication MapEventEndpoints(this WebApplication app)
     {
-        app.MapPost("/events", async (SqsEvent @event, IInteractionService interactionService, ILogger logger) =>
+        app.MapPost("/events", async (SqsEvent @event, IInteractionService interactionService, ILogger logger, HttpContext ctx) =>
         {
             var response = new SqsBatchResponse();
             foreach (var record in @event.Records) // TODO: parallelize
@@ -32,7 +32,6 @@ public static class EventModule
                 }
             }
 
-            logger.Information(JsonSerializer.Serialize(response, JsonContext.Default.SqsBatchResponse));
             return TypedResults.Ok(response);
         });
 

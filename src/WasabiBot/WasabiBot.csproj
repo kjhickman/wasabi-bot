@@ -7,6 +7,7 @@
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
     </PropertyGroup>
 
     <ItemGroup>
@@ -17,7 +18,10 @@
 
     <ItemGroup>
         <PackageReference Include="AWSSDK.SQS" Version="3.7.400.29"/>
+        <PackageReference Include="Dapper" Version="2.1.35" />
+        <PackageReference Include="Dapper.AOT" Version="1.0.31" />
         <PackageReference Include="dotenv.net" Version="3.2.1"/>
+        <PackageReference Include="Npgsql" Version="8.0.4" />
         <PackageReference Include="Serilog" Version="4.0.2" />
         <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
