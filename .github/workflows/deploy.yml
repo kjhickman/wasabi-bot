@@ -12,6 +12,7 @@ env:
   DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
   DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
   ENVIRONMENT: 'prd'
+  NEON_CONNECTION_STRING: ${{ secrets.NEON_CONNECTION_STRING }}
 
 jobs:
   deploy:
