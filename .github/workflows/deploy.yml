@@ -101,4 +101,4 @@ jobs:
       # Warm up lambda
       - name: Warm up Lambda
         run: |
-          curl ${{ secrets.API_GATEWAY_URL }}
+          curl ${{ secrets.API_GATEWAY_URL }}/warmup

@@ -39,7 +39,7 @@ builder.Services.AddSingleton(logger);
 
 var app = builder.Build();
 
-app.MapGet("/", () => "Hello, world!");
+app.MapGet("/warmup", () => TypedResults.Ok());
 app.MapDiscordEndpoints();
 app.MapEventEndpoints();
 
