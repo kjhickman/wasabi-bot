@@ -107,7 +107,7 @@ internal class WasabiBotStack : TerraformStack
         var lambdaEnvironmentVars = new Dictionary<string, string>
         {
             { nameof(vars.DISCORD_APPLICATION_ID), vars.DISCORD_APPLICATION_ID },
-            { nameof(vars.DISCORD_DEFERRED_EVENT_QUEUE_URL), deferredQueue.Url },
+            { "DISCORD_DEFERRED_EVENT_QUEUE_URL", deferredQueue.Url },
             { nameof(vars.DISCORD_PUBLIC_KEY), vars.DISCORD_PUBLIC_KEY },
             { nameof(vars.DISCORD_TOKEN), vars.DISCORD_TOKEN }
         };
