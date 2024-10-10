@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Amazon.SQS;
 using Microsoft.Extensions.Options;
-using WasabiBot.Discord;
-using WasabiBot.Discord.Enums;
+using WasabiBot.Core.Discord;
+using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Settings;
 
 namespace WasabiBot.Interfaces;

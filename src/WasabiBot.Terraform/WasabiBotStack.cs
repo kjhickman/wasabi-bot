@@ -111,6 +111,7 @@ internal class WasabiBotStack : TerraformStack
             { nameof(vars.DISCORD_PUBLIC_KEY), vars.DISCORD_PUBLIC_KEY },
             { nameof(vars.DISCORD_TOKEN), vars.DISCORD_TOKEN },
             { "ConnectionStrings__Postgres", vars.NEON_CONNECTION_STRING },
+            { "AWS_LWA_PASS_THROUGH_PATH", "/v1/events" },
         };
         
         var lambdaFunction = new LambdaFunction(this, "WasabiBotLambda", new LambdaFunctionConfig

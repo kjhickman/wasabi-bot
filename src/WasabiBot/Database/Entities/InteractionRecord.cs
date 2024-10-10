@@ -1,5 +1,5 @@
 using System.Text.Json;
-using WasabiBot.Discord;
+using WasabiBot.Core.Discord;
 
 namespace WasabiBot.Database.Entities;
 

@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
-using WasabiBot.Contracts;
-using WasabiBot.Discord;
+using WasabiBot.Core.Contracts;
+using WasabiBot.Core.Discord;
+using WasabiBot.Core.Models.Aws;
 
 namespace WasabiBot;
 

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 using WasabiBot.Commands;
-using WasabiBot.Discord;
+using WasabiBot.Core.Discord;
 using WasabiBot.Interfaces;
 using WasabiBot.Settings;
 
