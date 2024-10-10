@@ -19,12 +19,12 @@ public class InteractionRecordService
                            INSERT INTO interaction_record (
                                id, type, data, guild_id, channel_id, member_nickname, member_avatar_hash, 
                                member_role_ids, member_joined_at, member_premium_since, member_deafened, member_muted,
-                               member_permissions, user_id, username, user_global_name, version, received_at
+                               member_permissions, user_id, username, user_global_name, version, created_at, inserted_at
                            )
                            VALUES (
                                @Id, @Type, @Data::jsonb, @GuildId, @ChannelId, @MemberNickname, @MemberAvatarHash, 
                                @MemberRoleIds, @MemberJoinedAt, @MemberPremiumSince, @MemberDeafened, @MemberMuted,
-                               @MemberPermissions, @UserId, @Username, @UserGlobalName, @Version, @ReceivedAt
+                               @MemberPermissions, @UserId, @Username, @UserGlobalName, @Version, @CreatedAt, now()
                            );
                            """;
         
