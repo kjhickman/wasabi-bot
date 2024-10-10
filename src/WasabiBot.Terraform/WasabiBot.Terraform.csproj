@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\..\.env">
+    <Content Include="..\..\.env" Condition="Exists('..\..\.env')">
       <Link>.env</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
