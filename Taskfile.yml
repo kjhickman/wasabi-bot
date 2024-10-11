@@ -19,12 +19,12 @@ tasks:
   restore:
     desc: Restore assets for CDKTF
     cmds:
-      - dotnet restore src/WasabiBot.Terraform
+      - dotnet restore infra/WasabiBot.Terraform
   
   deploy:
       desc: Deploy via CDKTF
       deps: [push, restore]
-      dir: src/WasabiBot.Terraform
+      dir: infra/WasabiBot.Terraform
       cmds:
         - cdktf deploy --auto-approve
         - curl ${DEV_WARMUP_URL}
@@ -37,4 +37,4 @@ tasks:
   migrate:
     desc: Migrate the database
     cmds:
-      - dotnet run --project src/WasabiBot.MigrationsRunner
+      - dotnet run --project infra/WasabiBot.MigrationsRunner
