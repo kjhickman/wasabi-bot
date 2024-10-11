@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using WasabiBot.Core.Discord;
 using WasabiBot.Database.Entities;
 using WasabiBot.Interfaces;
+using WasabiBot.Messaging.Messages;
 using WasabiBot.Services;
 
 namespace WasabiBot.Endpoints.Discord;
@@ -9,26 +10,28 @@ namespace WasabiBot.Endpoints.Discord;
 public static class InteractionEndpoint
 {
     public static async Task<Results<Ok<InteractionResponse>, ProblemHttpResult>> Handle(HttpContext ctx,
-        IInteractionService interactionService, ILogger logger, InteractionRecordService repo)
+        IInteractionService interactionService, ILogger logger, IMessageClient messageClient)
     {
         var interaction = await ctx.Request.ReadFromJsonAsync(JsonContext.Default.Interaction);
-        if (interaction == null)
+        if (interaction is null)
         {
+            logger.Error("Interaction was null.");
             return TypedResults.Problem();
         }
 
-        try
+        var message = InteractionReceivedMessage.FromInteraction(interaction);
+        var sendMessageResult = await messageClient.SendMessage(message);
+        if (sendMessageResult.IsError)
         {
-            var interactionRecord = InteractionRecord.Create(interaction);
-            await repo.CreateAsync(interactionRecord);
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "Failed to save the interaction.");
+            logger.Error(sendMessageResult.Error, "Error sending {MessageType}", nameof(message));
         }
         
-        var response = await interactionService.HandleInteraction(interaction);
-
-        return TypedResults.Ok(response);
+        var result = await interactionService.HandleInteraction(interaction);
+        if (result.IsOk)
+        {
+            return TypedResults.Ok(result.Value);
+        }
+        
+        return TypedResults.Problem();
     }
 }

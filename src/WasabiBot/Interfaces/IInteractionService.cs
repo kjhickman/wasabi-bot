@@ -1,9 +1,10 @@
+using WasabiBot.Core;
 using WasabiBot.Core.Discord;
 
 namespace WasabiBot.Interfaces;
 
 public interface IInteractionService
 {
-    Task<InteractionResponse?> HandleInteraction(Interaction interaction);
-    Task HandleDeferredInteraction(Interaction interaction);
+    Task<Result<InteractionResponse>> HandleInteraction(Interaction interaction);
+    Task<Result> HandleDeferredInteraction(Interaction interaction);
 }

@@ -1,3 +1,4 @@
+using WasabiBot.Core;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Interfaces;
@@ -8,15 +9,15 @@ public class PingHandler : CommandHandler
 {
     public static string Name => "ping";
 
-    public override Task<InteractionResponse> HandleCommand(Interaction interaction)
+    public override Task<Result<InteractionResponse>> HandleCommand(Interaction interaction)
     {
-        return Task.FromResult(new InteractionResponse
+        return Task.FromResult(Result<InteractionResponse>.Ok(new InteractionResponse
         {
             Type = InteractionResponseType.ChannelMessageWithSource,
             Data = new InteractionResponseData
             {
                 MessageContent = "Pong!"
             }
-        });
+        }));
     }
 }

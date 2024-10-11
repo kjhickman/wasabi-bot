@@ -1,8 +1,10 @@
+using WasabiBot.Core;
+
 namespace WasabiBot.Interfaces;
 
 public interface IDiscordService
 {
-    Task RegisterGuildCommands(string guildId);
-    Task RegisterGlobalCommands();
-    Task CreateFollowupMessage(string token, string message);
+    Task<Result> RegisterGuildCommands(string guildId);
+    Task<Result> RegisterGlobalCommands();
+    Task<Result> CreateFollowupMessage(string token, string message);
 }

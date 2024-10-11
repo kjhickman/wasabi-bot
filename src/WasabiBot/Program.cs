@@ -8,6 +8,8 @@ using WasabiBot;
 using WasabiBot.Commands;
 using WasabiBot.Endpoints;
 using WasabiBot.Interfaces;
+using WasabiBot.Messaging.Handlers;
+using WasabiBot.Messaging.Messages;
 using WasabiBot.Services;
 using WasabiBot.Settings;
 
@@ -28,6 +30,10 @@ builder.Services.AddCommandHandlers();
 builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
 builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(builder.Configuration.GetConnectionString("Postgres")));
 builder.Services.AddScoped<InteractionRecordService>();
+builder.Services.AddScoped<IMessageHandler<DeferredInteractionMessage>, InteractionMessageHandler>();
+builder.Services.AddScoped<IMessageHandler<InteractionReceivedMessage>, InteractionReceivedHandler>();
+builder.Services.AddScoped<MessageHandlerRouter>();
+builder.Services.AddScoped<IMessageClient, SqsMessageClient>();
 
 builder.Logging.ClearProviders();
 ILogger logger = new LoggerConfiguration()
@@ -35,7 +41,7 @@ ILogger logger = new LoggerConfiguration()
     .WriteTo.Console(new CompactJsonFormatter())
     .CreateLogger();
 Log.Logger = logger;
-builder.Services.AddSingleton(logger);
+builder.Services.AddSerilog(logger);
 
 var app = builder.Build();
 

@@ -26,9 +26,7 @@
         <PackageReference Include="Dapper.AOT" Version="1.0.31" />
         <PackageReference Include="dotenv.net" Version="3.2.1"/>
         <PackageReference Include="Npgsql" Version="8.0.4" />
-        <PackageReference Include="Serilog" Version="4.0.2" />
-        <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
-        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
     </ItemGroup>
 
     <ItemGroup>

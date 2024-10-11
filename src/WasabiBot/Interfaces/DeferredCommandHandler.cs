@@ -1,33 +1,37 @@
-using System.Text.Json;
-using Amazon.SQS;
-using Microsoft.Extensions.Options;
+using WasabiBot.Core;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
-using WasabiBot.Settings;
+using WasabiBot.Messaging.Messages;
 
 namespace WasabiBot.Interfaces;
 
 public abstract class DeferredCommandHandler : CommandHandler
 {
-    private readonly IAmazonSQS _sqs;
-    private readonly EnvironmentVariables _env;
+    private readonly IMessageClient _messageClient;
     
-    protected DeferredCommandHandler(IAmazonSQS sqs, IOptions<EnvironmentVariables> options)
+    protected DeferredCommandHandler(IMessageClient messageClient)
     {
-        _sqs = sqs;
-        _env = options.Value;
+        _messageClient = messageClient;
     }
 
-    public abstract Task HandleDeferredCommand(Interaction interaction);
+    public abstract Task<Result> HandleDeferredCommand(Interaction interaction);
     
-    public override async Task<InteractionResponse> HandleCommand(Interaction interaction)
+    public override async Task<Result<InteractionResponse>> HandleCommand(Interaction interaction)
     {
-        var messageJson = JsonSerializer.Serialize(interaction, JsonContext.Default.Interaction);
-        await _sqs.SendMessageAsync(_env.DISCORD_DEFERRED_EVENT_QUEUE_URL, messageJson);
-
-        return new InteractionResponse
+        try
         {
-            Type = InteractionResponseType.DeferredChannelMessageWithSource
-        };
+            var message = DeferredInteractionMessage.FromInteraction(interaction);
+            await _messageClient.SendMessage(message);
+
+            return new InteractionResponse
+            {
+                Type = InteractionResponseType.DeferredChannelMessageWithSource
+            };
+        }
+        catch (Exception e)
+        {
+            return e;
+        }
+        
     }
 }

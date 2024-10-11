@@ -1,34 +1,36 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
-using WasabiBot.Core.Contracts;
 using WasabiBot.Core.Models.Aws;
-using WasabiBot.Interfaces;
+using WasabiBot.Services;
 
 namespace WasabiBot.Endpoints.Events;
 
 public static class EventsEndpoint
 {
-    public static async Task<Ok<SqsBatchResponse>> Handle(SqsEvent sqsEvent, IInteractionService interactionService,
-        ILogger logger)
+    public static async Task<Ok<SqsBatchResponse>> Handle(SqsEvent sqsEvent, MessageHandlerRouter router, ILogger logger)
     {
         var response = new SqsBatchResponse();
-        await Parallel.ForEachAsync(sqsEvent.Records, async (record, _) =>
+        await Parallel.ForEachAsync(sqsEvent.Records, async (record, ct) =>
         {
             try
             {
-                var interaction = JsonSerializer.Deserialize(record.Body, JsonContext.Default.Interaction);
-                if (interaction is null)
+                if (!record.MessageAttributes.TryGetValue("MessageHandler", out var messageAttribute))
                 {
-                    logger.Error("Interaction could not be deserialized.");
+                    logger.Error("No attribute for MessageHandler");
                     response.AddFailedMessageId(record.MessageId);
                     return;
                 }
 
-                await interactionService.HandleDeferredInteraction(interaction);
+                var result = await router.Route(record.Body, messageAttribute.StringValue, ct);
+                if (result.IsError)
+                {
+                    logger.Error(result.Error, "Error while processing message");
+                    response.AddFailedMessageId(record.MessageId);
+                }
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                logger.Error(e, "An exception occurred while handling event.");
                 response.AddFailedMessageId(record.MessageId);
             }
         });
