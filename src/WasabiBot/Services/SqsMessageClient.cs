@@ -3,6 +3,7 @@ using Amazon.SQS;
 using Amazon.SQS.Model;
 using Microsoft.Extensions.Options;
 using WasabiBot.Core;
+using WasabiBot.Core.Extensions;
 using WasabiBot.Interfaces;
 using WasabiBot.Settings;
 
@@ -39,8 +40,7 @@ public class SqsMessageClient : IMessageClient
                 }
             };
         
-            await _sqs.SendMessageAsync(request);
-            return Result.Ok();
+            return await _sqs.SendMessageAsync(request).AsResult();
         }
         catch (Exception e)
         {

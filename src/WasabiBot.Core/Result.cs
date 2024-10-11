@@ -29,6 +29,10 @@ public class Result<T>
     [MemberNotNullWhen(true, nameof(Value))]
     [MemberNotNullWhen(false, nameof(Error))]
     public bool IsOk { get; }
+    
+    [MemberNotNullWhen(false, nameof(Value))]
+    [MemberNotNullWhen(true, nameof(Error))]
+    public bool IsError => !IsOk;
     public T? Value { get; }
     public Exception? Error { get; }
 

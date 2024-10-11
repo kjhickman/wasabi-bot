@@ -1,6 +1,7 @@
 using System.Data;
 using Dapper;
 using WasabiBot.Core;
+using WasabiBot.Core.Extensions;
 using WasabiBot.Database.Entities;
 
 namespace WasabiBot.Services;
@@ -29,14 +30,7 @@ public class InteractionRecordService
                 @MemberPermissions, @UserId, @Username, @UserGlobalName, @Version, @CreatedAt, now()
             );
             """;
-        try
-        {
-            await _connection.ExecuteAsync(sql, record);
-            return Result.Ok();
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
+        
+        return await _connection.ExecuteAsync(sql, record).AsResult();
     }
 }

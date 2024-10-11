@@ -1,5 +1,6 @@
 ﻿using WasabiBot.Core;
 using WasabiBot.Core.Discord;
+using WasabiBot.Core.Extensions;
 using WasabiBot.Database.Entities;
 using WasabiBot.Interfaces;
 using WasabiBot.Messaging.Messages;
@@ -18,20 +19,17 @@ public class InteractionReceivedHandler : IMessageHandler<InteractionReceivedMes
 
     public async Task<Result> Handle(IMessage message, CancellationToken ct = default)
     {
-        try
+        if (message is not Interaction interaction)
         {
-            if (message is not Interaction interaction)
-            {
-                return Result.Fail("Message is not interaction");
-            }
-        
-            var record = InteractionRecord.Create(interaction);
+            return Result.Fail("Message is not interaction");
+        }
+    
+        var result = InteractionRecord.Create(interaction);
+        if (result.IsError)
+        {
+            return result.DropValue();
+        }
 
-            return await _interactionRecordService.CreateAsync(record);
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
+        return await _interactionRecordService.CreateAsync(result.Value);
     }
 }

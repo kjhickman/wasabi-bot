@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using WasabiBot.Commands;
 using WasabiBot.Core;
 using WasabiBot.Core.Discord;
+using WasabiBot.Core.Extensions;
 using WasabiBot.Interfaces;
 using WasabiBot.Settings;
 
@@ -21,48 +22,24 @@ public class DiscordService : IDiscordService
 
     public async Task<Result> RegisterGuildCommands(string guildId)
     {
-        try
-        {
-            var url = $"https://discord.com/api/v10/applications/{_env.DISCORD_APPLICATION_ID}/guilds/{guildId}/commands";
-            await _http.PutAsJsonAsync(url, Constants.Definitions, JsonContext.Default.ApplicationCommandArray);
-            return Result.Ok();
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
+        var url = $"https://discord.com/api/v10/applications/{_env.DISCORD_APPLICATION_ID}/guilds/{guildId}/commands";
+        return await _http.PutAsJsonAsync(url, Constants.Definitions, JsonContext.Default.ApplicationCommandArray).AsResult();
     }
 
     public async Task<Result> RegisterGlobalCommands()
     {
-        try
-        {
-            var url = $"https://discord.com/api/v10/applications/{_env.DISCORD_APPLICATION_ID}/commands";
-            await _http.PutAsJsonAsync(url, Constants.Definitions, JsonContext.Default.ApplicationCommandArray);
-            return Result.Ok();
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
+        var url = $"https://discord.com/api/v10/applications/{_env.DISCORD_APPLICATION_ID}/commands";
+        return await _http.PutAsJsonAsync(url, Constants.Definitions, JsonContext.Default.ApplicationCommandArray).AsResult();
     }
 
     public async Task<Result> CreateFollowupMessage(string token, string message)
     {
-        try
+        var data = new InteractionResponseData
         {
-            var data = new InteractionResponseData
-            {
-                MessageContent = message
-            };
-        
-            var url = $"https://discord.com/api/v10/webhooks/{_env.DISCORD_APPLICATION_ID}/{token}";
-            await _http.PostAsJsonAsync(url, data, JsonContext.Default.InteractionResponseData);
-            return Result.Ok();
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
+            MessageContent = message
+        };
+    
+        var url = $"https://discord.com/api/v10/webhooks/{_env.DISCORD_APPLICATION_ID}/{token}";
+        return await _http.PostAsJsonAsync(url, data, JsonContext.Default.InteractionResponseData).AsResult();
     }
 }

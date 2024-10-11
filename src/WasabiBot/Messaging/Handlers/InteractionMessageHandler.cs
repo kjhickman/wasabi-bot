@@ -16,18 +16,11 @@ public class InteractionMessageHandler : IMessageHandler<DeferredInteractionMess
     
     public async Task<Result> Handle(IMessage message, CancellationToken ct = default)
     {
-        try
+        if (message is not Interaction interaction)
         {
-            if (message is not Interaction interaction)
-            {
-                return Result.Fail("Couldn't cast message to interaction");
-            }
+            return Result.Fail("Couldn't cast message to interaction");
+        }
 
-            return await _interactionService.HandleDeferredInteraction(interaction);
-        }
-        catch (Exception e)
-        {
-            return e;
-        }
+        return await _interactionService.HandleDeferredInteraction(interaction);
     }
 }
