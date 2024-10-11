@@ -24,6 +24,3 @@ cdktf.log
 *terraform.*.tfstate*
 *.tfplan
 .gen/
-
-# Old sln file keeps coming back
-.sln
