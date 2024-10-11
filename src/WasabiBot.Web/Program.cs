@@ -42,7 +42,7 @@ ILogger logger = new LoggerConfiguration()
     .WriteTo.Console(new CompactJsonFormatter())
     .CreateLogger();
 Log.Logger = logger;
-builder.Services.AddSerilog(logger);
+builder.Services.AddSingleton(logger);
 
 var app = builder.Build();
 

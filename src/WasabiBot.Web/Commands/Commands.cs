@@ -10,13 +10,13 @@ public static class Commands
     [
         new()
         {
-            Name = PingHandlerBase.Name,
+            Name = PingCommand.Name,
             Description = "Receive a pong",
             Type = ApplicationCommandType.ChatInput
         },
         new()
         {
-            Name = DeferredPingHandlerBase.Name,
+            Name = DeferredPingCommand.Name,
             Description = "Receive a deferred pong",
             Type = ApplicationCommandType.ChatInput
         }

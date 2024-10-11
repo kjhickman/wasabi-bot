@@ -27,6 +27,7 @@ tasks:
       dir: src/WasabiBot.Terraform
       cmds:
         - cdktf deploy --auto-approve
+        - curl ${DEV_WARMUP_URL}
 
   auth:
     desc: Authenticate with ECR
