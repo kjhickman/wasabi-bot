@@ -1,6 +1,6 @@
-using WasabiBot.Core;
+using WasabiBot.Core.Models;
 
-namespace WasabiBot.Interfaces;
+namespace WasabiBot.Core.Interfaces;
 
 public interface IMessageClient
 {

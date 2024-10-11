@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using WasabiBot.Core;
-using WasabiBot.Core.Contracts;
-using WasabiBot.Interfaces;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.Core.Models;
+using WasabiBot.Core.Models.Contracts;
 
 namespace WasabiBot.Endpoints.Discord;
 

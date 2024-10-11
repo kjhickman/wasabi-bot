@@ -2,12 +2,12 @@ using System.Text.Json;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using Microsoft.Extensions.Options;
-using WasabiBot.Core;
 using WasabiBot.Core.Extensions;
-using WasabiBot.Interfaces;
-using WasabiBot.Settings;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.Core.Models;
+using WasabiBot.DataAccess.Settings;
 
-namespace WasabiBot.Services;
+namespace WasabiBot.DataAccess.Services;
 
 public class SqsMessageClient : IMessageClient
 {
@@ -24,7 +24,7 @@ public class SqsMessageClient : IMessageClient
     {
         try
         {
-            var jsonTypeInfo = JsonContext.Default.GetTypeInfo(typeof(T));
+            var jsonTypeInfo = DataAccessJsonContext.Default.GetTypeInfo(typeof(T));
             if (jsonTypeInfo is null)
             {
                 throw new Exception($"Missing Json Type Info for {typeof(T).Name}");

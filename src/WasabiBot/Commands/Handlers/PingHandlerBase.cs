@@ -1,11 +1,11 @@
 using WasabiBot.Core;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
-using WasabiBot.Interfaces;
+using WasabiBot.Core.Models;
 
 namespace WasabiBot.Commands.Handlers;
 
-public class PingHandler : CommandHandler
+public class PingHandlerBase : CommandHandlerBase
 {
     public static string Name => "ping";
 

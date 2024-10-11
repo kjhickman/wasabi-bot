@@ -1,4 +1,4 @@
-namespace WasabiBot.Core.Contracts;
+namespace WasabiBot.Core.Models.Contracts;
 
 public class RegisterCommandsRequest
 {

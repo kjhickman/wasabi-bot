@@ -1,4 +1,4 @@
-namespace WasabiBot.Interfaces;
+namespace WasabiBot.Core.Interfaces;
 
 public interface IMessage
 {

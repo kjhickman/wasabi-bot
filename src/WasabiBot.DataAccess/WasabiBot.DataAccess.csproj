@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="AWSSDK.SQS" Version="3.7.400.29"/>
+        <PackageReference Include="Dapper" Version="2.1.35" />
+        <PackageReference Include="Dapper.AOT" Version="1.0.31" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\WasabiBot.Core\WasabiBot.Core.csproj" />
+    </ItemGroup>
+
+</Project>

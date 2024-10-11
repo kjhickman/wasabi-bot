@@ -6,12 +6,13 @@ using Serilog;
 using Serilog.Formatting.Compact;
 using WasabiBot;
 using WasabiBot.Commands;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.DataAccess.Handlers;
+using WasabiBot.DataAccess.Messages;
+using WasabiBot.DataAccess.Services;
+using WasabiBot.DataAccess.Settings;
 using WasabiBot.Endpoints;
-using WasabiBot.Interfaces;
-using WasabiBot.Messaging.Handlers;
-using WasabiBot.Messaging.Messages;
 using WasabiBot.Services;
-using WasabiBot.Settings;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -21,7 +22,7 @@ builder.Services.Configure<EnvironmentVariables>(builder.Configuration);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.TypeInfoResolverChain.Insert(0, JsonContext.Default);
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
 });
 builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IDiscordService, DiscordService>();

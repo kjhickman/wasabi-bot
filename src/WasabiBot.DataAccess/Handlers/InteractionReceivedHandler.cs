@@ -1,12 +1,12 @@
-﻿using WasabiBot.Core;
-using WasabiBot.Core.Discord;
+﻿using WasabiBot.Core.Discord;
 using WasabiBot.Core.Extensions;
-using WasabiBot.Database.Entities;
-using WasabiBot.Interfaces;
-using WasabiBot.Messaging.Messages;
-using WasabiBot.Services;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.Core.Models;
+using WasabiBot.Core.Models.Entities;
+using WasabiBot.DataAccess.Messages;
+using WasabiBot.DataAccess.Services;
 
-namespace WasabiBot.Messaging.Handlers;
+namespace WasabiBot.DataAccess.Handlers;
 
 public class InteractionReceivedHandler : IMessageHandler<InteractionReceivedMessage>
 {

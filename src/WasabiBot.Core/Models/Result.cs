@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace WasabiBot.Core;
+namespace WasabiBot.Core.Models;
 
 public class Result<T>
 {

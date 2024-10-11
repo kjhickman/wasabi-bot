@@ -1,8 +1,10 @@
 using System.Text.Json;
 using WasabiBot.Core;
-using WasabiBot.Interfaces;
-using WasabiBot.Messaging.Handlers;
-using WasabiBot.Messaging.Messages;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.Core.Models;
+using WasabiBot.DataAccess;
+using WasabiBot.DataAccess.Handlers;
+using WasabiBot.DataAccess.Messages;
 
 namespace WasabiBot.Services;
 
@@ -32,15 +34,15 @@ public class MessageHandlerRouter
 
     private static async Task<Result> InvokeHandler<T>(IMessageHandler<T> handler, string messageBody, CancellationToken ct = default) where T : IMessage
     {
-        var messageJsonTypeInfo = JsonContext.Default.GetTypeInfo(handler.MessageType);
+        var messageJsonTypeInfo = DataAccessJsonContext.Default.GetTypeInfo(handler.MessageType);
         if (messageJsonTypeInfo is null)
         {
-            return Result.Fail($"Unable to get message json type info from {nameof(handler.MessageType)}");
+            return Result.Fail($"Unable to get message json type info from {handler.MessageType.Name}");
         }
 
         if (JsonSerializer.Deserialize(messageBody, messageJsonTypeInfo) is not IMessage message)
         {
-            return Result.Fail($"Failed to deserialize message body for {nameof(handler.MessageType)}");
+            return Result.Fail($"Failed to deserialize message body for {handler.MessageType.Name}");
         }
                 
         return await handler.Handle(message, ct);

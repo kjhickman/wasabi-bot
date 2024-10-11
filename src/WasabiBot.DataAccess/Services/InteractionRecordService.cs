@@ -1,10 +1,10 @@
 using System.Data;
 using Dapper;
-using WasabiBot.Core;
 using WasabiBot.Core.Extensions;
-using WasabiBot.Database.Entities;
+using WasabiBot.Core.Models;
+using WasabiBot.Core.Models.Entities;
 
-namespace WasabiBot.Services;
+namespace WasabiBot.DataAccess.Services;
 
 public class InteractionRecordService
 {

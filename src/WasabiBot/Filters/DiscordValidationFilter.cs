@@ -2,7 +2,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Extensions;
-using WasabiBot.Settings;
+using WasabiBot.DataAccess.Settings;
 
 namespace WasabiBot.Filters;
 

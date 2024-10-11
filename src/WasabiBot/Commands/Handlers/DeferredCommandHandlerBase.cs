@@ -1,15 +1,17 @@
 using WasabiBot.Core;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
-using WasabiBot.Messaging.Messages;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.Core.Models;
+using WasabiBot.DataAccess.Messages;
 
-namespace WasabiBot.Interfaces;
+namespace WasabiBot.Commands.Handlers;
 
-public abstract class DeferredCommandHandler : CommandHandler
+public abstract class DeferredCommandHandlerBase : CommandHandlerBase
 {
     private readonly IMessageClient _messageClient;
     
-    protected DeferredCommandHandler(IMessageClient messageClient)
+    protected DeferredCommandHandlerBase(IMessageClient messageClient)
     {
         _messageClient = messageClient;
     }

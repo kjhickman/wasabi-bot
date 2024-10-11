@@ -1,14 +1,15 @@
 using WasabiBot.Core;
 using WasabiBot.Core.Discord;
-using WasabiBot.Interfaces;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.Core.Models;
 
 namespace WasabiBot.Commands.Handlers;
 
-public class DeferredPingHandler : DeferredCommandHandler
+public class DeferredPingHandlerBase : DeferredCommandHandlerBase
 {
     private readonly IDiscordService _discordService;
 
-    public DeferredPingHandler(IMessageClient messageClient, IDiscordService discordService) : base(messageClient)
+    public DeferredPingHandlerBase(IMessageClient messageClient, IDiscordService discordService) : base(messageClient)
     {
         _discordService = discordService;
     }

@@ -1,5 +1,5 @@
 // ReSharper disable InconsistentNaming
-namespace WasabiBot.Settings;
+namespace WasabiBot.DataAccess.Settings;
 
 public class EnvironmentVariables
 {

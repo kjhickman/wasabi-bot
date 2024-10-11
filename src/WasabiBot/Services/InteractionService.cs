@@ -1,7 +1,9 @@
+using WasabiBot.Commands.Handlers;
 using WasabiBot.Core;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
-using WasabiBot.Interfaces;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.Core.Models;
 
 namespace WasabiBot.Services;
 
@@ -29,7 +31,7 @@ public class InteractionService : IInteractionService
                 return Result<InteractionResponse>.Fail("Invalid Interaction Data: missing command name");
             }
 
-            var handler = _serviceProvider.GetKeyedService<CommandHandler>(commandName);
+            var handler = _serviceProvider.GetKeyedService<CommandHandlerBase>(commandName);
             if (handler is null)
             {
                 return Result<InteractionResponse>.Fail($"Handler not found for command: {commandName}");
@@ -51,7 +53,7 @@ public class InteractionService : IInteractionService
             return Result.Fail("Invalid Interaction Data: missing command name");
         }
 
-        if (_serviceProvider.GetKeyedService<CommandHandler>(commandName) is not DeferredCommandHandler handler)
+        if (_serviceProvider.GetKeyedService<CommandHandlerBase>(commandName) is not DeferredCommandHandlerBase handler)
         {
             return Result.Fail($"Handler not found for command: {commandName}");
         }

@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using WasabiBot.Core.Discord;
-using WasabiBot.Database.Entities;
-using WasabiBot.Interfaces;
-using WasabiBot.Messaging.Messages;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.DataAccess.Messages;
 using WasabiBot.Services;
 
 namespace WasabiBot.Endpoints.Discord;
@@ -12,7 +11,7 @@ public static class InteractionEndpoint
     public static async Task<Results<Ok<InteractionResponse>, ProblemHttpResult>> Handle(HttpContext ctx,
         IInteractionService interactionService, ILogger logger, IMessageClient messageClient)
     {
-        var interaction = await ctx.Request.ReadFromJsonAsync(JsonContext.Default.Interaction);
+        var interaction = await ctx.Request.ReadFromJsonAsync(WebJsonContext.Default.Interaction);
         if (interaction is null)
         {
             logger.Error("Interaction was null.");

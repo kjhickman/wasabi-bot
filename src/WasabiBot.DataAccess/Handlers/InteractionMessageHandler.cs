@@ -1,9 +1,9 @@
-using WasabiBot.Core;
 using WasabiBot.Core.Discord;
-using WasabiBot.Interfaces;
-using WasabiBot.Messaging.Messages;
+using WasabiBot.Core.Interfaces;
+using WasabiBot.Core.Models;
+using WasabiBot.DataAccess.Messages;
 
-namespace WasabiBot.Messaging.Handlers;
+namespace WasabiBot.DataAccess.Handlers;
 
 public class InteractionMessageHandler : IMessageHandler<DeferredInteractionMessage>
 {

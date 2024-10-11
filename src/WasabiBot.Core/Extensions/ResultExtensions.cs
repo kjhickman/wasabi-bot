@@ -1,4 +1,6 @@
-﻿namespace WasabiBot.Core.Extensions;
+﻿using WasabiBot.Core.Models;
+
+namespace WasabiBot.Core.Extensions;
 
 public static class ResultExtensions
 {
