@@ -4,15 +4,15 @@ using dotenv.net;
 using Npgsql;
 using Serilog;
 using Serilog.Formatting.Compact;
-using WasabiBot;
-using WasabiBot.Commands;
+using WasabiBot.Web;
+using WasabiBot.Web.Commands;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.DataAccess.Handlers;
 using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
 using WasabiBot.DataAccess.Settings;
-using WasabiBot.Endpoints;
-using WasabiBot.Services;
+using WasabiBot.Web.Endpoints;
+using WasabiBot.Web.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 

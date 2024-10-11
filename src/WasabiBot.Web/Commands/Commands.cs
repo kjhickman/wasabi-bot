@@ -1,8 +1,8 @@
-using WasabiBot.Commands.Handlers;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
+using WasabiBot.Web.Commands.Handlers;
 
-namespace WasabiBot.Commands;
+namespace WasabiBot.Web.Commands;
 
 public static class Commands
 {

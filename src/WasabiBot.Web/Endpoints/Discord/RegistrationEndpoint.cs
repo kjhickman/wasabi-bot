@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using WasabiBot.Core;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.Core.Models;
 using WasabiBot.Core.Models.Contracts;
 
-namespace WasabiBot.Endpoints.Discord;
+namespace WasabiBot.Web.Endpoints.Discord;
 
 public static class RegistrationEndpoint
 {

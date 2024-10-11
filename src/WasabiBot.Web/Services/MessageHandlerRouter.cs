@@ -1,12 +1,11 @@
 using System.Text.Json;
-using WasabiBot.Core;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.Core.Models;
 using WasabiBot.DataAccess;
 using WasabiBot.DataAccess.Handlers;
 using WasabiBot.DataAccess.Messages;
 
-namespace WasabiBot.Services;
+namespace WasabiBot.Web.Services;
 
 public class MessageHandlerRouter
 {

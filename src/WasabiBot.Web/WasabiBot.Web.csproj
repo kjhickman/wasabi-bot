@@ -6,8 +6,6 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PublishAot>true</PublishAot>
-        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-        <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -22,7 +20,6 @@
 
     <ItemGroup>
         <PackageReference Include="dotenv.net" Version="3.2.1"/>
-        <PackageReference Include="Npgsql" Version="8.0.4" />
         <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
     </ItemGroup>
 

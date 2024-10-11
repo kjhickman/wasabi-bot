@@ -1,11 +1,10 @@
-using WasabiBot.Core;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.Core.Models;
 using WasabiBot.DataAccess.Messages;
 
-namespace WasabiBot.Commands.Handlers;
+namespace WasabiBot.Web.Commands.Handlers;
 
 public abstract class DeferredCommandHandlerBase : CommandHandlerBase
 {

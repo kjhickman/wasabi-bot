@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Extensions;
@@ -6,7 +5,7 @@ using WasabiBot.Core.Interfaces;
 using WasabiBot.Core.Models;
 using WasabiBot.DataAccess.Settings;
 
-namespace WasabiBot.DataAccess.Services;
+namespace WasabiBot.Web.Services;
 
 public class DiscordService : IDiscordService
 {

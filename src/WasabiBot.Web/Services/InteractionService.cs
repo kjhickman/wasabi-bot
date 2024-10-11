@@ -1,11 +1,10 @@
-using WasabiBot.Commands.Handlers;
-using WasabiBot.Core;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.Core.Models;
+using WasabiBot.Web.Commands.Handlers;
 
-namespace WasabiBot.Services;
+namespace WasabiBot.Web.Services;
 
 public class InteractionService : IInteractionService
 {

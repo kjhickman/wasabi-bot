@@ -1,8 +1,7 @@
-using WasabiBot.Core;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Models;
 
-namespace WasabiBot.Commands.Handlers;
+namespace WasabiBot.Web.Commands.Handlers;
 
 public abstract class CommandHandlerBase
 {

@@ -4,7 +4,7 @@ using WasabiBot.Core.Discord;
 using WasabiBot.Core.Extensions;
 using WasabiBot.DataAccess.Settings;
 
-namespace WasabiBot.Filters;
+namespace WasabiBot.Web.Filters;
 
 public class DiscordValidationFilter : IEndpointFilter
 {

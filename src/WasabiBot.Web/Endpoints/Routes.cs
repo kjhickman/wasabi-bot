@@ -1,8 +1,8 @@
-using WasabiBot.Endpoints.Discord;
-using WasabiBot.Endpoints.Events;
-using WasabiBot.Filters;
+using WasabiBot.Web.Endpoints.Discord;
+using WasabiBot.Web.Endpoints.Events;
+using WasabiBot.Web.Filters;
 
-namespace WasabiBot.Endpoints;
+namespace WasabiBot.Web.Endpoints;
 
 public static class Routes
 {

@@ -3,7 +3,7 @@ using WasabiBot.Core.Discord;
 using WasabiBot.Core.Models.Aws;
 using WasabiBot.Core.Models.Contracts;
 
-namespace WasabiBot;
+namespace WasabiBot.Web;
 
 [JsonSerializable(typeof(Interaction))]
 [JsonSerializable(typeof(InteractionResponse))]

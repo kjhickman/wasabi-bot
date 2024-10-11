@@ -2,9 +2,8 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.DataAccess.Messages;
-using WasabiBot.Services;
 
-namespace WasabiBot.Endpoints.Discord;
+namespace WasabiBot.Web.Endpoints.Discord;
 
 public static class InteractionEndpoint
 {

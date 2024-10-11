@@ -1,9 +1,8 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
 using WasabiBot.Core.Models.Aws;
-using WasabiBot.Services;
+using WasabiBot.Web.Services;
 
-namespace WasabiBot.Endpoints.Events;
+namespace WasabiBot.Web.Endpoints.Events;
 
 public static class EventsEndpoint
 {

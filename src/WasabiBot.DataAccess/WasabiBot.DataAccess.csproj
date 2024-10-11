@@ -4,6 +4,7 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
     </PropertyGroup>
     
     <ItemGroup>
@@ -11,6 +12,7 @@
         <PackageReference Include="Dapper" Version="2.1.35" />
         <PackageReference Include="Dapper.AOT" Version="1.0.31" />
         <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+        <PackageReference Include="Npgsql" Version="8.0.4" />
     </ItemGroup>
 
     <ItemGroup>
