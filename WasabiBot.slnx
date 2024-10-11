@@ -1,6 +1,7 @@
 ﻿<Solution>
   <Project Path="src\WasabiBot.Core\WasabiBot.Core.csproj" Type="Classic C#" />
+  <Project Path="src\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" Type="Classic C#" />
   <Project Path="src\WasabiBot.MigrationsRunner\WasabiBot.MigrationsRunner.csproj" Type="Classic C#" />
   <Project Path="src\WasabiBot.Terraform\WasabiBot.Terraform.csproj" Type="Classic C#" />
-  <Project Path="src\WasabiBot\WasabiBot.csproj" Type="Classic C#" />
+  <Project Path="src\WasabiBot.Web\WasabiBot.Web.csproj" Type="Classic C#" />
 </Solution>

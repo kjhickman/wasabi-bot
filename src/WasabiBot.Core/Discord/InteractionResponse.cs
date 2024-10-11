@@ -15,4 +15,9 @@ public class InteractionResponse
     {
         return new InteractionResponse { Type = InteractionResponseType.Pong };
     }
+    
+    public static InteractionResponse Defer()
+    {
+        return new InteractionResponse { Type = InteractionResponseType.DeferredChannelMessageWithSource };
+    }
 }

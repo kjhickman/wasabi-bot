@@ -7,7 +7,7 @@ DotEnv.Load();
 var connectionString = Environment.GetEnvironmentVariable("NEON_CONNECTION_STRING");
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    Console.WriteLine("Connection string is missing.");
+    Console.WriteLine("Connection string is missing");
     return -1;
 }
 
@@ -20,7 +20,7 @@ var upgradeEngine = DeployChanges.To.PostgresqlDatabase(connectionString)
 
 if (!upgradeEngine.IsUpgradeRequired())
 {
-    Console.WriteLine("No upgrade required.");
+    Console.WriteLine("No upgrade required");
     return 0;
 }
 
