@@ -31,6 +31,6 @@ public class InteractionRecordService
             );
             """;
         
-        return await _connection.ExecuteAsync(sql, record).AsResult();
+        return await _connection.ExecuteAsync(sql, record).Try();
     }
 }
