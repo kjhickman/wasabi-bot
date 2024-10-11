@@ -29,7 +29,7 @@ public static class EventsEndpoint
             }
             catch (Exception e)
             {
-                logger.Error(e, "An exception occurred while handling event.");
+                logger.Error(e, "An exception occurred while handling event");
                 response.AddFailedMessageId(record.MessageId);
             }
         });

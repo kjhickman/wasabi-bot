@@ -13,7 +13,7 @@ public static class InteractionEndpoint
         var interaction = await ctx.Request.ReadFromJsonAsync(WebJsonContext.Default.Interaction);
         if (interaction is null)
         {
-            logger.Error("Interaction was null.");
+            logger.Error("Interaction was null");
             return TypedResults.Problem();
         }
 

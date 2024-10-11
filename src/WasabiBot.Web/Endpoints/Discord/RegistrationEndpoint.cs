@@ -15,7 +15,7 @@ public static class RegistrationEndpoint
             result = await commandsService.RegisterGuildCommands(request.GuildId);
             if (result.IsError)
             {
-                logger.Error(result.Error, "Failed to register guild commands.");
+                logger.Error(result.Error, "Failed to register guild commands");
             }
         }
 
@@ -24,7 +24,7 @@ public static class RegistrationEndpoint
             result = await commandsService.RegisterGlobalCommands();
             if (result.IsError)
             {
-                logger.Error(result.Error, "Failed to register global commands.");
+                logger.Error(result.Error, "Failed to register global commands");
             }
         }
 
