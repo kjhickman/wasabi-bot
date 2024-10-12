@@ -40,7 +40,7 @@ public class SqsMessageClient : IMessageClient
                 }
             };
         
-            return await _sqs.SendMessageAsync(request).Try();
+            return await _sqs.SendMessageAsync(request).TryDropValue();
         }
         catch (Exception e)
         {

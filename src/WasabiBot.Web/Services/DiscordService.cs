@@ -24,19 +24,19 @@ public class DiscordService : IDiscordService
     public async Task<Result> RegisterGuildCommands(string guildId)
     {
         var url = $"https://discord.com/api/v10/applications/{_env.DISCORD_APPLICATION_ID}/guilds/{guildId}/commands";
-        return await _http.PutAsJsonAsync(url, Commands.Commands.Definitions, WebJsonContext.Default.ApplicationCommandArray).Try();
+        return await _http.PutAsJsonAsync(url, Commands.Commands.Definitions, WebJsonContext.Default.ApplicationCommandArray).TryDropValue();
     }
 
     public async Task<Result> RegisterGlobalCommands()
     {
         var url = $"https://discord.com/api/v10/applications/{_env.DISCORD_APPLICATION_ID}/commands";
-        return await _http.PutAsJsonAsync(url, Commands.Commands.Definitions, WebJsonContext.Default.ApplicationCommandArray).Try();
+        return await _http.PutAsJsonAsync(url, Commands.Commands.Definitions, WebJsonContext.Default.ApplicationCommandArray).TryDropValue();
     }
 
     public async Task<Result> CreateFollowupMessage(string token, InteractionResponseData data)
     {
         _logger.Information("Creating followup message for token {Token}", token);
         var url = $"https://discord.com/api/v10/webhooks/{_env.DISCORD_APPLICATION_ID}/{token}";
-        return await _http.PostAsJsonAsync(url, data, WebJsonContext.Default.InteractionResponseData).Try();
+        return await _http.PostAsJsonAsync(url, data, WebJsonContext.Default.InteractionResponseData).TryDropValue();
     }
 }

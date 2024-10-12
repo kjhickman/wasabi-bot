@@ -4,7 +4,7 @@ namespace WasabiBot.Core.Extensions;
 
 public static class ResultExtensions
 {
-    public static async Task<Result<T>> TryGetResult<T>(this Task<T> task)
+    public static async Task<Result<T>> Try<T>(this Task<T> task)
     {
         try
         {
@@ -16,7 +16,7 @@ public static class ResultExtensions
         }
     }
     
-    public static async Task<Result> Try<T>(this Task<T> task)
+    public static async Task<Result> Try(this Task task)
     {
         try
         {
@@ -29,7 +29,7 @@ public static class ResultExtensions
         }
     }
     
-    public static async Task<Result> Try(this Task task)
+    public static async Task<Result> TryDropValue<T>(this Task<T> task)
     {
         try
         {

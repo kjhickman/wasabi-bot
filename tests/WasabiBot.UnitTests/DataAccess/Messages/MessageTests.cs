@@ -3,12 +3,14 @@ using WasabiBot.DataAccess;
 
 namespace WasabiBot.UnitTests.DataAccess.Messages;
 
-public class TypeAddedToJsonSerializerContext
+public class MessageTests
 {
     [Test]
-    public void MyTest()
+    public void DataAccessJsonContext_Contains_AllMessageTypes()
     {
-        var handlerTypes = FindTypesImplementingInterface(typeof(IMessageHandler<>));
+        var assemblies = System.Reflection.Assembly.Load("WasabiBot.DataAccess");
+        var handlerTypes = assemblies.GetTypes()
+            .Where(t => typeof(IMessage).IsAssignableFrom(t) && t is { IsClass: true, IsAbstract: false });
         foreach (var handlerType in handlerTypes)
         {
             var handlerJsonTypeInfo = DataAccessJsonContext.Default.GetTypeInfo(handlerType);
@@ -17,12 +19,5 @@ public class TypeAddedToJsonSerializerContext
                 Assert.Fail($"Type {handlerType.Name} was not added to the JsonSerializerContext");
             }
         }
-    }
-    
-    private IEnumerable<Type> FindTypesImplementingInterface(Type interfaceType)
-    {
-        var assemblies = System.Reflection.Assembly.Load("WasabiBot.DataAccess");
-        
-        return assemblies.GetTypes().Where(t => interfaceType.IsAssignableFrom(t) && t is { IsClass: true, IsAbstract: false });
     }
 }
