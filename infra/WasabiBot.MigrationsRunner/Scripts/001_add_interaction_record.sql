@@ -17,5 +17,5 @@ create table interaction_record (
     user_global_name text not null,
     version int not null,
     created_at timestamptz not null,
-    inserted_at timestamptz not null
+    inserted_at timestamptz not null default now()
 );
