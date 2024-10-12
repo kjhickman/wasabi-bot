@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  workflow_run:
+    workflows: [ "build" ]
+    types:
+      - completed
 
 env:
   API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL }}
@@ -32,15 +36,15 @@ jobs:
 
       # Restore the project
       - name: Restore project
-        run: dotnet restore src/WasabiBot.MigrationsRunner
+        run: dotnet restore infra/WasabiBot.MigrationsRunner
 
       # Build the project
       - name: Build project
-        run: dotnet build src/WasabiBot.MigrationsRunner --no-restore --tl
+        run: dotnet build infra/WasabiBot.MigrationsRunner --no-restore --tl
 
       # Migrate the database
       - name: Migrate database
-        run: dotnet run --project src/WasabiBot.MigrationsRunner --no-build --tl
+        run: dotnet run --project infra/WasabiBot.MigrationsRunner --no-build --tl
 
   deploy:
     runs-on: ubuntu-latest
@@ -71,7 +75,7 @@ jobs:
       # Build the Docker image
       - name: Build Docker image
         run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/wasabi-bot:$ENVIRONMENT . -f src/WasabiBot/Dockerfile
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/wasabi-bot:$ENVIRONMENT . -f src/WasabiBot.Web/Dockerfile
 
       # Push the image to ECR
       - name: Push Docker image to ECR
@@ -87,7 +91,7 @@ jobs:
       # Restore CDKTF Assets
       - name: Restore CDKTF Assets
         run: |
-          dotnet restore src/WasabiBot.Terraform
+          dotnet restore infra/WasabiBot.Terraform
 
       # Deploy via CDKTF
       - name: Run Terraform CDK
@@ -96,7 +100,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           mode: auto-approve-apply
           stackName: WasabiBot.Terraform
-          workingDirectory: ./src/WasabiBot.Terraform
+          workingDirectory: ./infra/WasabiBot.Terraform
 
       # Warm up lambda
       - name: Warm up Lambda

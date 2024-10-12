@@ -1,7 +1,14 @@
 ﻿<Solution>
-  <Project Path="src\WasabiBot.Core\WasabiBot.Core.csproj" Type="Classic C#" />
-  <Project Path="src\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" Type="Classic C#" />
-  <Project Path="src\WasabiBot.MigrationsRunner\WasabiBot.MigrationsRunner.csproj" Type="Classic C#" />
-  <Project Path="src\WasabiBot.Terraform\WasabiBot.Terraform.csproj" Type="Classic C#" />
-  <Project Path="src\WasabiBot.Web\WasabiBot.Web.csproj" Type="Classic C#" />
+  <Folder Name="/infra/">
+    <Project Path="infra/WasabiBot.MigrationsRunner/WasabiBot.MigrationsRunner.csproj" Type="Classic C#" />
+    <Project Path="infra/WasabiBot.Terraform/WasabiBot.Terraform.csproj" Type="Classic C#" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/WasabiBot.Core/WasabiBot.Core.csproj" Type="Classic C#" />
+    <Project Path="src/WasabiBot.DataAccess/WasabiBot.DataAccess.csproj" Type="Classic C#" />
+    <Project Path="src/WasabiBot.Web/WasabiBot.Web.csproj" Type="Classic C#" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WasabiBot.UnitTests/WasabiBot.UnitTests.csproj" Type="Classic C#" />
+  </Folder>
 </Solution>
