@@ -11,7 +11,7 @@ WORKDIR "/src/src/WasabiBot.Web"
 RUN dotnet build "WasabiBot.Web.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "WasabiBot.Web.csproj" -c Release -o /app/publish
+RUN dotnet publish "WasabiBot.Web.csproj" -c Release -o /app/publish /p:DebugType=None
 
 FROM base AS final
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 /lambda-adapter /opt/extensions/lambda-adapter
