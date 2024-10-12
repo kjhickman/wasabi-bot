@@ -12,7 +12,7 @@ tasks:
 
   push:
     desc: Push the image to ECR
-    deps: [build]
+    deps: [build, auth]
     cmds:
       - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}
 
