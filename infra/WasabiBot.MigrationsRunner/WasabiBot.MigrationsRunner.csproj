@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="dbup-postgresql" Version="5.0.40" />
-      <PackageReference Include="dotenv.net" Version="3.2.1" />
+      <PackageReference Include="dbup-postgresql" />
+      <PackageReference Include="dotenv.net" />
     </ItemGroup>
 
     <ItemGroup>
