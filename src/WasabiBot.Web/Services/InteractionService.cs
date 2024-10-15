@@ -13,61 +13,34 @@ public class InteractionService : IInteractionService
     private readonly IServiceProvider _serviceProvider;
     private readonly IDiscordService _discordService;
     private readonly ILogger _logger;
-    private readonly IMessageClient _messageClient;
 
-    public InteractionService(IServiceProvider serviceProvider, IDiscordService discordService, ILogger logger, IMessageClient messageClient)
+    public InteractionService(IServiceProvider serviceProvider, IDiscordService discordService, ILogger logger)
     {
         _serviceProvider = serviceProvider;
         _discordService = discordService;
         _logger = logger;
-        _messageClient = messageClient;
     }
 
     public async Task<Result<InteractionResponse>> HandleInteraction(Interaction interaction)
     {
-        try
+        if (interaction.Type == InteractionType.Ping)
         {
-            if (interaction.Type == InteractionType.Ping)
-            {
-                return InteractionResponse.Pong();
-            }
-
-            var commandName = interaction.Data?.Name;
-            if (commandName is null)
-            {
-                return Result<InteractionResponse>.Fail("Invalid Interaction Data: missing command name");
-            }
-
-            var command = _serviceProvider.GetKeyedService<CommandBase>(commandName);
-            if (command is null)
-            {
-                return Result<InteractionResponse>.Fail($"Handler not found for command: {commandName}");
-            }
-
-            var creationTime = SnowflakeHelper.ConvertToDateTimeOffset(long.Parse(interaction.Id));
-            var timeToExecute = creationTime.AddMilliseconds(2500) - DateTime.UtcNow;
-            if (timeToExecute < TimeSpan.Zero)
-            {
-                _logger.Warning("Interaction timed out");
-                var msg = DeferredInteractionMessage.FromInteraction(interaction);
-                await _messageClient.SendMessage(msg);
-                return InteractionResponse.Defer();
-            }
-            using var cts = new CancellationTokenSource(timeToExecute);
-
-            return await command.Execute(interaction, cts.Token);
+            return InteractionResponse.Pong();
         }
-        catch (OperationCanceledException)
+
+        var commandName = interaction.Data?.Name;
+        if (commandName is null)
         {
-            _logger.Warning("Interaction timed out");
-            var msg = DeferredInteractionMessage.FromInteraction(interaction);
-            await _messageClient.SendMessage(msg);
-            return InteractionResponse.Defer();
+            return Result<InteractionResponse>.Fail("Invalid Interaction Data: missing command name");
         }
-        catch (Exception e)
+
+        var command = _serviceProvider.GetKeyedService<CommandBase>(commandName);
+        if (command is null)
         {
-            return e;
+            return Result<InteractionResponse>.Fail($"Handler not found for command: {commandName}");
         }
+
+        return await command.Execute(interaction, CancellationToken.None);
     }
 
     public async Task<Result> HandleDeferredInteraction(Interaction interaction, CancellationToken ct = default)

@@ -8,7 +8,7 @@ namespace WasabiBot.Web.Endpoints.Discord;
 public static class InteractionEndpoint
 {
     public static async Task<Results<Ok<InteractionResponse>, ProblemHttpResult>> Handle(HttpContext ctx,
-        IInteractionService interactionService, ILogger logger, IMessageClient messageClient)
+        IInteractionService interactionService, ILogger logger)
     {
         var interaction = await ctx.Request.ReadFromJsonAsync(WebJsonContext.Default.Interaction);
         if (interaction is null)
@@ -16,20 +16,14 @@ public static class InteractionEndpoint
             logger.Error("Interaction was null");
             return TypedResults.Problem();
         }
-
-        var message = InteractionReceivedMessage.FromInteraction(interaction);
-        var sendMessageResult = await messageClient.SendMessage(message);
-        if (sendMessageResult.IsError)
-        {
-            logger.Error(sendMessageResult.Error, "Error sending {MessageType}", nameof(message));
-        }
         
         var result = await interactionService.HandleInteraction(interaction);
-        if (result.IsOk)
+        if (result.IsError)
         {
-            return TypedResults.Ok(result.Value);
+            logger.Error(result.Error, "Error handling interaction");
+            return TypedResults.Problem();
         }
         
-        return TypedResults.Problem();
+        return TypedResults.Ok(result.Value);
     }
 }

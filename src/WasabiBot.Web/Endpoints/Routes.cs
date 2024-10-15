@@ -13,7 +13,7 @@ public static class Routes
             .AddEndpointFilter<DiscordValidationFilter>();
         discordGroup.MapPost("/register", RegistrationEndpoint.Handle);
         
-        app.MapPost("/events", EventsEndpoint.Handle);
+        // app.MapPost("/events", EventsEndpoint.Handle);
 
         return app;
     }
