@@ -1,0 +1,11 @@
+{
+  "language": "csharp",
+  "app": "dotnet run --project WasabiBot.Terraform.csproj",
+  "projectId": "b5ff670d-a4a4-46b4-8d49-85a68b2add23",
+  "sendCrashReports": "true",
+  "terraformProviders": [
+    "hashicorp/aws@~>5.0"
+  ],
+  "terraformModules": [],
+  "context": {}
+}

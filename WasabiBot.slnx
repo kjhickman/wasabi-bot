@@ -1,4 +1,7 @@
 ﻿<Solution>
+  <Folder Name="/infra/">
+    <Project Path="infra/WasabiBot.Terraform/WasabiBot.Terraform.csproj" Type="Classic C#" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/WasabiBot.Core/WasabiBot.Core.csproj" Type="Classic C#" />
     <Project Path="src/WasabiBot.DataAccess/WasabiBot.DataAccess.csproj" Type="Classic C#" />
