@@ -1,7 +1,7 @@
 using System.Data;
 using Dapper;
+using FluentResults;
 using WasabiBot.Core.Extensions;
-using WasabiBot.Core.Models;
 using WasabiBot.Core.Models.Entities;
 
 namespace WasabiBot.DataAccess.Services;

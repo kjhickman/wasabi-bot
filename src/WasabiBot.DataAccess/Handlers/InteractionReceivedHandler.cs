@@ -1,7 +1,7 @@
-﻿using WasabiBot.Core.Discord;
+﻿using FluentResults;
+using WasabiBot.Core.Discord;
 using WasabiBot.Core.Extensions;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.Core.Models;
 using WasabiBot.Core.Models.Entities;
 using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
@@ -25,7 +25,7 @@ public class InteractionReceivedHandler : IMessageHandler<InteractionReceivedMes
         }
     
         var result = InteractionRecord.Create(interaction);
-        if (result.IsError)
+        if (result.IsFailed)
         {
             return result.DropValue();
         }

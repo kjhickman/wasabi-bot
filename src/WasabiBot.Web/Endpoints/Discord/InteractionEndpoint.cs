@@ -17,9 +17,9 @@ public static class InteractionEndpoint
         }
         
         var result = await interactionService.HandleInteraction(interaction);
-        if (result.IsError)
+        if (result.IsFailed)
         {
-            logger.Error(result.Error, "Error handling interaction");
+            logger.Error("Failed to handle interaction: {Errors}", string.Join(", ", result.Errors));
             return TypedResults.Problem();
         }
         

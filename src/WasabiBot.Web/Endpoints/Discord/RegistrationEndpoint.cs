@@ -1,6 +1,6 @@
+using FluentResults;
 using Microsoft.AspNetCore.Http.HttpResults;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.Core.Models;
 using WasabiBot.Core.Models.Contracts;
 
 namespace WasabiBot.Web.Endpoints.Discord;
@@ -13,18 +13,18 @@ public static class RegistrationEndpoint
         if (request.GuildId is not null)
         {
             result = await commandsService.RegisterGuildCommands(request.GuildId);
-            if (result.IsError)
+            if (result.IsFailed)
             {
-                logger.Error(result.Error, "Failed to register guild commands");
+                logger.Error("Failed to register guild commands: {Errors}", string.Join(", ", result.Errors));
             }
         }
 
         if (request.RegisterGlobalCommands)
         {
             result = await commandsService.RegisterGlobalCommands();
-            if (result.IsError)
+            if (result.IsFailed)
             {
-                logger.Error(result.Error, "Failed to register global commands");
+                logger.Error("Failed to register global commands: {Errors}", string.Join(", ", result.Errors));
             }
         }
 

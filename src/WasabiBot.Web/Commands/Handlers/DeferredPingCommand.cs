@@ -1,6 +1,6 @@
+using FluentResults;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
-using WasabiBot.Core.Models;
 
 namespace WasabiBot.Web.Commands.Handlers;
 

@@ -1,4 +1,4 @@
-using WasabiBot.Core.Models;
+using FluentResults;
 
 namespace WasabiBot.Core.Interfaces;
 

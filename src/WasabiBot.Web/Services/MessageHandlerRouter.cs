@@ -1,6 +1,6 @@
 using System.Text.Json;
+using FluentResults;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.Core.Models;
 using WasabiBot.DataAccess;
 using WasabiBot.DataAccess.Handlers;
 using WasabiBot.DataAccess.Messages;

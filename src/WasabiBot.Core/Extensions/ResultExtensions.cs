@@ -1,4 +1,4 @@
-﻿using WasabiBot.Core.Models;
+﻿using FluentResults;
 
 namespace WasabiBot.Core.Extensions;
 
@@ -12,7 +12,7 @@ public static class ResultExtensions
         }
         catch (Exception e)
         {
-            return Result<T>.Fail(e);
+            return Result.Fail<T>(e.Message);
         }
     }
     
@@ -25,7 +25,7 @@ public static class ResultExtensions
         }
         catch (Exception e)
         {
-            return e;
+            return Result.Fail(e.Message);
         }
     }
     
@@ -38,12 +38,12 @@ public static class ResultExtensions
         }
         catch (Exception e)
         {
-            return e;
+            return Result.Fail(e.Message);
         }
     }
 
     public static Result DropValue<T>(this Result<T> result)
     {
-        return result.IsOk ? Result.Ok() : Result.Fail(result.Error);
+        return result.IsSuccess ? Result.Ok() : Result.Fail(result.Errors);
     }
 }

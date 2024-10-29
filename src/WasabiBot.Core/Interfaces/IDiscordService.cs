@@ -1,5 +1,5 @@
+using FluentResults;
 using WasabiBot.Core.Discord;
-using WasabiBot.Core.Models;
 
 namespace WasabiBot.Core.Interfaces;
 

@@ -1,10 +1,10 @@
 using System.Text.Json;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using FluentResults;
 using Microsoft.Extensions.Options;
 using WasabiBot.Core.Extensions;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.Core.Models;
 using WasabiBot.DataAccess.Settings;
 
 namespace WasabiBot.DataAccess.Services;
@@ -44,7 +44,7 @@ public class SqsMessageClient : IMessageClient
         }
         catch (Exception e)
         {
-            return e;
+            return Result.Fail(e.Message);
         }
     }
 }

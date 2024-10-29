@@ -1,7 +1,7 @@
+using FluentResults;
 using Serilog;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.Core.Models;
 using WasabiBot.DataAccess.Messages;
 
 namespace WasabiBot.DataAccess.Handlers;

@@ -1,8 +1,8 @@
+using FluentResults;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Core.Extensions;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.Core.Models;
 using WasabiBot.Web.Commands.Handlers;
 
 namespace WasabiBot.Web.Services;
@@ -30,13 +30,13 @@ public class InteractionService : IInteractionService
         var commandName = interaction.Data?.Name;
         if (commandName is null)
         {
-            return Result<InteractionResponse>.Fail("Invalid Interaction Data: missing command name");
+            return Result.Fail<InteractionResponse>("Invalid Interaction Data: missing command name");
         }
 
         var command = _serviceProvider.GetKeyedService<CommandBase>(commandName);
         if (command is null)
         {
-            return Result<InteractionResponse>.Fail($"Handler not found for command: {commandName}");
+            return Result.Fail<InteractionResponse>($"Handler not found for command: {commandName}");
         }
 
         return await command.Execute(interaction, CancellationToken.None);
@@ -59,7 +59,7 @@ public class InteractionService : IInteractionService
         
         _logger.Information("Executing command: {CommandName}", commandName);
         var result = await command.Execute(interaction, ct);
-        if (result.IsError)
+        if (result.IsFailed)
         {
             return result.DropValue();
         }

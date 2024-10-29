@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FluentResults;
 using WasabiBot.Core.Discord;
 
 namespace WasabiBot.Core.Models.Entities;
@@ -61,7 +62,7 @@ public class InteractionRecord
         }
         catch (Exception e)
         {
-            return e;
+            return new Error(e.Message);
         }
     }
 }
