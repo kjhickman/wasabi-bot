@@ -1,5 +1,4 @@
 using WasabiBot.Web.Endpoints.Discord;
-using WasabiBot.Web.Endpoints.Events;
 using WasabiBot.Web.Filters;
 
 namespace WasabiBot.Web.Endpoints;

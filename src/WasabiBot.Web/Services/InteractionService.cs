@@ -3,7 +3,6 @@ using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Core.Extensions;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.Core.Models;
-using WasabiBot.DataAccess.Messages;
 using WasabiBot.Web.Commands.Handlers;
 
 namespace WasabiBot.Web.Services;

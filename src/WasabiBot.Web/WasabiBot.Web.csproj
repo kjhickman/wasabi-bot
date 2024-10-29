@@ -19,7 +19,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="dotenv.net" />
         <PackageReference Include="Serilog.AspNetCore" />
     </ItemGroup>
 
