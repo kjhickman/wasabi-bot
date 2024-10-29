@@ -4,22 +4,22 @@ using WasabiBot.Core.Interfaces;
 
 namespace WasabiBot.Web.Endpoints.Discord;
 
-public static class InteractionEndpoint
+public class InteractionEndpoint
 {
     public static async Task<Results<Ok<InteractionResponse>, ProblemHttpResult>> Handle(HttpContext ctx,
-        IInteractionService interactionService, ILogger logger)
+        IInteractionService interactionService, ILogger<InteractionEndpoint> logger)
     {
         var interaction = await ctx.Request.ReadFromJsonAsync(WebJsonContext.Default.Interaction);
         if (interaction is null)
         {
-            logger.Error("Interaction was null");
+            logger.LogError("Interaction was null");
             return TypedResults.Problem();
         }
         
         var result = await interactionService.HandleInteraction(interaction);
         if (result.IsFailed)
         {
-            logger.Error("Failed to handle interaction: {Errors}", string.Join(", ", result.Errors));
+            logger.LogError("Failed to handle interaction: {Errors}", string.Join(", ", result.Errors));
             return TypedResults.Problem();
         }
         

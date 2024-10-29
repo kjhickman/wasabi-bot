@@ -5,9 +5,10 @@ using WasabiBot.Core.Models.Contracts;
 
 namespace WasabiBot.Web.Endpoints.Discord;
 
-public static class RegistrationEndpoint
+public class RegistrationEndpoint
 {
-    public static async Task<Ok> Handle(RegisterCommandsRequest request, IDiscordService commandsService, ILogger logger)
+    public static async Task<Ok> Handle(RegisterCommandsRequest request, IDiscordService commandsService, 
+        ILogger<RegistrationEndpoint> logger)
     {
         Result? result;
         if (request.GuildId is not null)
@@ -15,7 +16,7 @@ public static class RegistrationEndpoint
             result = await commandsService.RegisterGuildCommands(request.GuildId);
             if (result.IsFailed)
             {
-                logger.Error("Failed to register guild commands: {Errors}", string.Join(", ", result.Errors));
+                logger.LogError("Failed to register guild commands: {Errors}", string.Join(", ", result.Errors));
             }
         }
 
@@ -24,7 +25,7 @@ public static class RegistrationEndpoint
             result = await commandsService.RegisterGlobalCommands();
             if (result.IsFailed)
             {
-                logger.Error("Failed to register global commands: {Errors}", string.Join(", ", result.Errors));
+                logger.LogError("Failed to register global commands: {Errors}", string.Join(", ", result.Errors));
             }
         }
 

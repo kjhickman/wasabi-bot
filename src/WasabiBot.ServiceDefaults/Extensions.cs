@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.Hosting;
@@ -34,6 +36,15 @@ public static class Extensions
 
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
+        Serilog.ILogger logger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
+            .WriteTo.Console(new CompactJsonFormatter())
+            .WriteTo.OpenTelemetry()
+            .CreateLogger();
+        Log.Logger = logger;
+        builder.Services.AddSingleton(logger);
+        
+        builder.Logging.ClearProviders();
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;

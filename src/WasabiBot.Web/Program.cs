@@ -1,9 +1,6 @@
-﻿global using ILogger = Serilog.ILogger;
-using System.Data;
+﻿using System.Data;
 using Amazon.SQS;
 using Npgsql;
-using Serilog;
-using Serilog.Formatting.Compact;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
 using WasabiBot.Core.Interfaces;
@@ -38,14 +35,6 @@ builder.Services.AddScoped<IMessageHandler<DeferredInteractionMessage>, Interact
 builder.Services.AddScoped<IMessageHandler<InteractionReceivedMessage>, InteractionReceivedHandler>();
 builder.Services.AddScoped<MessageHandlerRouter>();
 builder.Services.AddHttpClient();
-
-builder.Logging.ClearProviders();
-ILogger logger = new LoggerConfiguration()
-    .Enrich.FromLogContext()
-    .WriteTo.Console(new CompactJsonFormatter())
-    .CreateLogger();
-Log.Logger = logger;
-builder.Services.AddSingleton(logger);
 
 var app = builder.Build();
 

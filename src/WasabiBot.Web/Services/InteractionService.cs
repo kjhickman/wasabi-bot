@@ -11,9 +11,9 @@ public class InteractionService : IInteractionService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IDiscordService _discordService;
-    private readonly ILogger _logger;
+    private readonly ILogger<InteractionService> _logger;
 
-    public InteractionService(IServiceProvider serviceProvider, IDiscordService discordService, ILogger logger)
+    public InteractionService(IServiceProvider serviceProvider, IDiscordService discordService, ILogger<InteractionService> logger)
     {
         _serviceProvider = serviceProvider;
         _discordService = discordService;
@@ -44,7 +44,7 @@ public class InteractionService : IInteractionService
 
     public async Task<Result> HandleDeferredInteraction(Interaction interaction, CancellationToken ct = default)
     {
-        _logger.Information("Handling deferred interaction");
+        _logger.LogInformation("Handling deferred interaction");
         var commandName = interaction.Data?.Name;
         if (commandName is null)
         {
@@ -57,14 +57,14 @@ public class InteractionService : IInteractionService
             return Result.Fail($"Handler not found for command: {commandName}");
         }
         
-        _logger.Information("Executing command: {CommandName}", commandName);
+        _logger.LogInformation("Executing command: {CommandName}", commandName);
         var result = await command.Execute(interaction, ct);
         if (result.IsFailed)
         {
             return result.DropValue();
         }
         
-        _logger.Information("Creating followup message for command: {CommandName}", commandName);
+        _logger.LogInformation("Creating followup message for command: {CommandName}", commandName);
         return await _discordService.CreateFollowupMessage(interaction.Token, result.Value.Data!);
     }
 }

@@ -11,9 +11,9 @@ public class DiscordService : IDiscordService
 {
     private readonly HttpClient _http;
     private readonly EnvironmentVariables _env;
-    private readonly ILogger _logger;
+    private readonly ILogger<DiscordService> _logger;
 
-    public DiscordService(HttpClient http, IOptions<EnvironmentVariables> options, ILogger logger)
+    public DiscordService(HttpClient http, IOptions<EnvironmentVariables> options, ILogger<DiscordService> logger)
     {
         _env = options.Value;
         _http = http;
@@ -35,7 +35,7 @@ public class DiscordService : IDiscordService
 
     public async Task<Result> CreateFollowupMessage(string token, InteractionResponseData data)
     {
-        _logger.Information("Creating followup message for token {Token}", token);
+        _logger.LogInformation("Creating followup message for token {Token}", token);
         var url = $"https://discord.com/api/v10/webhooks/{_env.DISCORD_APPLICATION_ID}/{token}";
         return await _http.PostAsJsonAsync(url, data, WebJsonContext.Default.InteractionResponseData).TryDropValue();
     }
