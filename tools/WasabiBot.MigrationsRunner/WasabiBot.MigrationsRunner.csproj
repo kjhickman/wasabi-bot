@@ -10,6 +10,8 @@
     <ItemGroup>
       <PackageReference Include="dbup-postgresql" />
       <PackageReference Include="dotenv.net" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     </ItemGroup>
 
     <ItemGroup>

@@ -21,6 +21,9 @@ DotEnv.Load(); // todo: only run if development
 builder.Configuration.AddEnvironmentVariables();
 builder.Services.Configure<EnvironmentVariables>(builder.Configuration);
 
+// Add service defaults & Aspire components.
+builder.AddServiceDefaults();
+
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
@@ -30,7 +33,7 @@ builder.Services.AddScoped<IDiscordService, DiscordService>();
 builder.Services.AddHttpClient();
 builder.Services.AddCommandHandlers();
 builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
-builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(builder.Configuration.GetConnectionString("Postgres")));
+builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(builder.Configuration.GetConnectionString("wasabiBotDb")));
 builder.Services.AddScoped<InteractionRecordService>();
 builder.Services.AddScoped<IMessageHandler<DeferredInteractionMessage>, InteractionMessageHandler>();
 builder.Services.AddScoped<IMessageHandler<InteractionReceivedMessage>, InteractionReceivedHandler>();

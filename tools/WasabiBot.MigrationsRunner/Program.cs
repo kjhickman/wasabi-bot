@@ -1,12 +1,17 @@
 ﻿using dotenv.net;
+using Microsoft.Extensions.Configuration;
 using WasabiBot.MigrationsRunner;
 
 DotEnv.Load();
-var connectionString = Environment.GetEnvironmentVariable("NEON_CONNECTION_STRING");
+var configuration = new ConfigurationBuilder()
+    .AddEnvironmentVariables()
+    .Build();
+
+var connectionString = configuration.GetConnectionString("wasabiBotDb");
+
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    Console.WriteLine("Connection string is missing");
-    return;
+    throw new Exception("Connection string not found");
 }
 
 DatabaseUtility.Initialize(connectionString);

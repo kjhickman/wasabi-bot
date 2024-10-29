@@ -3,6 +3,9 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0-rc.1.24511.1"/>
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.0.0-rc.1.24511.1" />
+    <PackageVersion Include="Aspire.Npgsql" Version="9.0.0-rc.1.24511.1" />
     <PackageVersion Include="AWSSDK.ECR" Version="4.0.0-preview.4" />
     <PackageVersion Include="AWSSDK.SQS" Version="4.0.0-preview.4" />
     <PackageVersion Include="Dapper" Version="2.1.35" />
@@ -11,9 +14,18 @@
     <PackageVersion Include="dbup-postgresql" Version="5.0.40" />
     <PackageVersion Include="HashiCorp.Cdktf" Version="0.20.9" />
     <PackageVersion Include="HashiCorp.Cdktf.Providers.Aws" Version="19.37.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.0-rc.2.24473.5" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0-rc.2.24473.5" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0-rc.2.24473.5" />
+    <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.9.24507.7"/>
     <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.0-rc.2.24473.5" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.0.0-rc.1.24511.1"/>
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0"/>
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0"/>
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0"/>
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0"/>
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0"/>
     <PackageVersion Include="Npgsql" Version="8.0.4" />
     <PackageVersion Include="Serilog" Version="4.0.2" />
     <PackageVersion Include="Serilog.AspNetCore" Version="8.0.3" />

@@ -25,6 +25,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" />
+      <ProjectReference Include="..\WasabiBot.ServiceDefaults\WasabiBot.ServiceDefaults.csproj" />
     </ItemGroup>
 
 </Project>
