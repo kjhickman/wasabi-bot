@@ -3,14 +3,14 @@ using Microsoft.Extensions.Logging;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.DataAccess.Messages;
 
-namespace WasabiBot.DataAccess.Handlers;
+namespace WasabiBot.DataAccess.Consumers;
 
-public class InteractionMessageHandler : IConsumer<DeferredInteractionMessage>
+public class InteractionMessageConsumer : IConsumer<DeferredInteractionMessage>
 {
     private readonly IInteractionService _interactionService;
-    private readonly ILogger<InteractionMessageHandler> _logger;
+    private readonly ILogger<InteractionMessageConsumer> _logger;
 
-    public InteractionMessageHandler(IInteractionService interactionService, ILogger<InteractionMessageHandler> logger)
+    public InteractionMessageConsumer(IInteractionService interactionService, ILogger<InteractionMessageConsumer> logger)
     {
         _interactionService = interactionService;
         _logger = logger;

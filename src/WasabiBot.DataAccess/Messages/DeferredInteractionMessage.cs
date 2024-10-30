@@ -1,13 +1,11 @@
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess.Handlers;
+using WasabiBot.DataAccess.Consumers;
 
 namespace WasabiBot.DataAccess.Messages;
 
 public class DeferredInteractionMessage : Interaction
 {
-    public string MessageHandlerName => nameof(InteractionMessageHandler);
-
     public static DeferredInteractionMessage FromInteraction(Interaction interaction)
     {
         return new DeferredInteractionMessage

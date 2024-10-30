@@ -1,10 +1,11 @@
 ﻿using System.Data;
 using Amazon.SQS;
+using MassTransit;
 using Npgsql;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess.Handlers;
+using WasabiBot.DataAccess.Consumers;
 using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
 using WasabiBot.DataAccess.Settings;
@@ -30,9 +31,15 @@ builder.Services.AddScoped<InteractionRecordService>();
 builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IDiscordService, DiscordService>();
 builder.Services.AddCommandHandlers();
-// builder.Services.AddScoped<IMessageHandler<DeferredInteractionMessage>, InteractionMessageHandler>();
-// builder.Services.AddScoped<IMessageHandler<InteractionReceivedMessage>, InteractionReceivedHandler>();
-builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer(typeof(InteractionMessageConsumer));
+    x.AddConsumer(typeof(InteractionReceivedConsumer));
+    x.UsingInMemory((ctx, cfg) =>
+    {
+        cfg.ConfigureEndpoints(ctx);
+    });
+});
 builder.Services.AddHttpClient();
 
 var app = builder.Build();

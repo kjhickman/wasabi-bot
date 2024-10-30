@@ -3,13 +3,13 @@ using WasabiBot.Core.Models.Entities;
 using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
 
-namespace WasabiBot.DataAccess.Handlers;
+namespace WasabiBot.DataAccess.Consumers;
 
-public class InteractionReceivedHandler : IConsumer<InteractionReceivedMessage>
+public class InteractionReceivedConsumer : IConsumer<InteractionReceivedMessage>
 {
     private readonly InteractionRecordService _interactionRecordService;
 
-    public InteractionReceivedHandler(InteractionRecordService interactionRecordService)
+    public InteractionReceivedConsumer(InteractionRecordService interactionRecordService)
     {
         _interactionRecordService = interactionRecordService;
     }

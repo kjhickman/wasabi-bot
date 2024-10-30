@@ -1,6 +1,8 @@
+using MassTransit;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Core.Interfaces;
+using WasabiBot.DataAccess.Messages;
 
 namespace WasabiBot.Web.Services;
 
@@ -9,12 +11,15 @@ public class InteractionService : IInteractionService
     private readonly IServiceProvider _serviceProvider;
     private readonly IDiscordService _discordService;
     private readonly ILogger<InteractionService> _logger;
+    private readonly IPublishEndpoint _bus;
 
-    public InteractionService(IServiceProvider serviceProvider, IDiscordService discordService, ILogger<InteractionService> logger)
+    public InteractionService(IServiceProvider serviceProvider, IDiscordService discordService,
+        ILogger<InteractionService> logger, IPublishEndpoint bus)
     {
         _serviceProvider = serviceProvider;
         _discordService = discordService;
         _logger = logger;
+        _bus = bus;
     }
 
     public async Task<InteractionResponse> HandleInteraction(Interaction interaction)
@@ -34,7 +39,7 @@ public class InteractionService : IInteractionService
         
         var createdAt = SnowflakeHelper.ConvertToDateTimeOffset(long.Parse(interaction.Id));
         var expiration = createdAt + TimeSpan.FromMilliseconds(2500);
-        using var cts = new CancellationTokenSource(expiration - DateTimeOffset.UtcNow);;
+        using var cts = new CancellationTokenSource(expiration - DateTimeOffset.UtcNow);
 
         try
         {
@@ -43,8 +48,8 @@ public class InteractionService : IInteractionService
         }
         catch (OperationCanceledException e)
         {
-            _logger.LogError(e, "Command execution timed out");
-            // publish deferred message
+            _logger.LogWarning(e, "Command execution timed out");
+            await _bus.Publish(DeferredInteractionMessage.FromInteraction(interaction), CancellationToken.None);
             return InteractionResponse.Defer();
         }
     }
