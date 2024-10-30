@@ -33,13 +33,24 @@ public class InteractionService : IInteractionService
             return Result.Fail<InteractionResponse>("Invalid Interaction Data: missing command name");
         }
 
-        var command = _serviceProvider.GetKeyedService<CommandBase>(commandName);
+        var command = _serviceProvider.GetKeyedService<IDiscordCommand>(commandName);
         if (command is null)
         {
             return Result.Fail<InteractionResponse>($"Handler not found for command: {commandName}");
         }
+        
+        var createdAt = SnowflakeHelper.ConvertToDateTimeOffset(long.Parse(interaction.Id));
+        var expiration = createdAt + TimeSpan.FromMilliseconds(2500);
+        using var cts = new CancellationTokenSource(expiration - DateTimeOffset.UtcNow);;
 
-        return await command.Execute(interaction, CancellationToken.None);
+        var result = await command.Execute(interaction, cts.Token);
+        if (result.IsFailed && result.HasError(x => x.Message == ""))
+        {
+            // todo: publish message
+            return InteractionResponse.Defer();
+        }
+
+        return result;
     }
 
     public async Task<Result> HandleDeferredInteraction(Interaction interaction, CancellationToken ct = default)
@@ -51,7 +62,7 @@ public class InteractionService : IInteractionService
             return Result.Fail("Invalid Interaction Data: missing command name");
         }
         
-        var command = _serviceProvider.GetKeyedService<CommandBase>(commandName);
+        var command = _serviceProvider.GetKeyedService<IDiscordCommand>(commandName);
         if (command is null)
         {
             return Result.Fail($"Handler not found for command: {commandName}");

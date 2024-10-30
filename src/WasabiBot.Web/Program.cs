@@ -26,14 +26,13 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 var connectionString = builder.Configuration.GetConnectionString("wasabiBotDb");
 builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectionString));
+builder.Services.AddScoped<InteractionRecordService>();
 builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IDiscordService, DiscordService>();
 builder.Services.AddCommandHandlers();
+// builder.Services.AddScoped<IMessageHandler<DeferredInteractionMessage>, InteractionMessageHandler>();
+// builder.Services.AddScoped<IMessageHandler<InteractionReceivedMessage>, InteractionReceivedHandler>();
 builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
-builder.Services.AddScoped<InteractionRecordService>();
-builder.Services.AddScoped<IMessageHandler<DeferredInteractionMessage>, InteractionMessageHandler>();
-builder.Services.AddScoped<IMessageHandler<InteractionReceivedMessage>, InteractionReceivedHandler>();
-builder.Services.AddScoped<MessageHandlerRouter>();
 builder.Services.AddHttpClient();
 
 var app = builder.Build();

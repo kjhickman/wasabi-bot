@@ -4,7 +4,7 @@ using WasabiBot.DataAccess.Handlers;
 
 namespace WasabiBot.DataAccess.Messages;
 
-public class InteractionReceivedMessage : Interaction, IMessage
+public class InteractionReceivedMessage : Interaction
 {
     public string MessageHandlerName => nameof(InteractionReceivedHandler);
     

@@ -1,16 +1,22 @@
 using FluentResults;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
+using WasabiBot.Core.Extensions;
+using WasabiBot.Core.Interfaces;
 
 namespace WasabiBot.Web.Commands.Handlers;
 
-public class DeferredPingCommand : CommandBase
+public class DeferredPingCommand : IDiscordCommand
 {
     public static string Name => "deferping";
     
-    public override async Task<Result<InteractionResponse>> Execute(Interaction interaction, CancellationToken ct)
+    public async Task<Result<InteractionResponse>> Execute(Interaction interaction, CancellationToken ct)
     {
-        await Task.Delay(3000, ct);
+        var result = await Task.Delay(3000, ct).Try();
+        if (result.IsFailed)
+        {
+            return result;
+        }
         
         return new InteractionResponse
         {

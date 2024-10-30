@@ -8,7 +8,7 @@ using WasabiBot.DataAccess.Services;
 
 namespace WasabiBot.DataAccess.Handlers;
 
-public class InteractionReceivedHandler : IMessageHandler<InteractionReceivedMessage>
+public class InteractionReceivedHandler
 {
     private readonly InteractionRecordService _interactionRecordService;
 
@@ -17,7 +17,7 @@ public class InteractionReceivedHandler : IMessageHandler<InteractionReceivedMes
         _interactionRecordService = interactionRecordService;
     }
 
-    public async Task<Result> Handle(IMessage message, CancellationToken ct = default)
+    public async Task<Result> Handle(InteractionReceivedMessage message, CancellationToken ct = default)
     {
         if (message is not Interaction interaction)
         {
