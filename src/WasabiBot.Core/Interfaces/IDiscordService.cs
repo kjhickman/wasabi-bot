@@ -1,11 +1,10 @@
-using FluentResults;
 using WasabiBot.Core.Discord;
 
 namespace WasabiBot.Core.Interfaces;
 
 public interface IDiscordService
 {
-    Task<Result> RegisterGuildCommands(string guildId);
-    Task<Result> RegisterGlobalCommands();
-    Task<Result> CreateFollowupMessage(string token, InteractionResponseData data);
+    Task RegisterGuildCommands(string guildId);
+    Task RegisterGlobalCommands();
+    Task CreateFollowupMessage(string token, InteractionResponseData data);
 }

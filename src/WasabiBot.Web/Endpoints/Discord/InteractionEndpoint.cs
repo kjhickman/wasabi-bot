@@ -15,14 +15,16 @@ public class InteractionEndpoint
             logger.LogError("Interaction was null");
             return TypedResults.Problem();
         }
-        
-        var result = await interactionService.HandleInteraction(interaction);
-        if (result.IsFailed)
+
+        try
         {
-            logger.LogError("Failed to handle interaction: {Errors}", string.Join(", ", result.Errors));
+            var response = await interactionService.HandleInteraction(interaction);
+            return TypedResults.Ok(response);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to handle interaction");
             return TypedResults.Problem();
         }
-        
-        return TypedResults.Ok(result.Value);
     }
 }

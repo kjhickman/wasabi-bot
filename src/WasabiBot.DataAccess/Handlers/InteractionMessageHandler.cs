@@ -1,12 +1,11 @@
-using FluentResults;
+using MassTransit;
 using Microsoft.Extensions.Logging;
-using WasabiBot.Core.Discord;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.DataAccess.Messages;
 
 namespace WasabiBot.DataAccess.Handlers;
 
-public class InteractionMessageHandler
+public class InteractionMessageHandler : IConsumer<DeferredInteractionMessage>
 {
     private readonly IInteractionService _interactionService;
     private readonly ILogger<InteractionMessageHandler> _logger;
@@ -16,15 +15,18 @@ public class InteractionMessageHandler
         _interactionService = interactionService;
         _logger = logger;
     }
-    
-    public async Task<Result> Handle(DeferredInteractionMessage message, CancellationToken ct = default)
+
+    public async Task Consume(ConsumeContext<DeferredInteractionMessage> context)
     {
         _logger.LogInformation("Handling deferred interaction message");
-        if (message is not Interaction interaction)
+        try
         {
-            return Result.Fail("Couldn't cast message to interaction");
+            await _interactionService.HandleDeferredInteraction(context.Message, context.CancellationToken);
         }
-        
-        return await _interactionService.HandleDeferredInteraction(interaction, ct);
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to handle deferred interaction");
+            throw;
+        }
     }
 }

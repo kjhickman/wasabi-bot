@@ -1,4 +1,3 @@
-using FluentResults;
 using Microsoft.AspNetCore.Http.HttpResults;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.Core.Models.Contracts;
@@ -10,23 +9,14 @@ public class RegistrationEndpoint
     public static async Task<Ok> Handle(RegisterCommandsRequest request, IDiscordService commandsService, 
         ILogger<RegistrationEndpoint> logger)
     {
-        Result? result;
         if (request.GuildId is not null)
         {
-            result = await commandsService.RegisterGuildCommands(request.GuildId);
-            if (result.IsFailed)
-            {
-                logger.LogError("Failed to register guild commands: {Errors}", string.Join(", ", result.Errors));
-            }
+            await commandsService.RegisterGuildCommands(request.GuildId);
         }
 
         if (request.RegisterGlobalCommands)
         {
-            result = await commandsService.RegisterGlobalCommands();
-            if (result.IsFailed)
-            {
-                logger.LogError("Failed to register global commands: {Errors}", string.Join(", ", result.Errors));
-            }
+            await commandsService.RegisterGlobalCommands();
         }
 
         return TypedResults.Ok();

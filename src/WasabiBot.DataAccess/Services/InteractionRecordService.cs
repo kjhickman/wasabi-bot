@@ -1,7 +1,5 @@
 using System.Data;
 using Dapper;
-using FluentResults;
-using WasabiBot.Core.Extensions;
 using WasabiBot.Core.Models.Entities;
 
 namespace WasabiBot.DataAccess.Services;
@@ -15,7 +13,7 @@ public class InteractionRecordService
         _connection = connection;
     }
 
-    public async Task<Result> CreateAsync(InteractionRecord record)
+    public async Task<bool> CreateAsync(InteractionRecord record)
     {
         const string sql = 
             """
@@ -31,6 +29,6 @@ public class InteractionRecordService
             );
             """;
         
-        return await _connection.ExecuteAsync(sql, record).TryDropValue();
+        return await _connection.ExecuteAsync(sql, record) > 0;
     }
 }

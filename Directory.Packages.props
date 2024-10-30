@@ -12,9 +12,10 @@
     <PackageVersion Include="Dapper.AOT" Version="1.0.31" />
     <PackageVersion Include="dotenv.net" Version="3.2.1" />
     <PackageVersion Include="dbup-postgresql" Version="5.0.40" />
-    <PackageVersion Include="FluentResults" Version="3.16.0" />
     <PackageVersion Include="HashiCorp.Cdktf" Version="0.20.9" />
     <PackageVersion Include="HashiCorp.Cdktf.Providers.Aws" Version="19.39.0" />
+    <PackageVersion Include="MassTransit" Version="8.3.0" />
+    <PackageVersion Include="MassTransit.Abstractions" Version="8.3.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.0-rc.2.24473.5" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0-rc.2.24473.5" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0-rc.2.24473.5" />

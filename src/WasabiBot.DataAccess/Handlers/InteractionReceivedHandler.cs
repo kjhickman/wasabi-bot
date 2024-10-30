@@ -1,14 +1,11 @@
-﻿using FluentResults;
-using WasabiBot.Core.Discord;
-using WasabiBot.Core.Extensions;
-using WasabiBot.Core.Interfaces;
+﻿using MassTransit;
 using WasabiBot.Core.Models.Entities;
 using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
 
 namespace WasabiBot.DataAccess.Handlers;
 
-public class InteractionReceivedHandler
+public class InteractionReceivedHandler : IConsumer<InteractionReceivedMessage>
 {
     private readonly InteractionRecordService _interactionRecordService;
 
@@ -17,19 +14,9 @@ public class InteractionReceivedHandler
         _interactionRecordService = interactionRecordService;
     }
 
-    public async Task<Result> Handle(InteractionReceivedMessage message, CancellationToken ct = default)
+    public async Task Consume(ConsumeContext<InteractionReceivedMessage> context)
     {
-        if (message is not Interaction interaction)
-        {
-            return Result.Fail("Message is not interaction");
-        }
-    
-        var result = InteractionRecord.Create(interaction);
-        if (result.IsFailed)
-        {
-            return result.DropValue();
-        }
-
-        return await _interactionRecordService.CreateAsync(result.Value);
+        var result = InteractionRecord.Create(context.Message);
+        await _interactionRecordService.CreateAsync(result);
     }
 }
