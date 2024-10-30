@@ -11,7 +11,7 @@ var connectionString = configuration.GetConnectionString("wasabiBotDb");
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    return -1;
+    throw new Exception($"Connection string is missing or invalid.");
 }
 
-return DatabaseUtility.Initialize(connectionString);
+DatabaseUtility.Initialize(connectionString);

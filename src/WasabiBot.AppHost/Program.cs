@@ -19,7 +19,7 @@ var server = builder.AddProject<Projects.WasabiBot_Web>("server")
     .WithExternalHttpEndpoints()
     .WithReference(postgres)
     .WithEndpoint(scheme: "http")
-    .WaitForCompletion(migrations);
+    .WaitFor(migrations); // todo: fix WaitForCompletion
 
 
 var ngrok = builder.AddContainer("ngrok", "ngrok/ngrok")

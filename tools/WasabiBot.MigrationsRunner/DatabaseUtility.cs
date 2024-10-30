@@ -5,7 +5,7 @@ namespace WasabiBot.MigrationsRunner;
 
 public static class DatabaseUtility
 {
-    public static int Initialize(string connectionString)
+    public static void Initialize(string connectionString)
     {
         EnsureDatabase.For.PostgresqlDatabase(connectionString);
         var upgradeEngine = DeployChanges.To.PostgresqlDatabase(connectionString)
@@ -17,16 +17,9 @@ public static class DatabaseUtility
         if (!upgradeEngine.IsUpgradeRequired())
         {
             Console.WriteLine("No upgrade required");
-            return 0;
+            return;
         }
 
-        var result = upgradeEngine.PerformUpgrade();
-
-        if (!result.Successful)
-        {
-            return -1;
-        }
-
-        return 0;
+        upgradeEngine.PerformUpgrade();
     }
 }

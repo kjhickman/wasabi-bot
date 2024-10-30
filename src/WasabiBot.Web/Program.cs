@@ -35,10 +35,23 @@ builder.Services.AddMassTransit(x =>
 {
     x.AddConsumer(typeof(InteractionMessageConsumer));
     x.AddConsumer(typeof(InteractionReceivedConsumer));
-    x.UsingInMemory((ctx, cfg) =>
+    
+    x.SetKebabCaseEndpointNameFormatter();
+    if (builder.Environment.IsDevelopment())
     {
-        cfg.ConfigureEndpoints(ctx);
-    });
+        x.UsingInMemory((ctx, cfg) =>
+        {
+            cfg.ConfigureEndpoints(ctx);
+        });
+    }
+    else
+    {
+        x.UsingAmazonSqs((ctx, cfg) =>
+        {
+            cfg.Host("us-east-1", _ => {});
+            cfg.ConfigureEndpoints(ctx);
+        });
+    }
 });
 builder.Services.AddHttpClient();
 

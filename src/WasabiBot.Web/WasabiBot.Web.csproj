@@ -20,6 +20,7 @@
 
     <ItemGroup>
         <PackageReference Include="MassTransit" />
+        <PackageReference Include="MassTransit.AmazonSQS" />
         <PackageReference Include="Serilog.AspNetCore" />
         <PackageReference Include="Serilog.Sinks.OpenTelemetry" />
     </ItemGroup>
