@@ -1,4 +1,5 @@
 using MassTransit;
+using OpenTelemetry.Trace;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Core.Interfaces;
@@ -12,18 +13,21 @@ public class InteractionService : IInteractionService
     private readonly IDiscordService _discordService;
     private readonly ILogger<InteractionService> _logger;
     private readonly IPublishEndpoint _bus;
+    private readonly Tracer _tracer;
 
     public InteractionService(IServiceProvider serviceProvider, IDiscordService discordService,
-        ILogger<InteractionService> logger, IPublishEndpoint bus)
+        ILogger<InteractionService> logger, IPublishEndpoint bus, Tracer tracer)
     {
         _serviceProvider = serviceProvider;
         _discordService = discordService;
         _logger = logger;
         _bus = bus;
+        _tracer = tracer;
     }
 
     public async Task<InteractionResponse> HandleInteraction(Interaction interaction)
     {
+        using var span = _tracer.StartActiveSpan("interaction.handle");
         if (interaction.Type == InteractionType.Ping)
         {
             return InteractionResponse.Pong();
@@ -49,13 +53,14 @@ public class InteractionService : IInteractionService
         catch (OperationCanceledException e)
         {
             _logger.LogWarning(e, "Command execution timed out");
-            await _bus.Publish(DeferredInteractionMessage.FromInteraction(interaction), CancellationToken.None);
+            await _bus.Publish(InteractionDeferredMessage.FromInteraction(interaction), CancellationToken.None);
             return InteractionResponse.Defer();
         }
     }
 
     public async Task HandleDeferredInteraction(Interaction interaction, CancellationToken ct = default)
     {
+        using var span = _tracer.StartActiveSpan("interaction.handle_deferred");
         _logger.LogInformation("Handling deferred interaction");
         var commandName = interaction.Data?.Name;
         if (commandName is null)

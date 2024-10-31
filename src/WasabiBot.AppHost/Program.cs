@@ -18,7 +18,7 @@ var migrations = builder.AddProject<Projects.WasabiBot_MigrationsRunner>("migrat
 var server = builder.AddProject<Projects.WasabiBot_Web>("server")
     .WithExternalHttpEndpoints()
     .WithReference(postgres)
-    .WithEndpoint(scheme: "http")
+    // .WithEndpoint(scheme: "http")
     .WaitFor(migrations); // todo: fix WaitForCompletion
 
 

@@ -60,10 +60,11 @@ public static class Extensions
             })
             .WithTracing(tracing =>
             {
+                tracing.AddSource("wasabi_bot");
                 tracing.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation();
             });
-
+        
         builder.AddOpenTelemetryExporters();
 
         return builder;

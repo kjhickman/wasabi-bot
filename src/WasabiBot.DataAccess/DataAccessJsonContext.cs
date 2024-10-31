@@ -3,6 +3,6 @@ using WasabiBot.DataAccess.Messages;
 
 namespace WasabiBot.DataAccess;
 
-[JsonSerializable(typeof(DeferredInteractionMessage))]
+[JsonSerializable(typeof(InteractionDeferredMessage))]
 [JsonSerializable(typeof(InteractionReceivedMessage))]
 public partial class DataAccessJsonContext : JsonSerializerContext;

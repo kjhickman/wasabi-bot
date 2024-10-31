@@ -4,11 +4,11 @@ using WasabiBot.DataAccess.Consumers;
 
 namespace WasabiBot.DataAccess.Messages;
 
-public class DeferredInteractionMessage : Interaction
+public class InteractionDeferredMessage : Interaction
 {
-    public static DeferredInteractionMessage FromInteraction(Interaction interaction)
+    public static InteractionDeferredMessage FromInteraction(Interaction interaction)
     {
-        return new DeferredInteractionMessage
+        return new InteractionDeferredMessage
         {
             Id = interaction.Id,
             ApplicationId = interaction.ApplicationId,

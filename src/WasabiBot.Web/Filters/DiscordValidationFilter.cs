@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Trace;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Extensions;
 using WasabiBot.DataAccess.Settings;
@@ -10,15 +11,19 @@ public class DiscordValidationFilter : IEndpointFilter
 {
     private readonly EnvironmentVariables _env;
     private readonly ILogger<DiscordValidationFilter> _logger;
+    private readonly Tracer _tracer;
 
-    public DiscordValidationFilter(IOptions<EnvironmentVariables> options, ILogger<DiscordValidationFilter> logger)
+    public DiscordValidationFilter(IOptions<EnvironmentVariables> options, ILogger<DiscordValidationFilter> logger,
+        Tracer tracer)
     {
         _logger = logger;
+        _tracer = tracer;
         _env = options.Value;
     }
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
+        using var span = _tracer.StartActiveSpan("filter.validate_interaction");
         _logger.LogInformation("Validating discord interaction");
         var request = context.HttpContext.Request;
 

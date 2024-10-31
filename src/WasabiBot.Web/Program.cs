@@ -2,6 +2,7 @@
 using Amazon.SQS;
 using MassTransit;
 using Npgsql;
+using OpenTelemetry.Trace;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
 using WasabiBot.Core.Interfaces;
@@ -19,6 +20,7 @@ builder.Services.Configure<EnvironmentVariables>(builder.Configuration);
 
 // Add service defaults & Aspire components.
 builder.AddServiceDefaults();
+builder.Services.AddSingleton(TracerProvider.Default.GetTracer("wasabi_bot"));
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -33,9 +35,10 @@ builder.Services.AddScoped<IDiscordService, DiscordService>();
 builder.Services.AddCommandHandlers();
 builder.Services.AddMassTransit(x =>
 {
-    x.AddConsumer(typeof(InteractionMessageConsumer));
+    x.AddConsumer(typeof(InteractionDeferredConsumer));
     x.AddConsumer(typeof(InteractionReceivedConsumer));
-    
+
+    Console.WriteLine(builder.Environment.IsDevelopment());
     x.SetKebabCaseEndpointNameFormatter();
     if (builder.Environment.IsDevelopment())
     {
