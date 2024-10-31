@@ -16,25 +16,19 @@ tasks:
     cmds:
       - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}
 
-  restore:
+  cdktf:
     desc: Restore assets for CDKTF
     cmds:
-      - dotnet restore infra/WasabiBot.Terraform
+      - dotnet run --project infra/WasabiBot.Terraform/WasabiBot.Terraform.csproj
   
-  deploy:
-      desc: Deploy via CDKTF
-      deps: [push, restore]
-      dir: infra/WasabiBot.Terraform
+  apply:
+      desc: Apply terraform
+      deps: [push, cdktf]
+      dir: cdktf.out/stacks/WasabiBot.Terraform
       cmds:
-        - cdktf deploy --auto-approve
-        - curl ${DEV_WARMUP_URL}
+        - terraform apply -auto-approve
 
   auth:
     desc: Authenticate with ECR
     cmds:
       - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com
-
-  migrate:
-    desc: Migrate the database
-    cmds:
-      - dotnet run --project infra/WasabiBot.MigrationsRunner

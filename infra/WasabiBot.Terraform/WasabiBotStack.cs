@@ -1,19 +1,13 @@
+using System.Text.Json;
 using Amazon.ECR;
 using Amazon.ECR.Model;
 using Constructs;
 using HashiCorp.Cdktf;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Api;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Integration;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Route;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Stage;
-using HashiCorp.Cdktf.Providers.Aws.IamRole;
-using HashiCorp.Cdktf.Providers.Aws.IamRolePolicy;
-using HashiCorp.Cdktf.Providers.Aws.IamRolePolicyAttachment;
-using HashiCorp.Cdktf.Providers.Aws.LambdaEventSourceMapping;
-using HashiCorp.Cdktf.Providers.Aws.LambdaFunction;
-using HashiCorp.Cdktf.Providers.Aws.LambdaPermission;
 using HashiCorp.Cdktf.Providers.Aws.Provider;
+using HashiCorp.Cdktf.Providers.Aws.SnsTopic;
+using HashiCorp.Cdktf.Providers.Aws.SnsTopicSubscription;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueue;
+using HashiCorp.Cdktf.Providers.Aws.SqsQueuePolicy;
 using WasabiBot.Terraform.Settings;
 // ReSharper disable ObjectCreationAsStatement
 
@@ -26,10 +20,20 @@ internal class WasabiBotStack : TerraformStack
         var env = vars.ENVIRONMENT;
         const string region = "us-east-1";
         const string service = "wasabi-bot";
-        
+
+        var defaultTags = new AwsProviderDefaultTags
+        {
+            Tags = new Dictionary<string, string>
+            {
+                { "Environment", env },
+                { "Service", service }
+            }
+        };
+
         new AwsProvider(this, "Aws", new AwsProviderConfig
         {
-            Region = region
+            Region = region,
+            DefaultTags = new[] { defaultTags }
         });
         
         new S3Backend(this, new S3BackendConfig
@@ -40,154 +44,138 @@ internal class WasabiBotStack : TerraformStack
             // TODO: add DynamoDB locking
         });
         
-        var deferredDeadLetterQueue = new SqsQueue(this, "DeadLetterQueue", new SqsQueueConfig
+        // TODO: create reusable module for masstransit infra
+        var interactionDeferredErrorQueue = new SqsQueue(this, "InteractionDeferredErrorQueue", new SqsQueueConfig
         {
-            Name = $"{env}-{service}-deferred-dlq",
+            Name = $"{env}-{service}-interaction-deferred-error",
             MessageRetentionSeconds = 750,
             VisibilityTimeoutSeconds = 30
         });
         
-        var deferredQueue = new SqsQueue(this, "WasabiBotDeferredQueue", new SqsQueueConfig
+        var interactionDeferredQueue = new SqsQueue(this, "InteractionDeferredQueue", new SqsQueueConfig
         {
-            Name = $"{env}-{service}-deferred",
+            Name = $"{env}-{service}-interaction-deferred",
             VisibilityTimeoutSeconds = 30,
-            RedrivePolicy = $"{{\"deadLetterTargetArn\":\"{deferredDeadLetterQueue.Arn}\", \"maxReceiveCount\": 3}}"
-        });
-
-        var lambdaRole = new IamRole(this, "LambdaExecutionRole", new IamRoleConfig
-        {
-            Name = $"{env}-{service}-lambda-role",
-            AssumeRolePolicy = """
-                               {
-                                 "Version": "2012-10-17",
-                                 "Statement": [
-                                   {
-                                     "Effect": "Allow",
-                                     "Principal": {
-                                       "Service": "lambda.amazonaws.com"
-                                     },
-                                     "Action": "sts:AssumeRole"
-                                   }
-                                 ]
-                               }
-                               """
-        });
-
-        new IamRolePolicyAttachment(this, "LambdaPolicyAttachment", new IamRolePolicyAttachmentConfig
-        {
-            Role = lambdaRole.Name,
-            PolicyArn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-        });
-
-        new IamRolePolicy(this, "LambdaSQSPolicy", new IamRolePolicyConfig
-        {
-            Name = $"{env}-lambda-sqs-policy",
-            Role = lambdaRole.Name,
-            Policy = $$"""
-                       {
-                         "Version": "2012-10-17",
-                         "Statement": [
-                           {
-                             "Effect": "Allow",
-                             "Action": [
-                               "sqs:SendMessage",
-                               "sqs:ReceiveMessage",
-                               "sqs:DeleteMessage",
-                               "sqs:GetQueueAttributes"
-                             ],
-                             "Resource": "{{deferredQueue.Arn}}"
-                           }
-                         ]
-                       }
-                       """
+            RedrivePolicy = $"{{\"deadLetterTargetArn\":\"{interactionDeferredErrorQueue.Arn}\", \"maxReceiveCount\": 3}}"
         });
         
-        var latestDigest = GetLatestImageDigestAsync(service, env).Result;
-        
-        var lambdaEnvironmentVars = new Dictionary<string, string>
+        var interactionDeferredTopic = new SnsTopic(this, "InteractionDeferredTopic", new SnsTopicConfig
         {
-            { nameof(vars.DISCORD_APPLICATION_ID), vars.DISCORD_APPLICATION_ID },
-            { "DISCORD_DEFERRED_EVENT_QUEUE_URL", deferredQueue.Url },
-            { nameof(vars.DISCORD_PUBLIC_KEY), vars.DISCORD_PUBLIC_KEY },
-            { nameof(vars.DISCORD_TOKEN), vars.DISCORD_TOKEN },
-            { "ConnectionStrings__Postgres", vars.NEON_CONNECTION_STRING },
-            { "AWS_LWA_PASS_THROUGH_PATH", "/v1/events" },
-        };
-        
-        var lambdaFunction = new LambdaFunction(this, "WasabiBotLambda", new LambdaFunctionConfig
+            Name = $"{env}-{service}-interaction-deferred",
+        });
+
+        var interactionDeferredSubscription = new SnsTopicSubscription(this, "InteractionDeferredSubscription", new SnsTopicSubscriptionConfig
         {
-            FunctionName = $"{env}-{service}",
-            ImageUri = $"{vars.AWS_ACCOUNT_ID}.dkr.ecr.{region}.amazonaws.com/{service}@{latestDigest}",
-            PackageType = "Image",
-            Architectures = [vars.ARCHITECTURE],
-            MemorySize = 512,
-            Timeout = 30,
-            Environment = new LambdaFunctionEnvironment
+            TopicArn = interactionDeferredTopic.Arn,
+            Protocol = "sqs",
+            Endpoint = interactionDeferredQueue.Arn
+        });
+        
+        new SqsQueuePolicy(this, "InteractionDeferredQueuePolicy", new SqsQueuePolicyConfig
+        {
+            QueueUrl = interactionDeferredQueue.Id,
+            Policy = JsonSerializer.Serialize(new Dictionary<string, object>
             {
-                Variables = lambdaEnvironmentVars
-            },
-            LoggingConfig = new LambdaFunctionLoggingConfig
-            {
-                LogFormat = "JSON"
-            },
-            Role = lambdaRole.Arn
-        });
-
-        new LambdaEventSourceMapping(this, "SqsToLambdaTrigger", new LambdaEventSourceMappingConfig
-        {
-            EventSourceArn = deferredQueue.Arn,
-            FunctionName = lambdaFunction.FunctionName,
-            BatchSize = 10,
-            Enabled = true,
-            FunctionResponseTypes = ["ReportBatchItemFailures"]
-        });
-
-        var httpApi = new Apigatewayv2Api(this, "WasabiBotHttpApi", new Apigatewayv2ApiConfig
-        {
-            Name = $"{env}-{service}-api",
-            ProtocolType = "HTTP"
+                {
+                    "Version", "2012-10-17"
+                },
+                {
+                    "Statement", new[]
+                    {
+                        new Dictionary<string, object>
+                        {
+                            { "Effect", "Allow" },
+                            { "Principal", new Dictionary<string, object>
+                                {
+                                    { "Service", "sns.amazonaws.com" }
+                                }
+                            },
+                            { "Action", "sqs:SendMessage" },
+                            { "Resource", interactionDeferredQueue.Arn },
+                            { "Condition", new Dictionary<string, object>
+                                {
+                                    { "ArnEquals", new Dictionary<string, string>
+                                        {
+                                            { "aws:SourceArn", interactionDeferredTopic.Arn }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            })
         });
         
-        new LambdaPermission(this, "ApiGatewayInvokeLambdaPermission", new LambdaPermissionConfig
+        var interactionReceivedErrorQueue = new SqsQueue(this, "InteractionReceivedErrorQueue", new SqsQueueConfig
         {
-            Action = "lambda:InvokeFunction",
-            FunctionName = lambdaFunction.FunctionName,
-            Principal = "apigateway.amazonaws.com",
-            SourceArn = $"arn:aws:execute-api:{region}:{vars.AWS_ACCOUNT_ID}:{httpApi.Id}/*"
+            Name = $"{env}-{service}-interaction-received-error",
+            MessageRetentionSeconds = 750,
+            VisibilityTimeoutSeconds = 30
         });
-
-        var lambdaIntegration = new Apigatewayv2Integration(this, "LambdaIntegration", new Apigatewayv2IntegrationConfig
+        
+        var interactionReceivedQueue = new SqsQueue(this, "InteractionReceivedQueue", new SqsQueueConfig
         {
-            ApiId = httpApi.Id,
-            IntegrationType = "AWS_PROXY",
-            IntegrationUri = lambdaFunction.InvokeArn,
-            PayloadFormatVersion = "2.0"
+            Name = $"{env}-{service}-interaction-received",
+            VisibilityTimeoutSeconds = 30,
+            RedrivePolicy = $"{{\"deadLetterTargetArn\":\"{interactionReceivedErrorQueue.Arn}\", \"maxReceiveCount\": 3}}"
         });
-
-        new Apigatewayv2Route(this, "ApiRoute", new Apigatewayv2RouteConfig
+        
+        var interactionReceivedTopic = new SnsTopic(this, "InteractionReceivedTopic", new SnsTopicConfig
         {
-            ApiId = httpApi.Id,
-            RouteKey = "ANY /{proxy+}",
-            Target = $"integrations/{lambdaIntegration.Id}"
+            Name = $"{env}-{service}-interaction-received",
         });
-
-        new Apigatewayv2Stage(this, "ApiStage", new Apigatewayv2StageConfig
+        
+        var interactionReceivedSubscription = new SnsTopicSubscription(this, "InteractionReceivedSubscription", new SnsTopicSubscriptionConfig
         {
-            ApiId = httpApi.Id,
-            Name = "$default",
-            AutoDeploy = true
+            TopicArn = interactionReceivedTopic.Arn,
+            Protocol = "sqs",
+            Endpoint = interactionReceivedQueue.Arn
         });
+        
+        new SqsQueuePolicy(this, "InteractionReceivedQueuePolicy", new SqsQueuePolicyConfig
+        {
+            QueueUrl = interactionReceivedQueue.Id,
+            Policy = JsonSerializer.Serialize(new Dictionary<string, object>
+            {
+                {
+                    "Version", "2012-10-17"
+                },
+                {
+                    "Statement", new[]
+                    {
+                        new Dictionary<string, object>
+                        {
+                            { "Effect", "Allow" },
+                            { "Principal", new Dictionary<string, object>
+                                {
+                                    { "Service", "sns.amazonaws.com" }
+                                }
+                            },
+                            { "Action", "sqs:SendMessage" },
+                            { "Resource", interactionReceivedQueue.Arn },
+                            { "Condition", new Dictionary<string, object>
+                                {
+                                    { "ArnEquals", new Dictionary<string, string>
+                                        {
+                                            { "aws:SourceArn", interactionReceivedTopic.Arn }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            })
+        });
+        
+        // var latestDigest = GetLatestImageDigestAsync(service, env).Result;
         
         // Outputs
-        new TerraformOutput(this, "DeferredQueueUrl", new TerraformOutputConfig
-        {
-            Value = deferredQueue.Url
-        });
-
-        new TerraformOutput(this, "ApiGatewayUrl", new TerraformOutputConfig
-        {
-            Value = httpApi.ApiEndpoint
-        });
+        // new TerraformOutput(this, "DeferredQueueUrl", new TerraformOutputConfig
+        // {
+        //     Value = interactionDeferredQueue.Url
+        // });
     }
 
     private async Task<string?> GetLatestImageDigestAsync(string repository, string tag)
