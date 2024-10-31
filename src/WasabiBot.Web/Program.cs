@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using Amazon.SQS;
 using MassTransit;
 using Npgsql;
 using OpenTelemetry.Trace;
@@ -7,6 +6,7 @@ using WasabiBot.Web;
 using WasabiBot.Web.Commands;
 using WasabiBot.Core.Interfaces;
 using WasabiBot.DataAccess.Consumers;
+using WasabiBot.DataAccess.MassTransit;
 using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
 using WasabiBot.DataAccess.Settings;
@@ -33,13 +33,12 @@ builder.Services.AddScoped<InteractionRecordService>();
 builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IDiscordService, DiscordService>();
 builder.Services.AddCommandHandlers();
-builder.Services.AddMassTransit(x =>
+builder.Services.AddHttpClient();
+builder.Services.AddMassTransit(x => // todo: move this to a separate method
 {
     x.AddConsumer(typeof(InteractionDeferredConsumer));
     x.AddConsumer(typeof(InteractionReceivedConsumer));
 
-    Console.WriteLine(builder.Environment.IsDevelopment());
-    x.SetKebabCaseEndpointNameFormatter();
     if (builder.Environment.IsDevelopment())
     {
         x.UsingInMemory((ctx, cfg) =>
@@ -51,12 +50,51 @@ builder.Services.AddMassTransit(x =>
     {
         x.UsingAmazonSqs((ctx, cfg) =>
         {
+            // Use "-error" suffix for error queues.
+            cfg.SendTopology.ErrorQueueNameFormatter = new CustomErrorQueueNameFormatter();
+            
+            // No host config is required, the AWS SDK should pick up the credentials from the environment.
             cfg.Host("us-east-1", _ => {});
-            cfg.ConfigureEndpoints(ctx);
+            
+            // Configure the InteractionDeferredConsumer
+            var deferredQueueName = ""; // todo: set the queue name
+            cfg.ReceiveEndpoint(deferredQueueName, e =>
+            {
+                e.ConfigureConsumer<InteractionDeferredConsumer>(ctx);
+                e.UseMessageRetry(r => 
+                {
+                    r.Immediate(3);
+                });
+                
+                e.ConfigureConsumeTopology = false;
+                e.Subscribe(deferredQueueName);
+            });
+            cfg.Message<InteractionDeferredMessage>(m =>
+            {
+                m.SetEntityName(deferredQueueName);
+            });
+            
+            // Configure the InteractionReceivedConsumer
+            var receivedQueueName = ""; // todo: set the queue name
+            cfg.ReceiveEndpoint(receivedQueueName, e =>
+            {
+                e.ConfigureConsumer<InteractionReceivedConsumer>(ctx);
+                
+                e.UseMessageRetry(r => 
+                {
+                    r.Exponential(3, TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5), TimeSpan.FromSeconds(5));
+                });
+                
+                e.ConfigureConsumeTopology = false;
+                e.Subscribe(receivedQueueName);
+            });
+            cfg.Message<InteractionReceivedMessage>(m =>
+            {
+                m.SetEntityName(receivedQueueName);
+            });
         });
     }
 });
-builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
