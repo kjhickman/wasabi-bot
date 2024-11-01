@@ -18,13 +18,11 @@ namespace WasabiBot.Terraform.Stacks;
 
 internal class WasabiBotStack : TerraformStack
 {
-    public WasabiBotStack(Construct scope, string id, EnvironmentVariables vars, WasabiBotSharedStack sharedStack) : base(scope, id)
+    public WasabiBotStack(Construct scope, string id, EnvironmentVariables vars) : base(scope, id)
     {
         var env = vars.ENVIRONMENT;
         const string region = "us-east-1";
         const string service = "wasabi-bot";
-        
-        AddDependency(sharedStack);
 
         // Create remote state data source to get shared stack outputs
         var sharedRemoteState = new DataTerraformRemoteStateS3(this, "SharedState", new DataTerraformRemoteStateS3Config
@@ -36,7 +34,6 @@ internal class WasabiBotStack : TerraformStack
 
         var ecrRepositoryUrl = sharedRemoteState.Get("ecrRepoUrl").ToString();
         var ecsClusterArn = sharedRemoteState.Get("ecsClusterArn").ToString();
-
 
         var defaultTags = new AwsProviderDefaultTags
         {
@@ -288,13 +285,18 @@ internal class WasabiBotStack : TerraformStack
             NetworkMode = "awsvpc",
             Cpu = "256",
             Memory = "512",
+            RuntimePlatform = new EcsTaskDefinitionRuntimePlatform
+            {
+                CpuArchitecture = "ARM64",
+                OperatingSystemFamily = "LINUX"
+            },
             ExecutionRoleArn = taskExecutionRole.Arn,
             TaskRoleArn = taskRole.Arn,
             ContainerDefinitions = $$"""
                                      [
                                          {
                                              "name": "{{service}}",
-                                             "image": "{{ecrRepositoryUrl}}:latest",
+                                             "image": "{{ecrRepositoryUrl}}:{{env}}",
                                              "essential": true,
                                              "logConfiguration": {
                                                  "logDriver": "awslogs",
@@ -316,26 +318,27 @@ internal class WasabiBotStack : TerraformStack
         });
 
         // Create ECS Service
-        new EcsService(this, "Service", new EcsServiceConfig
-        {
-            Name = $"{env}-{service}",
-            Cluster = ecrRepositoryUrl,
-            TaskDefinition = taskDefinition.Arn,
-            DesiredCount = 1,
-            LaunchType = "FARGATE",
-            CapacityProviderStrategy = new[] { new EcsServiceCapacityProviderStrategy { CapacityProvider = "FARGATE_SPOT", Weight = 1 } },
-            NetworkConfiguration = new EcsServiceNetworkConfiguration
-            {
-                AssignPublicIp = true,
-                SecurityGroups =
-                [
-                    ""
-                ],
-                Subnets =
-                [
-                    ""
-                ]
-            }
-        });
+        // new EcsService(this, "Service", new EcsServiceConfig
+        // {
+        //     Name = $"{env}-{service}",
+        //     Cluster = ecsClusterArn,
+        //     TaskDefinition = taskDefinition.Arn,
+        //     DesiredCount = 1,
+        //     CapacityProviderStrategy = new[] { new EcsServiceCapacityProviderStrategy { CapacityProvider = "FARGATE_SPOT", Weight = 1 } },
+        //     NetworkConfiguration = new EcsServiceNetworkConfiguration
+        //     {
+        //         AssignPublicIp = true,
+        //         SecurityGroups =
+        //         [
+        //             "sg-841e95b1"
+        //         ],
+        //         Subnets =
+        //         [
+        //             "subnet-43830162",
+        //             "subnet-1ccd4d43",
+        //             "subnet-67d01b56",
+        //         ]
+        //     }
+        // });
     }
 }

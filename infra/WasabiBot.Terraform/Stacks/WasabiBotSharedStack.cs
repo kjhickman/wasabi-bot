@@ -50,14 +50,6 @@ public class WasabiBotSharedStack : TerraformStack
         var ecsCluster = new EcsCluster(this, "WasabiBotSharedEcsCluster", new EcsClusterConfig
         {
             Name = service,
-            Setting = new[]
-            {
-                new EcsClusterSetting
-                {
-                    Name = "containerInsights",
-                    Value = "enabled"
-                }
-            }
         });
         
         EcrRepositoryUrl = new TerraformOutput(this, "ecrRepoUrl", new TerraformOutputConfig

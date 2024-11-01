@@ -5,16 +5,16 @@ dotenv: ['.env']
 tasks:
   default: task --list
   
-  # build:
-  #   desc: Build the Docker image
-  #   cmds:
-  #     - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT} . -f src/WasabiBot.Web/Dockerfile
+  build:
+    desc: Build the Docker image
+    cmds:
+      - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT} . -f src/WasabiBot.Web/Dockerfile
 
-  # push:
-  #   desc: Push the image to ECR
-  #   deps: [build, auth]
-  #   cmds:
-  #     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}
+  push:
+    desc: Push the image to ECR
+    deps: [build, auth]
+    cmds:
+      - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}
 
   cdktf:
     desc: Build terraform with CDKTF
@@ -23,7 +23,7 @@ tasks:
 
   apply:
     desc: Apply terraform
-    deps: [apply:shared]
+    deps: [push, apply:shared]
     dir: cdktf.out/stacks/WasabiBot.Terraform
     cmds:
       - terraform apply -auto-approve
@@ -34,7 +34,8 @@ tasks:
     dir: cdktf.out/stacks/WasabiBotShared.Terraform
     cmds:
       - terraform apply -auto-approve
-  # auth:
-  #   desc: Authenticate with ECR
-  #   cmds:
-  #     - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com
+
+  auth:
+    desc: Authenticate with ECR
+    cmds:
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com

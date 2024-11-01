@@ -28,8 +28,10 @@ if (!isValid)
     return;
 }
 
-var foo = new WasabiBotSharedStack(app, "WasabiBotShared.Terraform");
-Console.WriteLine(foo.EcrRepositoryUrl);
-new WasabiBotStack(app, "WasabiBot.Terraform", environmentVariables);
+var sharedStack = new WasabiBotSharedStack(app, "WasabiBotShared.Terraform");
+new WasabiBotStack(app, "WasabiBot.Terraform", environmentVariables)
+{
+    Dependencies = [sharedStack]
+};
 
 app.Synth();

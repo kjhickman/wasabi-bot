@@ -39,7 +39,7 @@ builder.Services.AddMassTransit(x => // todo: move this to a separate method
     x.AddConsumer(typeof(InteractionDeferredConsumer));
     x.AddConsumer(typeof(InteractionReceivedConsumer));
 
-    if (builder.Environment.IsDevelopment())
+    if (true)
     {
         x.UsingInMemory((ctx, cfg) =>
         {
