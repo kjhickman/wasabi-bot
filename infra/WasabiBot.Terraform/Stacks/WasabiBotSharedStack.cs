@@ -24,7 +24,7 @@ public class WasabiBotSharedStack : TerraformStack
             }
         };
         
-        new AwsProvider(this, "AWS", new AwsProviderConfig
+        new AwsProvider(this, "Aws", new AwsProviderConfig
         {
             Region = "us-east-1",
             DefaultTags = new[] { defaultTags }

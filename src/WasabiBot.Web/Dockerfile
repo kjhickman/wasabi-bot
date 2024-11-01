@@ -10,6 +10,7 @@ WORKDIR /src
 COPY ["src/WasabiBot.Web/WasabiBot.Web.csproj", "src/WasabiBot.Web/"]
 COPY ["src/WasabiBot.DataAccess/WasabiBot.DataAccess.csproj", "src/WasabiBot.DataAccess/"]
 COPY ["src/WasabiBot.Core/WasabiBot.Core.csproj", "src/WasabiBot.Core/"]
+COPY ["src/WasabiBot.ServiceDefaults/WasabiBot.ServiceDefaults.csproj", "src/WasabiBot.ServiceDefaults/"]
 RUN dotnet restore "src/WasabiBot.Web/WasabiBot.Web.csproj"
 COPY . .
 WORKDIR "/src/src/WasabiBot.Web"
