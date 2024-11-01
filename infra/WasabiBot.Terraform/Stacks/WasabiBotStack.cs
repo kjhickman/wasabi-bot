@@ -9,9 +9,10 @@ using HashiCorp.Cdktf.Providers.Aws.SnsTopicSubscription;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueue;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueuePolicy;
 using WasabiBot.Terraform.Settings;
+
 // ReSharper disable ObjectCreationAsStatement
 
-namespace WasabiBot.Terraform;
+namespace WasabiBot.Terraform.Stacks;
 
 internal class WasabiBotStack : TerraformStack
 {
