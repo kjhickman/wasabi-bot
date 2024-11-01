@@ -49,7 +49,7 @@ public class WasabiBotSharedStack : TerraformStack
         
         var ecsCluster = new EcsCluster(this, "WasabiBotSharedEcsCluster", new EcsClusterConfig
         {
-            Name = "shared-ecs-cluster",
+            Name = service,
             Setting = new[]
             {
                 new EcsClusterSetting

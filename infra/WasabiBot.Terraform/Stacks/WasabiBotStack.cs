@@ -1,8 +1,10 @@
 using System.Text.Json;
-using Amazon.ECR;
-using Amazon.ECR.Model;
 using Constructs;
 using HashiCorp.Cdktf;
+using HashiCorp.Cdktf.Providers.Aws.EcsService;
+using HashiCorp.Cdktf.Providers.Aws.EcsTaskDefinition;
+using HashiCorp.Cdktf.Providers.Aws.IamRole;
+using HashiCorp.Cdktf.Providers.Aws.IamRolePolicy;
 using HashiCorp.Cdktf.Providers.Aws.Provider;
 using HashiCorp.Cdktf.Providers.Aws.SnsTopic;
 using HashiCorp.Cdktf.Providers.Aws.SnsTopicSubscription;
@@ -16,11 +18,25 @@ namespace WasabiBot.Terraform.Stacks;
 
 internal class WasabiBotStack : TerraformStack
 {
-    public WasabiBotStack(Construct scope, string id, EnvironmentVariables vars) : base(scope, id)
+    public WasabiBotStack(Construct scope, string id, EnvironmentVariables vars, WasabiBotSharedStack sharedStack) : base(scope, id)
     {
         var env = vars.ENVIRONMENT;
         const string region = "us-east-1";
         const string service = "wasabi-bot";
+        
+        AddDependency(sharedStack);
+
+        // Create remote state data source to get shared stack outputs
+        var sharedRemoteState = new DataTerraformRemoteStateS3(this, "SharedState", new DataTerraformRemoteStateS3Config
+        {
+            Bucket = "tfstate-b5f4b976dc5f",
+            Key = $"{service}.shared.tfstate",
+            Region = region,
+        });
+
+        var ecrRepositoryUrl = sharedRemoteState.Get("ecrRepoUrl").ToString();
+        var ecsClusterArn = sharedRemoteState.Get("ecsClusterArn").ToString();
+
 
         var defaultTags = new AwsProviderDefaultTags
         {
@@ -169,33 +185,157 @@ internal class WasabiBotStack : TerraformStack
                 }
             })
         });
-        
-        // var latestDigest = GetLatestImageDigestAsync(service, env).Result;
-        
-        // Outputs
-        // new TerraformOutput(this, "DeferredQueueUrl", new TerraformOutputConfig
-        // {
-        //     Value = interactionDeferredQueue.Url
-        // });
-    }
 
-    private async Task<string?> GetLatestImageDigestAsync(string repository, string tag)
-    {
-        var ecrClient = new AmazonECRClient();
-
-        var request = new DescribeImagesRequest
+        var taskExecutionRole = new IamRole(this, "TaskExecutionRole", new IamRoleConfig
         {
-            RepositoryName = repository,
-            Filter = new DescribeImagesFilter
+            Name = $"{env}-{service}-execution-role",
+            AssumeRolePolicy = """
+                               {
+                                   "Version": "2012-10-17",
+                                   "Statement": [
+                                       {
+                                           "Action": "sts:AssumeRole",
+                                           "Effect": "Allow",
+                                           "Principal": {
+                                               "Service": "ecs-tasks.amazonaws.com"
+                                           }
+                                       }
+                                   ]
+                               }
+                               """
+        });
+
+        // Attach policy to task execution role
+        new IamRolePolicy(this, "TaskExecutionRolePolicy", new IamRolePolicyConfig
+        {
+            Name = $"{env}-{service}-execution-policy",
+            Role = taskExecutionRole.Id,
+            Policy = """
+                     {
+                         "Version": "2012-10-17",
+                         "Statement": [
+                             {
+                                 "Effect": "Allow",
+                                 "Action": [
+                                     "ecr:GetAuthorizationToken",
+                                     "ecr:BatchCheckLayerAvailability",
+                                     "ecr:GetDownloadUrlForLayer",
+                                     "ecr:BatchGetImage",
+                                     "logs:CreateLogStream",
+                                     "logs:PutLogEvents"
+                                 ],
+                                 "Resource": "*"
+                             }
+                         ]
+                     }
+                     """
+        });
+
+        // Create task role with permissions to access SQS and SNS
+        var taskRole = new IamRole(this, "TaskRole", new IamRoleConfig
+        {
+            Name = $"{env}-{service}-task-role",
+            AssumeRolePolicy = """
+                               {
+                                   "Version": "2012-10-17",
+                                   "Statement": [
+                                       {
+                                           "Action": "sts:AssumeRole",
+                                           "Effect": "Allow",
+                                           "Principal": {
+                                               "Service": "ecs-tasks.amazonaws.com"
+                                           }
+                                       }
+                                   ]
+                               }
+                               """
+        });
+
+        // Add SQS and SNS permissions to task role
+        new IamRolePolicy(this, "TaskRolePolicy", new IamRolePolicyConfig
+        {
+            Name = $"{env}-{service}-task-policy",
+            Role = taskRole.Id,
+            Policy = $$"""
+                       {
+                           "Version": "2012-10-17",
+                           "Statement": [
+                               {
+                                   "Effect": "Allow",
+                                   "Action": [
+                                       "sqs:ReceiveMessage",
+                                       "sqs:DeleteMessage",
+                                       "sqs:GetQueueAttributes",
+                                       "sns:Publish"
+                                   ],
+                                   "Resource": [
+                                       "{{interactionDeferredQueue.Arn}}",
+                                       "{{interactionReceivedQueue.Arn}}",
+                                       "{{interactionDeferredTopic.Arn}}",
+                                       "{{interactionReceivedTopic.Arn}}"
+                                   ]
+                               }
+                           ]
+                       }
+                       """
+        });
+
+        // Create task definition
+        var taskDefinition = new EcsTaskDefinition(this, "TaskDefinition", new EcsTaskDefinitionConfig
+        {
+            Family = $"{env}-{service}",
+            RequiresCompatibilities = ["FARGATE"],
+            NetworkMode = "awsvpc",
+            Cpu = "256",
+            Memory = "512",
+            ExecutionRoleArn = taskExecutionRole.Arn,
+            TaskRoleArn = taskRole.Arn,
+            ContainerDefinitions = $$"""
+                                     [
+                                         {
+                                             "name": "{{service}}",
+                                             "image": "{{ecrRepositoryUrl}}:latest",
+                                             "essential": true,
+                                             "logConfiguration": {
+                                                 "logDriver": "awslogs",
+                                                 "options": {
+                                                     "awslogs-group": "/ecs/{{env}}-{{service}}",
+                                                     "awslogs-region": "{{region}}",
+                                                     "awslogs-stream-prefix": "ecs"
+                                                 }
+                                             },
+                                             "environment": [
+                                                 {
+                                                     "name": "ENVIRONMENT",
+                                                     "value": "{{env}}"
+                                                 }
+                                             ]
+                                         }
+                                     ]
+                                     """
+        });
+
+        // Create ECS Service
+        new EcsService(this, "Service", new EcsServiceConfig
+        {
+            Name = $"{env}-{service}",
+            Cluster = ecrRepositoryUrl,
+            TaskDefinition = taskDefinition.Arn,
+            DesiredCount = 1,
+            LaunchType = "FARGATE",
+            CapacityProviderStrategy = new[] { new EcsServiceCapacityProviderStrategy { CapacityProvider = "FARGATE_SPOT", Weight = 1 } },
+            NetworkConfiguration = new EcsServiceNetworkConfiguration
             {
-                TagStatus = "TAGGED"
+                AssignPublicIp = true,
+                SecurityGroups =
+                [
+                    ""
+                ],
+                Subnets =
+                [
+                    ""
+                ]
             }
-        };
-
-        var response = await ecrClient.DescribeImagesAsync(request);
-        
-        var latestImage = response.ImageDetails.OrderByDescending(image => image.ImagePushedAt).FirstOrDefault(x => x.ImageTags.Contains(tag));
-
-        return latestImage?.ImageDigest;
+        });
     }
 }
