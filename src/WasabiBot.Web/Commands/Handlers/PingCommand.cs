@@ -8,15 +8,9 @@ public class PingCommand : IDiscordCommand
 {
     public static string Name => "ping";
     
+    // TODO: support synchronous commands
     public Task<InteractionResponse> Execute(Interaction interaction, CancellationToken ct)
     {
-        return Task.FromResult(new InteractionResponse
-        {
-            Type = InteractionResponseType.ChannelMessageWithSource,
-            Data = new InteractionResponseData
-            {
-                MessageContent = "Pong!"
-            }
-        });
+        return Task.FromResult(InteractionResponse.Reply("Pong!"));
     }
 }

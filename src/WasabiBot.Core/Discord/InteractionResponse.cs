@@ -20,4 +20,16 @@ public class InteractionResponse
     {
         return new InteractionResponse { Type = InteractionResponseType.DeferredChannelMessageWithSource };
     }
+    
+    public static InteractionResponse Reply(string message)
+    {
+        return new InteractionResponse
+        {
+            Type = InteractionResponseType.ChannelMessageWithSource,
+            Data = new InteractionResponseData
+            {
+                MessageContent = message
+            }
+        };
+    }
 }

@@ -11,14 +11,6 @@ public class DeferredPingCommand : IDiscordCommand
     public async Task<InteractionResponse> Execute(Interaction interaction, CancellationToken ct)
     {
         await Task.Delay(3000, ct);
-        
-        return new InteractionResponse
-        {
-            Type = InteractionResponseType.ChannelMessageWithSource,
-            Data = new InteractionResponseData
-            {
-                MessageContent = "Deferred pong!"
-            }
-        };
+        return InteractionResponse.Reply("Deferred pong!");
     }
 }
