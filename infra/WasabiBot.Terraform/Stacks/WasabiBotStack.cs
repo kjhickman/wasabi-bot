@@ -1,10 +1,12 @@
 using Constructs;
 using HashiCorp.Cdktf;
+using HashiCorp.Cdktf.Providers.Aws.CloudwatchLogGroup;
 using HashiCorp.Cdktf.Providers.Aws.EcsService;
 using HashiCorp.Cdktf.Providers.Aws.EcsTaskDefinition;
 using HashiCorp.Cdktf.Providers.Aws.IamRole;
 using HashiCorp.Cdktf.Providers.Aws.IamRolePolicy;
 using HashiCorp.Cdktf.Providers.Aws.Provider;
+using HashiCorp.Cdktf.Providers.Aws.SecurityGroup;
 using HashiCorp.Cdktf.Providers.Aws.SnsTopic;
 using HashiCorp.Cdktf.Providers.Aws.SnsTopicSubscription;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueue;
@@ -253,6 +255,38 @@ internal class WasabiBotStack : TerraformStack
                        }
                        """
         });
+        
+        new CloudwatchLogGroup(this, "LogGroup", new CloudwatchLogGroupConfig
+        {
+            Name = $"/ecs/{env}-{service}",
+            RetentionInDays = 14
+        });
+
+        // Create security group
+        var securityGroup = new SecurityGroup(this, "WasabiBotSecurityGroup", new SecurityGroupConfig
+        {
+            VpcId = "vpc-a937e7d4",
+            Ingress = new[]
+            {
+                new SecurityGroupIngress
+                {
+                    Protocol = "tcp",
+                    FromPort = 8080,
+                    ToPort = 8080,
+                    CidrBlocks = ["0.0.0.0/0"]
+                }
+            },
+            Egress = new[]
+            {
+                new SecurityGroupEgress
+                {
+                    Protocol = "-1",
+                    FromPort = 0,
+                    ToPort = 0,
+                    CidrBlocks = ["0.0.0.0/0"]
+                }
+            }
+        });
 
         // Create task definition
         var taskDefinition = new EcsTaskDefinition(this, "WasabiBotWebTaskDefinition", new EcsTaskDefinitionConfig
@@ -273,8 +307,16 @@ internal class WasabiBotStack : TerraformStack
                                      [
                                          {
                                              "name": "{{service}}",
-                                             "image": "{{ecrRepositoryUrl}}:{{env}}",
+                                             "image": "{{ecrRepositoryUrl}}:{{env}}-X86_64",
                                              "essential": true,
+                                             "cpu": 256,
+                                             "memory": 512,
+                                             "portMappings": [
+                                                 {
+                                                     "containerPort": 8080,
+                                                     "protocol": "tcp"
+                                                 }
+                                             ],
                                              "logConfiguration": {
                                                  "logDriver": "awslogs",
                                                  "options": {
@@ -310,7 +352,7 @@ internal class WasabiBotStack : TerraformStack
                 AssignPublicIp = true,
                 SecurityGroups =
                 [
-                    "sg-841e95b1"
+                    securityGroup.Id
                 ],
                 Subnets =
                 [

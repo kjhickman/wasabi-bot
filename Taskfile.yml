@@ -8,13 +8,13 @@ tasks:
   build:
     desc: Build the Docker image
     cmds:
-      - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT} . -f src/WasabiBot.Web/Dockerfile
+      - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}-X86_64 . -f src/WasabiBot.Web/Dockerfile
 
   push:
     desc: Push the image to ECR
-    deps: [build, auth]
+    # deps: [build, auth]
     cmds:
-      - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}
+      - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}-X86_64
 
   cdktf:
     desc: Build terraform with CDKTF
@@ -23,7 +23,7 @@ tasks:
 
   apply:
     desc: Apply terraform
-    deps: [push, apply:shared]
+    deps: [apply:shared]
     dir: cdktf.out/stacks/WasabiBot.Terraform
     cmds:
       - terraform apply -auto-approve

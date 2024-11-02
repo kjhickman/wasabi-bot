@@ -44,7 +44,7 @@ public static class Extensions
         Log.Logger = logger;
         builder.Services.AddSingleton(logger);
         
-        builder.Logging.ClearProviders();
+        // builder.Logging.ClearProviders();
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
