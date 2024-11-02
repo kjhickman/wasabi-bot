@@ -1,12 +1,24 @@
 using Constructs;
 using HashiCorp.Cdktf;
+using HashiCorp.Cdktf.Providers.Aws.AcmCertificate;
+using HashiCorp.Cdktf.Providers.Aws.AcmCertificateValidation;
+using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Api;
+using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2ApiMapping;
+using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2DomainName;
+using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Integration;
+using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Route;
+using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Stage;
+using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2VpcLink;
 using HashiCorp.Cdktf.Providers.Aws.CloudwatchLogGroup;
 using HashiCorp.Cdktf.Providers.Aws.EcsService;
 using HashiCorp.Cdktf.Providers.Aws.EcsTaskDefinition;
 using HashiCorp.Cdktf.Providers.Aws.IamRole;
 using HashiCorp.Cdktf.Providers.Aws.IamRolePolicy;
 using HashiCorp.Cdktf.Providers.Aws.Provider;
+using HashiCorp.Cdktf.Providers.Aws.Route53Record;
 using HashiCorp.Cdktf.Providers.Aws.SecurityGroup;
+using HashiCorp.Cdktf.Providers.Aws.ServiceDiscoveryHttpNamespace;
+using HashiCorp.Cdktf.Providers.Aws.ServiceDiscoveryService;
 using HashiCorp.Cdktf.Providers.Aws.SnsTopic;
 using HashiCorp.Cdktf.Providers.Aws.SnsTopicSubscription;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueue;
@@ -18,23 +30,12 @@ using WasabiBot.Terraform.Settings;
 namespace WasabiBot.Terraform.Stacks;
 
 internal class WasabiBotStack : TerraformStack
-{
+{   
     public WasabiBotStack(Construct scope, string id, EnvironmentVariables vars) : base(scope, id)
     {
         var env = vars.ENVIRONMENT;
         const string region = "us-east-1";
         const string service = "wasabi-bot";
-
-        // Create remote state data source to get shared stack outputs
-        var sharedRemoteState = new DataTerraformRemoteStateS3(this, "SharedState", new DataTerraformRemoteStateS3Config
-        {
-            Bucket = "tfstate-b5f4b976dc5f",
-            Key = $"{service}.shared.tfstate",
-            Region = region,
-        });
-
-        var ecrRepositoryUrl = sharedRemoteState.Get("ecrRepoUrl").ToString();
-        var ecsClusterArn = sharedRemoteState.Get("ecsClusterArn").ToString();
 
         var defaultTags = new AwsProviderDefaultTags
         {
@@ -161,77 +162,30 @@ internal class WasabiBotStack : TerraformStack
                        }
                        """
         });
-
-        var taskExecutionRole = new IamRole(this, "TaskExecutionRole", new IamRoleConfig
+        
+        var servicePrincipalRole = new IamRole(this, "ServicePrincipalRole", new IamRoleConfig
         {
-            Name = $"{env}-{service}-execution-role",
+            Name = $"{env}-{service}-principal",
             AssumeRolePolicy = """
                                {
                                    "Version": "2012-10-17",
                                    "Statement": [
                                        {
-                                           "Action": "sts:AssumeRole",
                                            "Effect": "Allow",
                                            "Principal": {
-                                               "Service": "ecs-tasks.amazonaws.com"
-                                           }
+                                               "Service": "tasks.apprunner.amazonaws.com"
+                                           },
+                                           "Action": "sts:AssumeRole"
                                        }
                                    ]
                                }
                                """
         });
 
-        // Attach policy to task execution role
-        new IamRolePolicy(this, "TaskExecutionRolePolicy", new IamRolePolicyConfig
+        new IamRolePolicy(this, "ServicePrincipalPolicy", new IamRolePolicyConfig
         {
-            Name = $"{env}-{service}-execution-policy",
-            Role = taskExecutionRole.Id,
-            Policy = """
-                     {
-                         "Version": "2012-10-17",
-                         "Statement": [
-                             {
-                                 "Effect": "Allow",
-                                 "Action": [
-                                     "ecr:GetAuthorizationToken",
-                                     "ecr:BatchCheckLayerAvailability",
-                                     "ecr:GetDownloadUrlForLayer",
-                                     "ecr:BatchGetImage",
-                                     "logs:CreateLogStream",
-                                     "logs:PutLogEvents"
-                                 ],
-                                 "Resource": "*"
-                             }
-                         ]
-                     }
-                     """
-        });
-
-        // Create task role with permissions to access SQS and SNS
-        var taskRole = new IamRole(this, "TaskRole", new IamRoleConfig
-        {
-            Name = $"{env}-{service}-task-role",
-            AssumeRolePolicy = """
-                               {
-                                   "Version": "2012-10-17",
-                                   "Statement": [
-                                       {
-                                           "Action": "sts:AssumeRole",
-                                           "Effect": "Allow",
-                                           "Principal": {
-                                               "Service": "ecs-tasks.amazonaws.com"
-                                           }
-                                       }
-                                   ]
-                               }
-                               """
-        });
-
-        // Add SQS and SNS permissions to task role
-        new IamRolePolicy(this, "TaskRolePolicy", new IamRolePolicyConfig
-        {
-            Name = $"{env}-{service}-task-policy",
-            Role = taskRole.Id,
+            Name = $"{env}-{service}-principal-policy",
+            Role = servicePrincipalRole.Id,
             Policy = $$"""
                        {
                            "Version": "2012-10-17",
@@ -239,128 +193,29 @@ internal class WasabiBotStack : TerraformStack
                                {
                                    "Effect": "Allow",
                                    "Action": [
-                                       "sqs:ReceiveMessage",
-                                       "sqs:DeleteMessage",
-                                       "sqs:GetQueueAttributes",
                                        "sns:Publish"
                                    ],
                                    "Resource": [
-                                       "{{interactionDeferredQueue.Arn}}",
-                                       "{{interactionReceivedQueue.Arn}}",
                                        "{{interactionDeferredTopic.Arn}}",
                                        "{{interactionReceivedTopic.Arn}}"
+                                   ]
+                               },
+                               {
+                                   "Effect": "Allow",
+                                   "Action": [
+                                       "sqs:ReceiveMessage",
+                                       "sqs:DeleteMessage",
+                                       "sqs:GetQueueAttributes",
+                                       "sqs:ChangeMessageVisibility"
+                                   ],
+                                   "Resource": [
+                                       "{{interactionDeferredQueue.Arn}}",
+                                       "{{interactionReceivedQueue.Arn}}"
                                    ]
                                }
                            ]
                        }
                        """
-        });
-        
-        new CloudwatchLogGroup(this, "LogGroup", new CloudwatchLogGroupConfig
-        {
-            Name = $"/ecs/{env}-{service}",
-            RetentionInDays = 14
-        });
-
-        // Create security group
-        var securityGroup = new SecurityGroup(this, "WasabiBotSecurityGroup", new SecurityGroupConfig
-        {
-            VpcId = "vpc-a937e7d4",
-            Ingress = new[]
-            {
-                new SecurityGroupIngress
-                {
-                    Protocol = "tcp",
-                    FromPort = 8080,
-                    ToPort = 8080,
-                    CidrBlocks = ["0.0.0.0/0"]
-                }
-            },
-            Egress = new[]
-            {
-                new SecurityGroupEgress
-                {
-                    Protocol = "-1",
-                    FromPort = 0,
-                    ToPort = 0,
-                    CidrBlocks = ["0.0.0.0/0"]
-                }
-            }
-        });
-
-        // Create task definition
-        var taskDefinition = new EcsTaskDefinition(this, "WasabiBotWebTaskDefinition", new EcsTaskDefinitionConfig
-        {
-            Family = $"{env}-{service}",
-            RequiresCompatibilities = ["FARGATE"],
-            NetworkMode = "awsvpc",
-            Cpu = "256",
-            Memory = "512",
-            RuntimePlatform = new EcsTaskDefinitionRuntimePlatform
-            {
-                CpuArchitecture = "X86_64",
-                OperatingSystemFamily = "LINUX"
-            },
-            ExecutionRoleArn = taskExecutionRole.Arn,
-            TaskRoleArn = taskRole.Arn,
-            ContainerDefinitions = $$"""
-                                     [
-                                         {
-                                             "name": "{{service}}",
-                                             "image": "{{ecrRepositoryUrl}}:{{env}}-X86_64",
-                                             "essential": true,
-                                             "cpu": 256,
-                                             "memory": 512,
-                                             "portMappings": [
-                                                 {
-                                                     "containerPort": 8080,
-                                                     "protocol": "tcp"
-                                                 }
-                                             ],
-                                             "logConfiguration": {
-                                                 "logDriver": "awslogs",
-                                                 "options": {
-                                                     "awslogs-group": "/ecs/{{env}}-{{service}}",
-                                                     "awslogs-region": "{{region}}",
-                                                     "awslogs-stream-prefix": "ecs"
-                                                 }
-                                             },
-                                             "environment": [
-                                                 {
-                                                     "name": "ENVIRONMENT",
-                                                     "value": "{{env}}"
-                                                 }
-                                             ]
-                                         }
-                                     ]
-                                     """
-        });
-
-        // Create ECS Service
-        new EcsService(this, "WasabiBotWebService", new EcsServiceConfig
-        {
-            Name = $"{env}-{service}",
-            Cluster = ecsClusterArn,
-            TaskDefinition = taskDefinition.Arn,
-            DesiredCount = 1,
-            CapacityProviderStrategy = new[]
-            {
-                new EcsServiceCapacityProviderStrategy { CapacityProvider = "FARGATE_SPOT", Weight = 1 }
-            },
-            NetworkConfiguration = new EcsServiceNetworkConfiguration
-            {
-                AssignPublicIp = true,
-                SecurityGroups =
-                [
-                    securityGroup.Id
-                ],
-                Subnets =
-                [
-                    "subnet-43830162",
-                    "subnet-1ccd4d43",
-                    "subnet-67d01b56",
-                ]
-            }
         });
     }
 }

@@ -8,8 +8,6 @@ namespace WasabiBot.Terraform.Stacks;
 
 public class WasabiBotSharedStack : TerraformStack
 {
-    public TerraformOutput EcrRepositoryUrl { get; private set; }
-    public TerraformOutput EcsClusterArn { get; private set; }
     
     public WasabiBotSharedStack(Construct scope, string id) : base(scope, id)
     {
@@ -35,33 +33,6 @@ public class WasabiBotSharedStack : TerraformStack
             Bucket = "tfstate-b5f4b976dc5f",
             Key = $"{service}.shared.tfstate",
             Region = region,
-        });
-        
-        var ecrRepo = new EcrRepository(this, "WasabiBotSharedEcrRepo", new EcrRepositoryConfig
-        {
-            Name = service,
-            ImageTagMutability = "MUTABLE",
-            ImageScanningConfiguration = new EcrRepositoryImageScanningConfiguration
-            {
-                ScanOnPush = true
-            }
-        });
-        
-        var ecsCluster = new EcsCluster(this, "WasabiBotSharedEcsCluster", new EcsClusterConfig
-        {
-            Name = service,
-        });
-        
-        EcrRepositoryUrl = new TerraformOutput(this, "ecrRepoUrl", new TerraformOutputConfig
-        {
-            Value = ecrRepo.RepositoryUrl,
-            Description = "ECR Repository URL"
-        });
-        
-        EcsClusterArn = new TerraformOutput(this, "ecsClusterArn", new TerraformOutputConfig
-        {
-            Value = ecsCluster.Arn,
-            Description = "ECS Cluster ARN"
         });
     }
 }
