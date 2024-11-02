@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Constructs;
 using HashiCorp.Cdktf;
 using HashiCorp.Cdktf.Providers.Aws.EcsService;
@@ -88,37 +87,26 @@ internal class WasabiBotStack : TerraformStack
         new SqsQueuePolicy(this, "InteractionDeferredQueuePolicy", new SqsQueuePolicyConfig
         {
             QueueUrl = interactionDeferredQueue.Id,
-            Policy = JsonSerializer.Serialize(new Dictionary<string, object>
-            {
-                {
-                    "Version", "2012-10-17"
-                },
-                {
-                    "Statement", new[]
-                    {
-                        new Dictionary<string, object>
-                        {
-                            { "Effect", "Allow" },
-                            { "Principal", new Dictionary<string, object>
-                                {
-                                    { "Service", "sns.amazonaws.com" }
-                                }
-                            },
-                            { "Action", "sqs:SendMessage" },
-                            { "Resource", interactionDeferredQueue.Arn },
-                            { "Condition", new Dictionary<string, object>
-                                {
-                                    { "ArnEquals", new Dictionary<string, string>
-                                        {
-                                            { "aws:SourceArn", interactionDeferredTopic.Arn }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            })
+            Policy = $$"""
+                       {
+                           "Version": "2012-10-17",
+                           "Statement": [
+                               {
+                                   "Effect": "Allow",
+                                   "Principal": {
+                                       "Service": "sns.amazonaws.com"
+                                   },
+                                   "Action": "sqs:SendMessage",
+                                   "Resource": "{{interactionDeferredQueue.Arn}}",
+                                   "Condition": {
+                                       "ArnEquals": {
+                                           "aws:SourceArn": "{{interactionDeferredTopic.Arn}}"
+                                       }
+                                   }
+                               }
+                           ]
+                       }
+                       """
         });
         
         var interactionReceivedErrorQueue = new SqsQueue(this, "InteractionReceivedErrorQueue", new SqsQueueConfig
@@ -146,41 +134,30 @@ internal class WasabiBotStack : TerraformStack
             Protocol = "sqs",
             Endpoint = interactionReceivedQueue.Arn
         });
-        
+
         new SqsQueuePolicy(this, "InteractionReceivedQueuePolicy", new SqsQueuePolicyConfig
         {
             QueueUrl = interactionReceivedQueue.Id,
-            Policy = JsonSerializer.Serialize(new Dictionary<string, object>
-            {
-                {
-                    "Version", "2012-10-17"
-                },
-                {
-                    "Statement", new[]
-                    {
-                        new Dictionary<string, object>
-                        {
-                            { "Effect", "Allow" },
-                            { "Principal", new Dictionary<string, object>
-                                {
-                                    { "Service", "sns.amazonaws.com" }
-                                }
-                            },
-                            { "Action", "sqs:SendMessage" },
-                            { "Resource", interactionReceivedQueue.Arn },
-                            { "Condition", new Dictionary<string, object>
-                                {
-                                    { "ArnEquals", new Dictionary<string, string>
-                                        {
-                                            { "aws:SourceArn", interactionReceivedTopic.Arn }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            })
+            Policy = $$"""
+                       {
+                           "Version": "2012-10-17",
+                           "Statement": [
+                               {
+                                   "Effect": "Allow",
+                                   "Principal": {
+                                       "Service": "sns.amazonaws.com"
+                                   },
+                                   "Action": "sqs:SendMessage",
+                                   "Resource": "{{interactionReceivedQueue.Arn}}",
+                                   "Condition": {
+                                       "ArnEquals": {
+                                           "aws:SourceArn": "{{interactionReceivedTopic.Arn}}"
+                                       }
+                                   }
+                               }
+                           ]
+                       }
+                       """
         });
 
         var taskExecutionRole = new IamRole(this, "TaskExecutionRole", new IamRoleConfig
@@ -278,7 +255,7 @@ internal class WasabiBotStack : TerraformStack
         });
 
         // Create task definition
-        var taskDefinition = new EcsTaskDefinition(this, "TaskDefinition", new EcsTaskDefinitionConfig
+        var taskDefinition = new EcsTaskDefinition(this, "WasabiBotWebTaskDefinition", new EcsTaskDefinitionConfig
         {
             Family = $"{env}-{service}",
             RequiresCompatibilities = ["FARGATE"],
@@ -287,7 +264,7 @@ internal class WasabiBotStack : TerraformStack
             Memory = "512",
             RuntimePlatform = new EcsTaskDefinitionRuntimePlatform
             {
-                CpuArchitecture = "ARM64",
+                CpuArchitecture = "X86_64",
                 OperatingSystemFamily = "LINUX"
             },
             ExecutionRoleArn = taskExecutionRole.Arn,
@@ -318,27 +295,30 @@ internal class WasabiBotStack : TerraformStack
         });
 
         // Create ECS Service
-        // new EcsService(this, "Service", new EcsServiceConfig
-        // {
-        //     Name = $"{env}-{service}",
-        //     Cluster = ecsClusterArn,
-        //     TaskDefinition = taskDefinition.Arn,
-        //     DesiredCount = 1,
-        //     CapacityProviderStrategy = new[] { new EcsServiceCapacityProviderStrategy { CapacityProvider = "FARGATE_SPOT", Weight = 1 } },
-        //     NetworkConfiguration = new EcsServiceNetworkConfiguration
-        //     {
-        //         AssignPublicIp = true,
-        //         SecurityGroups =
-        //         [
-        //             "sg-841e95b1"
-        //         ],
-        //         Subnets =
-        //         [
-        //             "subnet-43830162",
-        //             "subnet-1ccd4d43",
-        //             "subnet-67d01b56",
-        //         ]
-        //     }
-        // });
+        new EcsService(this, "WasabiBotWebService", new EcsServiceConfig
+        {
+            Name = $"{env}-{service}",
+            Cluster = ecsClusterArn,
+            TaskDefinition = taskDefinition.Arn,
+            DesiredCount = 1,
+            CapacityProviderStrategy = new[]
+            {
+                new EcsServiceCapacityProviderStrategy { CapacityProvider = "FARGATE_SPOT", Weight = 1 }
+            },
+            NetworkConfiguration = new EcsServiceNetworkConfiguration
+            {
+                AssignPublicIp = true,
+                SecurityGroups =
+                [
+                    "sg-841e95b1"
+                ],
+                Subnets =
+                [
+                    "subnet-43830162",
+                    "subnet-1ccd4d43",
+                    "subnet-67d01b56",
+                ]
+            }
+        });
     }
 }
