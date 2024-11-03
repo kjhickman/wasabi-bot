@@ -11,7 +11,6 @@
 - AWS CLI
 - Terraform
 - Node (Unsure which version is required. Tested with 20 and 22)
-- [Go-Task](https://github.com/go-task/task)
 - Ngrok account with static subdomain
 
 ### Creating a Discord application
