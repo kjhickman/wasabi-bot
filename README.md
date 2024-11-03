@@ -8,9 +8,6 @@
 
 - .NET 8 SDK
 - Docker
-- AWS CLI
-- Terraform
-- Node (Unsure which version is required. Tested with 20 and 22)
 - Ngrok account with static subdomain
 
 ### Creating a Discord application
