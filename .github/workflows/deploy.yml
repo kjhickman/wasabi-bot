@@ -47,15 +47,15 @@ jobs:
 
       # Restore the project
       - name: Restore project
-        run: dotnet restore infra/WasabiBot.MigrationsRunner
+        run: dotnet restore tools/WasabiBot.MigrationsRunner
 
       # Build the project
       - name: Build project
-        run: dotnet build infra/WasabiBot.MigrationsRunner --no-restore --tl
+        run: dotnet build tools/WasabiBot.MigrationsRunner --no-restore --tl
 
       # Migrate the database
       - name: Migrate database
-        run: dotnet run --project infra/WasabiBot.MigrationsRunner --no-build --tl
+        run: dotnet run --project tools/WasabiBot.MigrationsRunner --no-build --tl
 
   deploy:
     runs-on: ubuntu-latest
