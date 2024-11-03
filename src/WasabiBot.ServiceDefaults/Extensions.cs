@@ -36,15 +36,8 @@ public static class Extensions
 
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
-        Serilog.ILogger logger = new LoggerConfiguration()
-            .Enrich.FromLogContext()
-            .WriteTo.Console(new CompactJsonFormatter())
-            .WriteTo.OpenTelemetry()
-            .CreateLogger();
-        Log.Logger = logger;
-        builder.Services.AddSingleton(logger);
-        
-        // builder.Logging.ClearProviders();
+        builder.Logging.ClearProviders();
+        builder.Logging.AddJsonConsole();
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;

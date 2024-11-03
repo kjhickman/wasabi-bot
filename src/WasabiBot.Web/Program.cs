@@ -11,6 +11,7 @@ using WasabiBot.DataAccess.Consumers;
 using WasabiBot.DataAccess.MassTransit;
 using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
+using WasabiBot.Web.DependencyInjection;
 using WasabiBot.Web.Endpoints;
 using WasabiBot.Web.Services;
 using WasabiBot.Web.Settings;
@@ -36,71 +37,7 @@ builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IDiscordService, DiscordService>();
 builder.Services.AddCommandHandlers();
 builder.Services.AddHttpClient();
-builder.Services.AddMassTransit(x => // todo: move this to a separate method
-{
-    x.AddConsumer(typeof(InteractionDeferredConsumer));
-    x.AddConsumer(typeof(InteractionReceivedConsumer));
-
-    if (builder.Environment.IsDevelopment())
-    {
-        x.UsingInMemory((ctx, cfg) =>
-        {
-            cfg.ConfigureEndpoints(ctx);
-        });
-    }
-    else
-    {
-        x.UsingAmazonSqs((ctx, cfg) =>
-        {
-            var masstransitConfig = builder.Configuration.GetSection("MassTransit");
-            // Use "-error" suffix for error queues.
-            cfg.SendTopology.ErrorQueueNameFormatter = new CustomErrorQueueNameFormatter();
-            
-            // No host config is required, the AWS SDK should pick up the credentials from the environment.
-            cfg.Host("us-east-1", host =>
-            {
-                var fileName = Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE");
-                var role = Environment.GetEnvironmentVariable("AWS_ROLE_ARN");
-                var session = Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME");
-                host.Credentials(new AssumeRoleWithWebIdentityCredentials(fileName, role, session));
-            });
-            
-            // Configure the InteractionDeferredConsumer
-            var deferredQueueName = masstransitConfig["InteractionDeferredQueueName"]!;
-            Console.WriteLine($"Configuring deferred queue: {deferredQueueName}");
-            cfg.ReceiveEndpoint(deferredQueueName, e =>
-            { 
-                e.PrefetchCount = 1;
-                e.ConfigureConsumeTopology = false;
-                e.Subscribe(deferredQueueName);
-                
-                e.ConfigureConsumer<InteractionDeferredConsumer>(ctx);
-                e.UseMessageRetry(r => r.Immediate(3));
-            });
-            cfg.Message<InteractionDeferredMessage>(m =>
-            {
-                m.SetEntityName(deferredQueueName);
-            });
-            
-            // Configure the InteractionReceivedConsumer
-            var receivedQueueName = masstransitConfig["InteractionReceivedQueueName"]!;
-            Console.WriteLine($"Configuring received queue: {receivedQueueName}");
-            cfg.ReceiveEndpoint(receivedQueueName, e =>
-            {
-                e.PrefetchCount = 1;
-                e.ConfigureConsumeTopology = false;
-                e.Subscribe(receivedQueueName);
-                
-                e.ConfigureConsumer<InteractionReceivedConsumer>(ctx);
-                e.UseMessageRetry(r => r.Immediate(3));
-            });
-            cfg.Message<InteractionReceivedMessage>(m =>
-            {
-                m.SetEntityName(receivedQueueName);
-            });
-        });
-    }
-});
+builder.AddMassTransit();
 
 var app = builder.Build();
 
