@@ -1,11 +1,23 @@
-name: Deploy to Production
+name: Deploy
 
 on:
+  # Trigger on merge to main
   workflow_run:
     workflows: [ "Build and Test" ]
     branches: [ main ]
     types:
       - completed
+  # Manual trigger for prod deployments
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy to environment'
+        required: true
+        default: 'prd'
+        type: choice
+        options:
+          - prd
+          - stg
 
 env:
   API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL }}
@@ -53,54 +65,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      # Login to Amazon ECR
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      # Build the Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ steps.login-ecr.outputs.registry }}/wasabi-bot:$ENVIRONMENT . -f src/WasabiBot.Web/Dockerfile
-
-      # Push the image to ECR
-      - name: Push Docker image to ECR
-        run: |
-          docker push ${{ steps.login-ecr.outputs.registry }}/wasabi-bot:$ENVIRONMENT
-
       # Set up .NET Core
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
-      # Restore CDKTF Assets
-      - name: Restore CDKTF Assets
-        run: |
-          dotnet restore infra/WasabiBot.Terraform
-
-      # Deploy via CDKTF
-      - name: Run Terraform CDK
-        uses: hashicorp/terraform-cdk-action@v5
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          mode: auto-approve-apply
-          stackName: WasabiBot.Terraform
-          workingDirectory: ./infra/WasabiBot.Terraform
-
-      # Warm up lambda
-      - name: Warm up Lambda
-        run: |
-          curl ${{ secrets.API_GATEWAY_URL }}/warmup
+      # run cdktf
+      # tf init
+      # apply terraform
+      # Deploy to Fly.io

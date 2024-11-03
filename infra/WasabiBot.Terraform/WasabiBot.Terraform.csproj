@@ -9,17 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="dotenv.net" />
     <PackageReference Include="HashiCorp.Cdktf" />
     <PackageReference Include="HashiCorp.Cdktf.Providers.Aws" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="..\..\.env" Condition="Exists('..\..\.env')">
-      <Link>.env</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
 </Project>

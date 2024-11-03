@@ -1,5 +1,6 @@
 using Constructs;
 using HashiCorp.Cdktf;
+using HashiCorp.Cdktf.Providers.Aws.DataAwsCallerIdentity;
 using HashiCorp.Cdktf.Providers.Aws.IamRole;
 using HashiCorp.Cdktf.Providers.Aws.IamRolePolicy;
 using HashiCorp.Cdktf.Providers.Aws.Provider;
@@ -7,7 +8,6 @@ using HashiCorp.Cdktf.Providers.Aws.SnsTopic;
 using HashiCorp.Cdktf.Providers.Aws.SnsTopicSubscription;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueue;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueuePolicy;
-using WasabiBot.Terraform.Settings;
 
 // ReSharper disable ObjectCreationAsStatement
 
@@ -15,9 +15,8 @@ namespace WasabiBot.Terraform;
 
 internal class WasabiBotStack : TerraformStack
 {   
-    public WasabiBotStack(Construct scope, string id, EnvironmentVariables vars) : base(scope, id)
+    public WasabiBotStack(Construct scope, string id, string environment) : base(scope, id)
     {
-        var env = vars.ENVIRONMENT;
         const string region = "us-east-1";
         const string service = "wasabi-bot";
 
@@ -25,7 +24,7 @@ internal class WasabiBotStack : TerraformStack
         {
             Tags = new Dictionary<string, string>
             {
-                { "Environment", env },
+                { "Environment", environment },
                 { "Service", service }
             }
         };
@@ -39,7 +38,7 @@ internal class WasabiBotStack : TerraformStack
         new S3Backend(this, new S3BackendConfig
         {
             Bucket = "tfstate-b5f4b976dc5f",
-            Key = $"{service}.{env}.tfstate",
+            Key = $"{service}.{environment}.tfstate",
             Region = region,
             // TODO: add DynamoDB locking
         });
@@ -47,21 +46,21 @@ internal class WasabiBotStack : TerraformStack
         // TODO: create reusable module for masstransit infra
         var interactionDeferredErrorQueue = new SqsQueue(this, "InteractionDeferredErrorQueue", new SqsQueueConfig
         {
-            Name = $"{env}-{service}-interaction-deferred-error",
+            Name = $"{environment}-{service}-interaction-deferred-error",
             MessageRetentionSeconds = 750,
             VisibilityTimeoutSeconds = 30
         });
         
         var interactionDeferredQueue = new SqsQueue(this, "InteractionDeferredQueue", new SqsQueueConfig
         {
-            Name = $"{env}-{service}-interaction-deferred",
+            Name = $"{environment}-{service}-interaction-deferred",
             VisibilityTimeoutSeconds = 30,
             RedrivePolicy = $"{{\"deadLetterTargetArn\":\"{interactionDeferredErrorQueue.Arn}\", \"maxReceiveCount\": 3}}"
         });
         
         var interactionDeferredTopic = new SnsTopic(this, "InteractionDeferredTopic", new SnsTopicConfig
         {
-            Name = $"{env}-{service}-interaction-deferred",
+            Name = $"{environment}-{service}-interaction-deferred",
         });
 
         new SnsTopicSubscription(this, "InteractionDeferredSubscription", new SnsTopicSubscriptionConfig
@@ -98,21 +97,21 @@ internal class WasabiBotStack : TerraformStack
         
         var interactionReceivedErrorQueue = new SqsQueue(this, "InteractionReceivedErrorQueue", new SqsQueueConfig
         {
-            Name = $"{env}-{service}-interaction-received-error",
+            Name = $"{environment}-{service}-interaction-received-error",
             MessageRetentionSeconds = 750,
             VisibilityTimeoutSeconds = 30
         });
         
         var interactionReceivedQueue = new SqsQueue(this, "InteractionReceivedQueue", new SqsQueueConfig
         {
-            Name = $"{env}-{service}-interaction-received",
+            Name = $"{environment}-{service}-interaction-received",
             VisibilityTimeoutSeconds = 30,
             RedrivePolicy = $"{{\"deadLetterTargetArn\":\"{interactionReceivedErrorQueue.Arn}\", \"maxReceiveCount\": 3}}"
         });
         
         var interactionReceivedTopic = new SnsTopic(this, "InteractionReceivedTopic", new SnsTopicConfig
         {
-            Name = $"{env}-{service}-interaction-received",
+            Name = $"{environment}-{service}-interaction-received",
         });
         
         new SnsTopicSubscription(this, "InteractionReceivedSubscription", new SnsTopicSubscriptionConfig
@@ -147,9 +146,10 @@ internal class WasabiBotStack : TerraformStack
                        """
         });
         
+        var callerIdentity = new DataAwsCallerIdentity(this, "current");
         var wasabiBotWebFlyRole = new IamRole(this, "WasabiBotWebFlyRole", new IamRoleConfig
         {
-            Name = $"{env}-{service}-web-fly-role",
+            Name = $"{environment}-{service}-web-fly-role",
             AssumeRolePolicy = $$"""
                 {
                     "Version": "2012-10-17",
@@ -157,7 +157,7 @@ internal class WasabiBotStack : TerraformStack
                         {
                             "Effect": "Allow",
                             "Principal": {
-                                "Federated": "arn:aws:iam::{{vars.AWS_ACCOUNT_ID}}:oidc-provider/oidc.fly.io/wasabi-bot"
+                                "Federated": "arn:aws:iam::{{callerIdentity.AccountId}}:oidc-provider/oidc.fly.io/wasabi-bot"
                             },
                             "Action": "sts:AssumeRoleWithWebIdentity",
                             "Condition": {
@@ -165,7 +165,7 @@ internal class WasabiBotStack : TerraformStack
                                     "oidc.fly.io/wasabi-bot:aud": "sts.amazonaws.com"
                                 },
                                 "StringLike": {
-                                    "oidc.fly.io/wasabi-bot:sub": "wasabi-bot:{{env}}-wasabi-bot-web:*"
+                                    "oidc.fly.io/wasabi-bot:sub": "wasabi-bot:{{environment}}-wasabi-bot-web:*"
                                 }
                             }
                         }
@@ -176,7 +176,7 @@ internal class WasabiBotStack : TerraformStack
 
         new IamRolePolicy(this, "WasabiBotWebFlyRolePolicy", new IamRolePolicyConfig
         {
-            Name = $"{env}-{service}-web-fly-policy",
+            Name = $"{environment}-{service}-web-fly-policy",
             Role = wasabiBotWebFlyRole.Id,
             Policy = $$"""
                        {
