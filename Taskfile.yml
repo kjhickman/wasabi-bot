@@ -13,7 +13,7 @@ tasks:
   tf:build:
     desc: Build terraform with CDKTF
     cmds:
-      - dotnet run --project infra/WasabiBot.Terraform/WasabiBot.Terraform.csproj
+      - dotnet run stg --project infra/WasabiBot.Terraform/WasabiBot.Terraform.csproj
 
   tf:apply:
     desc: Apply terraform

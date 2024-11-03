@@ -4,9 +4,11 @@ on:
   # Trigger on merge to main
   workflow_run:
     workflows: [ "Build and Test" ]
-    branches: [ main ]
+    branches: [ main, aspire ]
     types:
       - completed
+    inputs:
+      environment: stg
   # Manual trigger for prod deployments
   workflow_dispatch:
     inputs:
@@ -19,16 +21,6 @@ on:
           - prd
           - stg
 
-env:
-  API_GATEWAY_URL: ${{ secrets.API_GATEWAY_URL }}
-  ARCHITECTURE: x86_64
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-  DISCORD_PUBLIC_KEY: ${{ secrets.DISCORD_PUBLIC_KEY }}
-  DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-  DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
-  ENVIRONMENT: 'prd'
-  NEON_CONNECTION_STRING: ${{ secrets.NEON_CONNECTION_STRING }}
-
 jobs:
   migrate:
     runs-on: ubuntu-latest
@@ -37,6 +29,19 @@ jobs:
       # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      # Set environment-specific variables
+      - name: Set environment-specific variables
+        id: vars
+        run: |
+          case "${{ github.event.inputs.environment }}" in
+            "stg")
+              echo "ConnectionStrings__wasabiBotDb=${{ secrets.STG_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
+              ;;
+            "prd")
+              echo "ConnectionStrings__wasabiBotDb=${{ secrets.PRD_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
+              ;;
+          esac
 
       # Set up .NET Core
       - name: Setup .NET Core
@@ -70,8 +75,33 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+        
+      # Restore the project
+      - name: Restore project
+        run: dotnet restore infra/WasabiBot.Terraform
 
-      # run cdktf
-      # tf init
-      # apply terraform
-      # Deploy to Fly.io
+      # Build the project
+      - name: Build project
+        run: dotnet build infra/WasabiBot.Terraform --no-restore
+      
+      # Run CDKTF
+      - name: Run CDKTF
+        run: dotnet run ${{ github.event.inputs.environment }} --project infra/WasabiBot.Terraform --no-build
+
+      # Set up Terraform
+      - uses: hashicorp/setup-terraform@v3
+
+      # Configure AWS credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+          aws-region: us-east-1
+
+      # Initialize Terraform backend
+      - name: Terraform init
+        run: terraform -chdir=cdktf.out/stacks/WasabiBot.Terraform init
+
+      # Apply Terraform
+      - name: Terraform apply
+        run: terraform -chdir=cdktf.out/stacks/WasabiBot.Terraform apply -auto-approve

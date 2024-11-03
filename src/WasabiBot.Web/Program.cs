@@ -1,15 +1,9 @@
 ﻿using System.Data;
-using Amazon.Runtime;
-using Amazon.Util;
-using MassTransit;
 using Npgsql;
 using OpenTelemetry.Trace;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess.Consumers;
-using WasabiBot.DataAccess.MassTransit;
-using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
 using WasabiBot.Web.DependencyInjection;
 using WasabiBot.Web.Endpoints;
@@ -35,7 +29,7 @@ builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectio
 builder.Services.AddScoped<InteractionRecordService>();
 builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IDiscordService, DiscordService>();
-builder.Services.AddCommandHandlers();
+builder.Services.AddCommands();
 builder.Services.AddHttpClient();
 builder.AddMassTransit();
 
