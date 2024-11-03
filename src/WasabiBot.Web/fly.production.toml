@@ -18,3 +18,7 @@ primary_region = 'dfw'
   memory = '256mb'
   cpu_kind = 'shared'
   cpus = 1
+
+[env]
+  ASPNETCORE_ENVIRONMENT = "Production"
+  AWS_ROLE_ARN = "arn:aws:iam::346610971261:role/prd-wasabi-bot-web-fly-role"

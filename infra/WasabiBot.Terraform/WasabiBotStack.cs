@@ -165,7 +165,7 @@ internal class WasabiBotStack : TerraformStack
                                     "oidc.fly.io/wasabi-bot:aud": "sts.amazonaws.com"
                                 },
                                 "StringLike": {
-                                    "oidc.fly.io/wasabi-bot:sub": "wasabi-bot:{{env}}-wasabi-bot:*"
+                                    "oidc.fly.io/wasabi-bot:sub": "wasabi-bot:{{env}}-wasabi-bot-web:*"
                                 }
                             }
                         }

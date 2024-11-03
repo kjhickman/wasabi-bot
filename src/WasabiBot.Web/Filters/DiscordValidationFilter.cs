@@ -3,22 +3,22 @@ using Microsoft.Extensions.Options;
 using OpenTelemetry.Trace;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Extensions;
-using WasabiBot.DataAccess.Settings;
+using WasabiBot.Web.Settings;
 
 namespace WasabiBot.Web.Filters;
 
 public class DiscordValidationFilter : IEndpointFilter
 {
-    private readonly EnvironmentVariables _env;
+    private readonly DiscordSettings _discordSettings;
     private readonly ILogger<DiscordValidationFilter> _logger;
     private readonly Tracer _tracer;
 
-    public DiscordValidationFilter(IOptions<EnvironmentVariables> options, ILogger<DiscordValidationFilter> logger,
+    public DiscordValidationFilter(IOptions<DiscordSettings> options, ILogger<DiscordValidationFilter> logger,
         Tracer tracer)
     {
         _logger = logger;
         _tracer = tracer;
-        _env = options.Value;
+        _discordSettings = options.Value;
     }
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
@@ -44,7 +44,7 @@ public class DiscordValidationFilter : IEndpointFilter
             return TypedResults.BadRequest();
         }
 
-        var validSignature = Signature.Verify(_env.DISCORD_PUBLIC_KEY, signature, timestamp, requestBody);
+        var validSignature = Signature.Verify(_discordSettings.PublicKey, signature, timestamp, requestBody);
         if (!validSignature)
         {
             _logger.LogInformation("Discord interaction validation failed");

@@ -20,4 +20,5 @@ primary_region = 'dfw'
   cpus = 1
 
 [env]
-  AWS_ROLE_ARN = "arn:aws:iam::346610971261:role/dev-wasabi-bot-web-fly-role"
+  ASPNETCORE_ENVIRONMENT = "Staging"
+  AWS_ROLE_ARN = "arn:aws:iam::346610971261:role/stg-wasabi-bot-web-fly-role"

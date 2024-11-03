@@ -44,7 +44,6 @@
 # Environment files
 **/.env
 **/.env.*
-**/appsettings.*.json
 **/*.Development.json
 
 # Documentation & misc

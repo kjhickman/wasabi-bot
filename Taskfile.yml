@@ -8,7 +8,7 @@ tasks:
   deploy:
     desc: Deploy to staging environment in Fly.io
     cmds:
-      - fly deploy --config .\src\WasabiBot.Web\fly.staging.toml --dockerfile .\src\WasabiBot.Web\Dockerfile
+      - fly deploy --config ./src/WasabiBot.Web/fly.staging.toml --dockerfile ./src/WasabiBot.Web/Dockerfile
 
   tf:build:
     desc: Build terraform with CDKTF
