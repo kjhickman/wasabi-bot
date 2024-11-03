@@ -12,4 +12,7 @@ http.DefaultRequestHeaders.Add("Authorization", $"Bot {token}");
 
 // Register global commands
 var url = $"https://discord.com/api/v10/applications/{applicationId}/commands";
-await http.PutAsJsonAsync(url, Commands.Definitions, WebJsonContext.Default.ApplicationCommandArray);
+Console.WriteLine($"Registering global commands for ApplicationId: {applicationId}");
+var responseMessage = await http.PutAsJsonAsync(url, Commands.Definitions, WebJsonContext.Default.ApplicationCommandArray);
+responseMessage.EnsureSuccessStatusCode();
+Console.WriteLine("Success!");
