@@ -8,4 +8,7 @@ public class EnvironmentVariables
 {
     [Required]
     public string ENVIRONMENT { get; set; } = null!;
+
+    [Required]
+    public string AWS_ACCOUNT_ID { get; set; } = null!;
 }

@@ -1,24 +1,8 @@
 using Constructs;
 using HashiCorp.Cdktf;
-using HashiCorp.Cdktf.Providers.Aws.AcmCertificate;
-using HashiCorp.Cdktf.Providers.Aws.AcmCertificateValidation;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Api;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2ApiMapping;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2DomainName;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Integration;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Route;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2Stage;
-using HashiCorp.Cdktf.Providers.Aws.Apigatewayv2VpcLink;
-using HashiCorp.Cdktf.Providers.Aws.CloudwatchLogGroup;
-using HashiCorp.Cdktf.Providers.Aws.EcsService;
-using HashiCorp.Cdktf.Providers.Aws.EcsTaskDefinition;
 using HashiCorp.Cdktf.Providers.Aws.IamRole;
 using HashiCorp.Cdktf.Providers.Aws.IamRolePolicy;
 using HashiCorp.Cdktf.Providers.Aws.Provider;
-using HashiCorp.Cdktf.Providers.Aws.Route53Record;
-using HashiCorp.Cdktf.Providers.Aws.SecurityGroup;
-using HashiCorp.Cdktf.Providers.Aws.ServiceDiscoveryHttpNamespace;
-using HashiCorp.Cdktf.Providers.Aws.ServiceDiscoveryService;
 using HashiCorp.Cdktf.Providers.Aws.SnsTopic;
 using HashiCorp.Cdktf.Providers.Aws.SnsTopicSubscription;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueue;
@@ -80,7 +64,7 @@ internal class WasabiBotStack : TerraformStack
             Name = $"{env}-{service}-interaction-deferred",
         });
 
-        var interactionDeferredSubscription = new SnsTopicSubscription(this, "InteractionDeferredSubscription", new SnsTopicSubscriptionConfig
+        new SnsTopicSubscription(this, "InteractionDeferredSubscription", new SnsTopicSubscriptionConfig
         {
             TopicArn = interactionDeferredTopic.Arn,
             Protocol = "sqs",
@@ -131,7 +115,7 @@ internal class WasabiBotStack : TerraformStack
             Name = $"{env}-{service}-interaction-received",
         });
         
-        var interactionReceivedSubscription = new SnsTopicSubscription(this, "InteractionReceivedSubscription", new SnsTopicSubscriptionConfig
+        new SnsTopicSubscription(this, "InteractionReceivedSubscription", new SnsTopicSubscriptionConfig
         {
             TopicArn = interactionReceivedTopic.Arn,
             Protocol = "sqs",
@@ -163,29 +147,37 @@ internal class WasabiBotStack : TerraformStack
                        """
         });
         
-        var servicePrincipalRole = new IamRole(this, "ServicePrincipalRole", new IamRoleConfig
+        var wasabiBotWebFlyRole = new IamRole(this, "WasabiBotWebFlyRole", new IamRoleConfig
         {
-            Name = $"{env}-{service}-principal",
-            AssumeRolePolicy = """
-                               {
-                                   "Version": "2012-10-17",
-                                   "Statement": [
-                                       {
-                                           "Effect": "Allow",
-                                           "Principal": {
-                                               "Service": "tasks.apprunner.amazonaws.com"
-                                           },
-                                           "Action": "sts:AssumeRole"
-                                       }
-                                   ]
-                               }
-                               """
+            Name = $"{env}-{service}-web-fly-role",
+            AssumeRolePolicy = $$"""
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Federated": "arn:aws:iam::{{vars.AWS_ACCOUNT_ID}}:oidc-provider/oidc.fly.io/wasabi-bot"
+                            },
+                            "Action": "sts:AssumeRoleWithWebIdentity",
+                            "Condition": {
+                                "StringEquals": {
+                                    "oidc.fly.io/wasabi-bot:aud": "sts.amazonaws.com"
+                                },
+                                "StringLike": {
+                                    "oidc.fly.io/wasabi-bot:sub": "wasabi-bot:{{env}}-wasabi-bot:*"
+                                }
+                            }
+                        }
+                    ]
+                }
+                """
         });
 
-        new IamRolePolicy(this, "ServicePrincipalPolicy", new IamRolePolicyConfig
+        new IamRolePolicy(this, "WasabiBotWebFlyRolePolicy", new IamRolePolicyConfig
         {
-            Name = $"{env}-{service}-principal-policy",
-            Role = servicePrincipalRole.Id,
+            Name = $"{env}-{service}-web-fly-policy",
+            Role = wasabiBotWebFlyRole.Id,
             Policy = $$"""
                        {
                            "Version": "2012-10-17",

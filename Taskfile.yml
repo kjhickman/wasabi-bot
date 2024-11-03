@@ -23,15 +23,8 @@ tasks:
 
   apply:
     desc: Apply terraform
-    deps: [apply:shared]
-    dir: cdktf.out/stacks/WasabiBot.Terraform
-    cmds:
-      - terraform apply -auto-approve
-
-  apply:shared:
-    desc: Apply terraform
     deps: [cdktf]
-    dir: cdktf.out/stacks/WasabiBotShared.Terraform
+    dir: cdktf.out/stacks/WasabiBot.Terraform
     cmds:
       - terraform apply -auto-approve
 
