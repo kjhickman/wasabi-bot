@@ -139,9 +139,9 @@ jobs:
       - name: Build project
         run: dotnet build tools/WasabiBot.CommandsTool --no-restore --tl
 
-      # Migrate the database
-      - name: Migrate database
-        run: dotnet run --project tools/WasabiBot.CommandsTool --no-build --tl
+      # Register commands
+      - name: Register commands
+        run: dotnet run $DISCORD_APPLICATION_ID $DISCORD_TOKEN --project tools/WasabiBot.CommandsTool --no-build --tl
 
   deploy:
     runs-on: ubuntu-latest
@@ -156,6 +156,6 @@ jobs:
 
       # Deploy to Fly.io
       - name: Deploy to Fly.io
-        run: flyctl deploy $DISCORD_APPLICATION_ID $DISCORD_TOKEN --config ./src/WasabiBot.Web/fly.$ENVIRONMENT.toml --dockerfile ./src/WasabiBot.Web/Dockerfile --remote-only
+        run: flyctl deploy --config ./src/WasabiBot.Web/fly.$ENVIRONMENT.toml --dockerfile ./src/WasabiBot.Web/Dockerfile --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
