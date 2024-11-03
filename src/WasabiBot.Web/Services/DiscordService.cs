@@ -19,18 +19,6 @@ public class DiscordService : IDiscordService
         _logger = logger;
     }
 
-    public async Task RegisterGuildCommands(string guildId)
-    {
-        var url = $"https://discord.com/api/v10/applications/{_discordSettings.ApplicationId}/guilds/{guildId}/commands";
-        await _http.PutAsJsonAsync(url, Commands.Commands.Definitions, WebJsonContext.Default.ApplicationCommandArray);
-    }
-
-    public async Task RegisterGlobalCommands()
-    {
-        var url = $"https://discord.com/api/v10/applications/{_discordSettings.ApplicationId}/commands";
-        await _http.PutAsJsonAsync(url, Commands.Commands.Definitions, WebJsonContext.Default.ApplicationCommandArray);
-    }
-
     public async Task CreateFollowupMessage(string token, InteractionResponseData data)
     {
         _logger.LogInformation("Creating followup message for token {Token}", token);

@@ -19,6 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\tools\WasabiBot.CommandsTool\WasabiBot.CommandsTool.csproj" />
       <ProjectReference Include="..\..\tools\WasabiBot.MigrationsRunner\WasabiBot.MigrationsRunner.csproj" />
       <ProjectReference Include="..\WasabiBot.Web\WasabiBot.Web.csproj" />
     </ItemGroup>

@@ -10,7 +10,6 @@ public static class Routes
         var discordGroup = app.MapGroup("/discord");
         discordGroup.MapPost("/interaction", InteractionEndpoint.Handle)
             .AddEndpointFilter<DiscordValidationFilter>();
-        discordGroup.MapPost("/register", RegistrationEndpoint.Handle);
         
         return app;
     }

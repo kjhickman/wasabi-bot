@@ -15,12 +15,15 @@ var migrations = builder.AddProject<Projects.WasabiBot_MigrationsRunner>("migrat
     .WithReference(postgres)
     .WaitFor(postgres);
 
+var discordSettings = builder.Configuration.GetSection("Discord");
+var commandsTool = builder.AddProject<Projects.WasabiBot_CommandsTool>("commandsTool")
+    .WithArgs(discordSettings["ApplicationId"]!, discordSettings["Token"]!);
+
 var server = builder.AddProject<Projects.WasabiBot_Web>("server")
     .WithExternalHttpEndpoints()
     .WithReference(postgres)
     // .WithEndpoint(scheme: "http")
     .WaitFor(migrations); // todo: fix WaitForCompletion
-
 
 var ngrok = builder.AddContainer("ngrok", "ngrok/ngrok")
     .WithReference(server)
