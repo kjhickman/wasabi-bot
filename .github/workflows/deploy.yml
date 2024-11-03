@@ -60,6 +60,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: migrate
+    permissions:
+      id-token: write
 
     steps:
       # Checkout the repository
