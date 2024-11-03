@@ -1,15 +1,11 @@
 name: Deploy
 
 on:
-  # Trigger on merge to main
   workflow_run:
     workflows: [ "Build and Test" ]
     branches: [ main, aspire ]
     types:
       - completed
-    inputs:
-      environment: stg
-  # Manual trigger for prod deployments
   workflow_dispatch:
     inputs:
       environment:
@@ -20,6 +16,9 @@ on:
         options:
           - prd
           - stg
+
+env:
+  ENVIRONMENT: ${{ github.event.inputs.environment || 'stg' }}
 
 jobs:
   migrate:
@@ -34,7 +33,7 @@ jobs:
       - name: Set environment-specific variables
         id: vars
         run: |
-          case "${{ github.event.inputs.environment }}" in
+          case "$ENVIRONMENT" in
             "stg")
               echo "ConnectionStrings__wasabiBotDb=${{ secrets.STG_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
               ;;
@@ -86,7 +85,7 @@ jobs:
       
       # Run CDKTF
       - name: Run CDKTF
-        run: dotnet run ${{ github.event.inputs.environment }} --project infra/WasabiBot.Terraform --no-build
+        run: dotnet run $ENVIRONMENT --project infra/WasabiBot.Terraform --no-build
 
       # Set up Terraform
       - uses: hashicorp/setup-terraform@v3
