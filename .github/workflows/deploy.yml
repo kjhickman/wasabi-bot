@@ -114,21 +114,11 @@ jobs:
       - uses: actions/checkout@v2
 
       # Setup Flyctl
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-
-      # Set environment-specific variables
-      - name: Set environment-specific variables
-        id: vars
-        run: |
-          case "$ENVIRONMENT" in
-            "stg")
-              echo "FLY_API_TOKEN=${{ secrets.STG_FLY_API_TOKEN }}" >> $GITHUB_ENV
-              ;;
-            "prd")
-              echo "FLY_API_TOKEN=${{ secrets.PRD_FLY_API_TOKEN }}" >> $GITHUB_ENV
-              ;;
-          esac
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
 
       # Deploy to Fly.io
       - name: Deploy to Fly.io
         run: flyctl deploy --config ./src/WasabiBot.Web/fly.$ENVIRONMENT.toml --dockerfile ./src/WasabiBot.Web/Dockerfile --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
