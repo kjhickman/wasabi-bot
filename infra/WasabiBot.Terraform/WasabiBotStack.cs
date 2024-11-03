@@ -11,7 +11,7 @@ using WasabiBot.Terraform.Settings;
 
 // ReSharper disable ObjectCreationAsStatement
 
-namespace WasabiBot.Terraform.Stacks;
+namespace WasabiBot.Terraform;
 
 internal class WasabiBotStack : TerraformStack
 {   

@@ -5,30 +5,19 @@ dotenv: ['.env']
 tasks:
   default: task --list
   
-  build:
-    desc: Build the Docker image
+  deploy:
+    desc: Deploy to staging environment in Fly.io
     cmds:
-      - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}-X86_64 . -f src/WasabiBot.Web/Dockerfile
+      - fly deploy --config .\src\WasabiBot.Web\fly.staging.toml --dockerfile .\src\WasabiBot.Web\Dockerfile
 
-  push:
-    desc: Push the image to ECR
-    # deps: [build, auth]
-    cmds:
-      - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/wasabi-bot:${ENVIRONMENT}-X86_64
-
-  cdktf:
+  tf:build:
     desc: Build terraform with CDKTF
     cmds:
       - dotnet run --project infra/WasabiBot.Terraform/WasabiBot.Terraform.csproj
 
-  apply:
+  tf:apply:
     desc: Apply terraform
-    deps: [cdktf]
+    deps: [tf:build]
     dir: cdktf.out/stacks/WasabiBot.Terraform
     cmds:
       - terraform apply -auto-approve
-
-  auth:
-    desc: Authenticate with ECR
-    cmds:
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com

@@ -4,7 +4,6 @@ using HashiCorp.Cdktf;
 using Microsoft.Extensions.Configuration;
 using WasabiBot.Terraform;
 using WasabiBot.Terraform.Settings;
-using WasabiBot.Terraform.Stacks;
 
 var app = new App();
 
@@ -28,10 +27,6 @@ if (!isValid)
     return;
 }
 
-var sharedStack = new WasabiBotSharedStack(app, "WasabiBotShared.Terraform");
-new WasabiBotStack(app, "WasabiBot.Terraform", environmentVariables)
-{
-    Dependencies = [sharedStack]
-};
+new WasabiBotStack(app, "WasabiBot.Terraform", environmentVariables);
 
 app.Synth();
