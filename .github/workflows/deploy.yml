@@ -62,6 +62,7 @@ jobs:
     needs: migrate
     permissions:
       id-token: write
+      contents: read
 
     steps:
       # Checkout the repository
