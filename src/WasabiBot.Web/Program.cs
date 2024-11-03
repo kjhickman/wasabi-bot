@@ -67,16 +67,15 @@ builder.Services.AddMassTransit(x => // todo: move this to a separate method
             
             // Configure the InteractionDeferredConsumer
             var deferredQueueName = masstransitConfig["InteractionDeferredQueueName"]!;
+            Console.WriteLine($"Configuring deferred queue: {deferredQueueName}");
             cfg.ReceiveEndpoint(deferredQueueName, e =>
-            {
-                e.ConfigureConsumer<InteractionDeferredConsumer>(ctx);
-                e.UseMessageRetry(r => 
-                {
-                    r.Immediate(3);
-                });
-                
+            { 
+                e.PrefetchCount = 1;
                 e.ConfigureConsumeTopology = false;
                 e.Subscribe(deferredQueueName);
+                
+                e.ConfigureConsumer<InteractionDeferredConsumer>(ctx);
+                e.UseMessageRetry(r => r.Immediate(3));
             });
             cfg.Message<InteractionDeferredMessage>(m =>
             {
@@ -85,17 +84,15 @@ builder.Services.AddMassTransit(x => // todo: move this to a separate method
             
             // Configure the InteractionReceivedConsumer
             var receivedQueueName = masstransitConfig["InteractionReceivedQueueName"]!;
+            Console.WriteLine($"Configuring received queue: {receivedQueueName}");
             cfg.ReceiveEndpoint(receivedQueueName, e =>
             {
-                e.ConfigureConsumer<InteractionReceivedConsumer>(ctx);
-                
-                e.UseMessageRetry(r => 
-                {
-                    r.Exponential(3, TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5), TimeSpan.FromSeconds(5));
-                });
-                
+                e.PrefetchCount = 1;
                 e.ConfigureConsumeTopology = false;
                 e.Subscribe(receivedQueueName);
+                
+                e.ConfigureConsumer<InteractionReceivedConsumer>(ctx);
+                e.UseMessageRetry(r => r.Immediate(3));
             });
             cfg.Message<InteractionReceivedMessage>(m =>
             {

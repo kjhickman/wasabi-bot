@@ -185,7 +185,18 @@ internal class WasabiBotStack : TerraformStack
                                {
                                    "Effect": "Allow",
                                    "Action": [
-                                       "sns:Publish"
+                                       "sns:ListTopics"
+                                   ],
+                                   "Resource": [
+                                       "arn:aws:sns:us-east-1:*:*"
+                                   ]
+                               },
+                               {
+                                   "Effect": "Allow",
+                                   "Action": [
+                                       "sns:Publish",
+                                       "sns:GetTopicAttributes",
+                                       "sns:Subscribe"
                                    ],
                                    "Resource": [
                                        "{{interactionDeferredTopic.Arn}}",
@@ -195,10 +206,14 @@ internal class WasabiBotStack : TerraformStack
                                {
                                    "Effect": "Allow",
                                    "Action": [
+                                       "sqs:SetQueueAttributes",
                                        "sqs:ReceiveMessage",
                                        "sqs:DeleteMessage",
+                                       "sqs:SendMessage",
+                                       "sqs:GetQueueUrl",
                                        "sqs:GetQueueAttributes",
-                                       "sqs:ChangeMessageVisibility"
+                                       "sqs:ChangeMessageVisibility",
+                                       "sqs:PurgeQueue"
                                    ],
                                    "Resource": [
                                        "{{interactionDeferredQueue.Arn}}",

@@ -6,7 +6,7 @@
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0-rc.1.24511.1" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.0.0-rc.1.24511.1" />
     <PackageVersion Include="Aspire.Npgsql" Version="9.0.0-rc.1.24511.1" />
-    <PackageVersion Include="AWSSDK.ECR" Version="4.0.0-preview.4" />
+    <PackageVersion Include="AWSSDK.SecurityToken" Version="3.7.400.45" />
     <PackageVersion Include="Dapper" Version="2.1.35" />
     <PackageVersion Include="Dapper.AOT" Version="1.0.31" />
     <PackageVersion Include="dotenv.net" Version="3.2.1" />

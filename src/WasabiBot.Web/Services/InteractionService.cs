@@ -50,9 +50,9 @@ public class InteractionService : IInteractionService
             var response = await command.Execute(interaction, cts.Token);
             return response;
         }
-        catch (OperationCanceledException e)
+        catch (OperationCanceledException)
         {
-            _logger.LogWarning(e, "Command execution timed out");
+            _logger.LogWarning("{CommandName} execution timed out", commandName);
             await _bus.Publish(InteractionDeferredMessage.FromInteraction(interaction), CancellationToken.None);
             return InteractionResponse.Defer();
         }
