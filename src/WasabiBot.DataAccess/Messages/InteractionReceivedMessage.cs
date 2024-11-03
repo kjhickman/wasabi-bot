@@ -1,13 +1,11 @@
 ﻿using WasabiBot.Core.Discord;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess.Handlers;
+using WasabiBot.DataAccess.Consumers;
 
 namespace WasabiBot.DataAccess.Messages;
 
-public class InteractionReceivedMessage : Interaction, IMessage
+public class InteractionReceivedMessage : Interaction
 {
-    public string MessageHandlerName => nameof(InteractionReceivedHandler);
-    
     public static InteractionReceivedMessage FromInteraction(Interaction interaction)
     {
         return new InteractionReceivedMessage

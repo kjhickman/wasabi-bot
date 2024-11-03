@@ -1,53 +1,47 @@
 ﻿using System.Data;
-using Amazon.SQS;
-using dotenv.net;
 using Npgsql;
-using Serilog;
-using Serilog.Formatting.Compact;
+using OpenTelemetry.Trace;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess.Handlers;
-using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
-using WasabiBot.DataAccess.Settings;
+using WasabiBot.Web.DependencyInjection;
 using WasabiBot.Web.Endpoints;
 using WasabiBot.Web.Services;
+using WasabiBot.Web.Settings;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
-DotEnv.Load(); // todo: only run if development
 builder.Configuration.AddEnvironmentVariables();
-builder.Services.Configure<EnvironmentVariables>(builder.Configuration);
+builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
+
+// Add service defaults & Aspire components.
+builder.AddServiceDefaults();
+builder.Services.AddSingleton(TracerProvider.Default.GetTracer("wasabi_bot"));
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
 });
+
+var connectionString = builder.Configuration.GetConnectionString("wasabiBotDb"); // TODO: fixme
+builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectionString));
+builder.Services.AddScoped<InteractionRecordService>();
 builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IDiscordService, DiscordService>();
+builder.Services.AddCommands();
 builder.Services.AddHttpClient();
-builder.Services.AddCommandHandlers();
-builder.Services.AddSingleton<IAmazonSQS, AmazonSQSClient>();
-builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(builder.Configuration.GetConnectionString("Postgres")));
-builder.Services.AddScoped<InteractionRecordService>();
-builder.Services.AddScoped<IMessageHandler<DeferredInteractionMessage>, InteractionMessageHandler>();
-builder.Services.AddScoped<IMessageHandler<InteractionReceivedMessage>, InteractionReceivedHandler>();
-builder.Services.AddScoped<MessageHandlerRouter>();
-builder.Services.AddScoped<IMessageClient, SqsMessageClient>();
-
-builder.Logging.ClearProviders();
-ILogger logger = new LoggerConfiguration()
-    .Enrich.FromLogContext()
-    .WriteTo.Console(new CompactJsonFormatter())
-    .CreateLogger();
-Log.Logger = logger;
-builder.Services.AddSingleton(logger);
+builder.AddMassTransit();
 
 var app = builder.Build();
 
-app.MapGet("/warmup", () => TypedResults.Ok());
+app.MapDefaultEndpoints();
+
+app.MapGet("/", () => "Hello, world!");
+
 var v1 = app.MapGroup("/v1");
 v1.MapEndpoints();
+
+Console.WriteLine("Starting the application...");
 
 app.Run();

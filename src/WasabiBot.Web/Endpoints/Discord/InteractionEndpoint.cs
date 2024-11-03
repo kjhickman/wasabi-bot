@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.AspNetCore.Http.HttpResults;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Interfaces;
@@ -5,31 +6,29 @@ using WasabiBot.DataAccess.Messages;
 
 namespace WasabiBot.Web.Endpoints.Discord;
 
-public static class InteractionEndpoint
+public class InteractionEndpoint
 {
     public static async Task<Results<Ok<InteractionResponse>, ProblemHttpResult>> Handle(HttpContext ctx,
-        IInteractionService interactionService, ILogger logger, IMessageClient messageClient)
+        IInteractionService interactionService, ILogger<InteractionEndpoint> logger, IPublishEndpoint bus)
     {
         var interaction = await ctx.Request.ReadFromJsonAsync(WebJsonContext.Default.Interaction);
         if (interaction is null)
         {
-            logger.Error("Interaction was null");
+            logger.LogError("Interaction was null");
             return TypedResults.Problem();
         }
 
-        var message = InteractionReceivedMessage.FromInteraction(interaction);
-        var sendMessageResult = await messageClient.SendMessage(message);
-        if (sendMessageResult.IsError)
+        await bus.Publish(InteractionReceivedMessage.FromInteraction(interaction));
+
+        try
         {
-            logger.Error(sendMessageResult.Error, "Error sending {MessageType}", nameof(message));
+            var response = await interactionService.HandleInteraction(interaction);
+            return TypedResults.Ok(response);
         }
-        
-        var result = await interactionService.HandleInteraction(interaction);
-        if (result.IsOk)
+        catch (Exception e)
         {
-            return TypedResults.Ok(result.Value);
+            logger.LogError(e, "Failed to handle interaction");
+            return TypedResults.Problem();
         }
-        
-        return TypedResults.Problem();
     }
 }

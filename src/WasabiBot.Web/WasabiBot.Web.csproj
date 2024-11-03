@@ -5,8 +5,7 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <PublishAot>true</PublishAot>
-        <OptimizationPreference>Speed</OptimizationPreference>
+        <ReadyToRun>true</ReadyToRun>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -17,15 +16,20 @@
         <Content Include="..\..\.dockerignore">
             <Link>.dockerignore</Link>
         </Content>
+        <Content Update="appsettings.*.json">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="dotenv.net" />
-        <PackageReference Include="Serilog.AspNetCore" />
+        <PackageReference Include="AWSSDK.SecurityToken" />
+        <PackageReference Include="MassTransit" />
+        <PackageReference Include="MassTransit.AmazonSQS" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" />
+      <ProjectReference Include="..\WasabiBot.ServiceDefaults\WasabiBot.ServiceDefaults.csproj" />
     </ItemGroup>
 
 </Project>

@@ -2,15 +2,22 @@
 
 ## Development
 
+
+
 ### Dependencies
 
 - .NET 8 SDK
-- AWS CLI
-- CDKTF
 - Docker
-- [Task](https://github.com/go-task/task)
+- Ngrok account with static subdomain
 
-#### Local postgres container command:
-```
-docker run -d --name fake-neon -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=defaultdb -p 5432:5432 postgres:latest
+### Creating a Discord application
+TODO: guide on creating discord application
+
+### Environment variables
+Using `env.sample` as a guide, create a `.env` file with all of the variables set.
+
+### Run tests
+
+```bash
+dotnet test
 ```

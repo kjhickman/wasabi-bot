@@ -1,7 +1,6 @@
 using System.Data;
 using Dapper;
-using WasabiBot.Core.Extensions;
-using WasabiBot.Core.Models;
+using OpenTelemetry.Trace;
 using WasabiBot.Core.Models.Entities;
 
 namespace WasabiBot.DataAccess.Services;
@@ -9,14 +8,17 @@ namespace WasabiBot.DataAccess.Services;
 public class InteractionRecordService
 {
     private readonly IDbConnection _connection;
+    private readonly Tracer _tracer;
 
-    public InteractionRecordService(IDbConnection connection)
+    public InteractionRecordService(IDbConnection connection, Tracer tracer)
     {
         _connection = connection;
+        _tracer = tracer;
     }
 
-    public async Task<Result> CreateAsync(InteractionRecord record)
+    public async Task<bool> CreateAsync(InteractionRecord record)
     {
+        using var span = _tracer.StartActiveSpan("database.insert.interaction_record");
         const string sql = 
             """
             INSERT INTO interaction_record (
@@ -31,6 +33,6 @@ public class InteractionRecordService
             );
             """;
         
-        return await _connection.ExecuteAsync(sql, record).TryDropValue();
+        return await _connection.ExecuteAsync(sql, record) > 0;
     }
 }
