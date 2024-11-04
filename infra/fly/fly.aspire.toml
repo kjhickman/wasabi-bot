@@ -1,0 +1,27 @@
+# fly.toml app configuration file generated for wasabi-bot-aspire-dashboard on 2024-11-03T19:25:21-06:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'wasabi-bot-aspire-dashboard'
+primary_region = 'dfw'
+
+[build]
+  image = 'mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest'
+
+[env]
+  ASPNETCORE_ENVIRONMENT = 'Production'
+  DOTNET_ENVIRONMENT = 'Production'
+  Logging__Console__FormatterName = 'Simple'
+
+[http_service]
+  internal_port = 18888
+  auto_stop_machines = 'off'
+  auto_start_machines = false
+  min_machines_running = 1
+  processes = ['app']
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
