@@ -185,8 +185,7 @@ internal class WasabiBotStack : TerraformStack
                                {
                                    "Effect": "Allow",
                                    "Action": [
-                                       "sns:ListTopics",
-                                       "sns:CreateTopic"
+                                       "sns:ListTopics"
                                    ],
                                    "Resource": [
                                        "arn:aws:sns:us-east-1:*:*"
@@ -195,9 +194,21 @@ internal class WasabiBotStack : TerraformStack
                                {
                                    "Effect": "Allow",
                                    "Action": [
-                                       "sns:Publish",
+                                       "sns:CreateTopic",
                                        "sns:GetTopicAttributes",
+                                       "sns:Publish",
                                        "sns:Subscribe"
+                                   ],
+                                   "Resource": [
+                                       "arn:aws:sns:us-east-1:*:MassTransit-ReceiveFault"
+                                   ]
+                               },
+                               {
+                                   "Effect": "Allow",
+                                   "Action": [
+                                       "sns:Publish",
+                                       "sns:Subscribe",
+                                       "sns:GetTopicAttributes"
                                    ],
                                    "Resource": [
                                        "{{interactionDeferredTopic.Arn}}",

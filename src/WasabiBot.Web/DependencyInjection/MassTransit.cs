@@ -35,6 +35,7 @@ public static class MassTransit
                     cfg.ReceiveEndpoint(deferredQueueName, e =>
                     {
                         e.ConfigureConsumeTopology = false;
+                        e.ConfigureDefaultErrorTransport();
                         e.Subscribe(deferredQueueName);
                         e.ConfigureConsumer<InteractionDeferredConsumer>(ctx);
                         e.UseMessageRetry(r => r.Immediate(3));
