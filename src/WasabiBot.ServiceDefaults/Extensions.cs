@@ -61,10 +61,12 @@ public static class Extensions
     {
         var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
+        Console.WriteLine($"Using OTLP Exporter: {useOtlpExporter}");
         if (useOtlpExporter)
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
             
+            Console.WriteLine($"Using OTEL_EXPORTER_OTLP_ENDPOINT for OTLP if {!builder.Environment.IsDevelopment()}");
             // Only require api key when not in development
             if (!builder.Environment.IsDevelopment())
             {

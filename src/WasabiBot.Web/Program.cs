@@ -40,4 +40,6 @@ app.MapGet("/", () => "Hello, world!");
 var v1 = app.MapGroup("/v1");
 v1.MapEndpoints();
 
+Console.WriteLine("Starting app...");
+
 app.Run();
