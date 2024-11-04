@@ -185,7 +185,8 @@ internal class WasabiBotStack : TerraformStack
                                {
                                    "Effect": "Allow",
                                    "Action": [
-                                       "sns:ListTopics"
+                                       "sns:ListTopics",
+                                       "sns:CreateTopic"
                                    ],
                                    "Resource": [
                                        "arn:aws:sns:us-east-1:*:*"
@@ -196,8 +197,7 @@ internal class WasabiBotStack : TerraformStack
                                    "Action": [
                                        "sns:Publish",
                                        "sns:GetTopicAttributes",
-                                       "sns:Subscribe",
-                                       "sns:CreateTopic"
+                                       "sns:Subscribe"
                                    ],
                                    "Resource": [
                                        "{{interactionDeferredTopic.Arn}}",
