@@ -1,7 +1,4 @@
-# fly.toml app configuration file generated for prd-wasabi-bot-web on 2024-11-02T22:16:48-05:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# See https://fly.io/docs/reference/configuration/ or https://json.schemastore.org/fly.json for info
 
 app = 'prd-wasabi-bot-web'
 primary_region = 'dfw'
