@@ -196,7 +196,8 @@ internal class WasabiBotStack : TerraformStack
                                    "Action": [
                                        "sns:Publish",
                                        "sns:GetTopicAttributes",
-                                       "sns:Subscribe"
+                                       "sns:Subscribe",
+                                       "sns:CreateTopic"
                                    ],
                                    "Resource": [
                                        "{{interactionDeferredTopic.Arn}}",
