@@ -1,5 +1,4 @@
-﻿using Amazon.Runtime;
-using MassTransit;
+﻿using MassTransit;
 using WasabiBot.DataAccess.Consumers;
 using WasabiBot.DataAccess.MassTransit;
 using WasabiBot.DataAccess.Messages;

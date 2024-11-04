@@ -1,5 +1,4 @@
 using WasabiBot.Core.Discord;
-using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Core.Interfaces;
 
 namespace WasabiBot.Web.Commands.Handlers;

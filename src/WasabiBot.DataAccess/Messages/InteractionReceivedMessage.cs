@@ -1,6 +1,4 @@
 ﻿using WasabiBot.Core.Discord;
-using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess.Consumers;
 
 namespace WasabiBot.DataAccess.Messages;
 
