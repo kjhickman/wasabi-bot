@@ -69,6 +69,10 @@ public static class Extensions
             if (!builder.Environment.IsDevelopment())
             {
                 var otlpApiKey = builder.Configuration["OTEL_EXPORTER_API_KEY"];
+                if (string.IsNullOrWhiteSpace(otlpApiKey))
+                {
+                    Console.WriteLine("OTEL_EXPORTER_API_KEY is required when using the OTLP exporter.");
+                }
                 builder.Services.Configure<OtlpExporterOptions>(o => o.Headers = $"x-otlp-api-key={otlpApiKey}");
             }
         }
