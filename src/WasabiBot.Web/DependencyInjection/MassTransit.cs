@@ -35,7 +35,7 @@ public static class MassTransit
                     cfg.ReceiveEndpoint(deferredQueueName, e =>
                     {
                         e.ConfigureConsumeTopology = false;
-                        e.ConfigureDefaultErrorTransport();
+                        e.WaitTimeSeconds = 10;
                         e.Subscribe(deferredQueueName);
                         e.ConfigureConsumer<InteractionDeferredConsumer>(ctx);
                         e.UseMessageRetry(r => r.Immediate(3));
@@ -52,6 +52,13 @@ public static class MassTransit
                         e.UseMessageRetry(r => r.Immediate(3));
                     });
                     cfg.Message<InteractionReceivedMessage>(m => { m.SetEntityName(receivedQueueName); });
+                });
+                
+                // Polling time for all endpoints
+                x.AddConfigureEndpointsCallback((_, cfg) =>
+                {
+                    if (cfg is IAmazonSqsReceiveEndpointConfigurator sqs)
+                        sqs.WaitTimeSeconds = 20;
                 });
             }
         });
