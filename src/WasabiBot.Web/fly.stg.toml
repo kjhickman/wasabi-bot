@@ -19,4 +19,4 @@ primary_region = 'dfw'
 [env]
   ASPNETCORE_ENVIRONMENT = "Staging"
   AWS_ROLE_ARN = "arn:aws:iam::346610971261:role/stg-wasabi-bot-web-fly-role"
-  OTEL_EXPORTER_OTLP_ENDPOINT = "http://wasabi-bot-aspire-dashboard.internal:18890"
+  OTEL_EXPORTER_OTLP_ENDPOINT = "http://wasabi-bot-aspire-dashboard.internal:18889"
