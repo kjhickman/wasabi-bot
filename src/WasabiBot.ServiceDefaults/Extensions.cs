@@ -55,8 +55,7 @@ public static class Extensions
                 tracing.AddSource("wasabi_bot");
                 tracing.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation();
-            })
-            .UseOtlpExporter();
+            });
         
         builder.AddOpenTelemetryExporters();
 
