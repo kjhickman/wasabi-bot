@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
@@ -14,7 +15,7 @@ public static class Extensions
         builder.ConfigureOpenTelemetry();
 
         builder.Services.AddServiceDiscovery();
-
+        
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
             // Turn on resilience by default
@@ -63,6 +64,11 @@ public static class Extensions
         if (useOtlpExporter)
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
+            if (!builder.Environment.IsDevelopment())
+            {
+                var otlpApiKey = builder.Configuration["OTEL_EXPORTER_API_KEY"];
+                builder.Services.Configure<OtlpExporterOptions>(o => o.Headers = $"x-otlp-api-key={otlpApiKey}");
+            }
         }
 
         return builder;
