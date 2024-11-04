@@ -50,7 +50,8 @@ public static class Extensions
                 tracing.AddSource("wasabi_bot");
                 tracing.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation();
-            });
+            })
+            .UseOtlpExporter();
         
         builder.AddOpenTelemetryExporters();
 
@@ -59,14 +60,14 @@ public static class Extensions
 
     private static IHostApplicationBuilder AddOpenTelemetryExporters(this IHostApplicationBuilder builder)
     {
-        var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+        // var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
-        if (useOtlpExporter)
-        {
+        // if (useOtlpExporter)
+        // {
             var otlpApiKey = builder.Configuration["OTEL_EXPORTER_API_KEY"];
             builder.Services.Configure<OtlpExporterOptions>(o => o.Headers = $"x-otlp-api-key={otlpApiKey}");
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
-        }
+            // builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        // }
 
         return builder;
     }
