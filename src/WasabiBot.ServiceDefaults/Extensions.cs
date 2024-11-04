@@ -63,9 +63,8 @@ public static class Extensions
 
         if (useOtlpExporter)
         {
-            // Only require api key when not in development
-            // var otlpApiKey = builder.Configuration["OTEL_EXPORTER_API_KEY"];
-            // builder.Services.Configure<OtlpExporterOptions>(o => o.Headers = $"x-otlp-api-key={otlpApiKey}");
+            var otlpApiKey = builder.Configuration["OTEL_EXPORTER_API_KEY"];
+            builder.Services.Configure<OtlpExporterOptions>(o => o.Headers = $"x-otlp-api-key={otlpApiKey}");
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
