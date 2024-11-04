@@ -24,9 +24,6 @@ public static class MassTransit
                 {
                     var masstransitConfig = builder.Configuration.GetSection("MassTransit");
                     
-                    // Sets the wait time for the bus endpoint
-                    cfg.WaitTimeSeconds = 20;
-                    
                     // Use "-error" suffix for error queues.
                     cfg.SendTopology.ErrorQueueNameFormatter = new CustomErrorQueueNameFormatter();
 
@@ -55,13 +52,6 @@ public static class MassTransit
                         e.UseMessageRetry(r => r.Immediate(3));
                     });
                     cfg.Message<InteractionReceivedMessage>(m => { m.SetEntityName(receivedQueueName); });
-                });
-                
-                // Polling time for all endpoints
-                x.AddConfigureEndpointsCallback((_, cfg) =>
-                {
-                    if (cfg is IAmazonSqsReceiveEndpointConfigurator sqs)
-                        sqs.WaitTimeSeconds = 20;
                 });
             }
         });
