@@ -24,6 +24,9 @@ public static class MassTransit
                 {
                     var masstransitConfig = builder.Configuration.GetSection("MassTransit");
                     
+                    // Sets the wait time for the bus endpoint
+                    cfg.WaitTimeSeconds = 20;
+                    
                     // Use "-error" suffix for error queues.
                     cfg.SendTopology.ErrorQueueNameFormatter = new CustomErrorQueueNameFormatter();
 
