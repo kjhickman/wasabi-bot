@@ -19,10 +19,6 @@ public static class OpenTelemetry
         });
 
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resourceBuilder =>
-            {
-                resourceBuilder.AddService("wasabi_bot");
-            })
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
