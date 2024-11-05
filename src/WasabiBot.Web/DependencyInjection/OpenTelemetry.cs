@@ -48,8 +48,6 @@ public static class OpenTelemetry
 
         if (useOtlpExporter)
         {
-            // var otlpApiKey = builder.Configuration["OTEL_EXPORTER_API_KEY"];
-            // builder.Services.Configure<OtlpExporterOptions>(o => o.Headers = $"x-otlp-api-key={otlpApiKey}");
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
