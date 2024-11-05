@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: wasabi_bot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  migrations:
+    build:
+      context: .
+      dockerfile: tools/WasabiBot.MigrationsRunner/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Postgres: "Host=postgres;Database=wasabi_bot;Username=postgres;Password=postgres"
+
+  commands-tool:
+    build:
+      context: .
+      dockerfile: tools/WasabiBot.CommandsTool/Dockerfile
+    command: dotnet run 1103853199322001468 $DISCORD_TOKEN
+
+  server:
+    build:
+      context: .
+      dockerfile: src/WasabiBot.Web/Dockerfile
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: "Host=postgres;Database=wasabi_bot;Username=postgres;Password=postgres"
+    ports:
+      - "8080:8080"
+
+  ngrok:
+    image: ngrok/ngrok
+    depends_on:
+      - server
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+      NGROK_DOMAIN: ${NGROK_DOMAIN}
+    command: http server:8080 --url=${NGROK_DOMAIN}
+  
+  aspire:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard
+    container_name: aspire
+    ports:
+      - 4317:18889
+      - 18888:18888
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: true
