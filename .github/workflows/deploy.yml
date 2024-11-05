@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, docker-compose ]
   workflow_dispatch:
     inputs:
       environment:
