@@ -39,6 +39,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Postgres: "Host=postgres;Database=wasabi_bot;Username=postgres;Password=postgres"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire:18889"
     ports:
       - "8080:8080"
 
