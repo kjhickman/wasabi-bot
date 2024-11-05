@@ -40,7 +40,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Postgres: "Host=postgres;Database=wasabi_bot;Username=postgres;Password=postgres"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire:18889"
-      OTEL_EXPORTER_OTLP_HEADERS: x-otlp-api-key=otlp-api-key
+      OTEL_EXPORTER_OTLP_HEADERS: x-otlp-api-key=youshallnotpass
       OTEL_SERVICE_NAME: wasabi-bot
       OTEL_METRIC_EXPORT_INTERVAL: 10000
     ports:
@@ -64,4 +64,4 @@ services:
     environment:
       DASHBOARD__FRONTEND__AUTHMODE: Unsecured
       DASHBOARD__OTLP__AUTHMODE: ApiKey
-      DASHBOARD__OTLP__PRIMARYAPIKEY: otlp-api-key
+      DASHBOARD__OTLP__PRIMARYAPIKEY: youshallnotpass
