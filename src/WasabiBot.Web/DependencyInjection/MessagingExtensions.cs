@@ -1,4 +1,5 @@
-﻿using Amazon;
+﻿using System.Diagnostics.CodeAnalysis;
+using Amazon;
 using Amazon.SQS;
 using WasabiBot.DataAccess.Handlers;
 using WasabiBot.DataAccess.Interfaces;
@@ -32,7 +33,7 @@ public static class MessagingExtensions
         services.AddSingleton<IMessageClient, SqsMessageClient>();
     }
     
-    private static void AddSqsSubscriber<TSubscriber, TMessage>(this IServiceCollection services, string queueName) 
+    private static void AddSqsSubscriber<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]TSubscriber, TMessage>(this IServiceCollection services, string queueName) 
         where TSubscriber : class, IMessageHandler<TMessage> 
         where TMessage : class
     {
@@ -46,7 +47,7 @@ public static class MessagingExtensions
         services.AddSingleton<IMessageClient, InMemoryMessageClient>();
     }
 
-    private static void AddInMemorySubscriber<TSubscriber, TMessage>(this IServiceCollection services)
+    private static void AddInMemorySubscriber<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]TSubscriber, TMessage>(this IServiceCollection services)
         where TSubscriber : class, IMessageHandler<TMessage>
         where TMessage : class
     {
