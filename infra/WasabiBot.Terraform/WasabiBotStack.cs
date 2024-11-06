@@ -43,7 +43,7 @@ internal class WasabiBotStack : TerraformStack
             // TODO: add DynamoDB locking
         });
         
-        // TODO: create reusable module for masstransit infra
+        // TODO: create reusable module for new queues
         var interactionDeferredErrorQueue = new SqsQueue(this, "InteractionDeferredErrorQueue", new SqsQueueConfig
         {
             Name = $"{environment}-{service}-interaction-deferred-error",
@@ -58,43 +58,6 @@ internal class WasabiBotStack : TerraformStack
             RedrivePolicy = $"{{\"deadLetterTargetArn\":\"{interactionDeferredErrorQueue.Arn}\", \"maxReceiveCount\": 3}}"
         });
         
-        var interactionDeferredTopic = new SnsTopic(this, "InteractionDeferredTopic", new SnsTopicConfig
-        {
-            Name = $"{environment}-{service}-interaction-deferred",
-        });
-
-        new SnsTopicSubscription(this, "InteractionDeferredSubscription", new SnsTopicSubscriptionConfig
-        {
-            TopicArn = interactionDeferredTopic.Arn,
-            Protocol = "sqs",
-            Endpoint = interactionDeferredQueue.Arn
-        });
-        
-        new SqsQueuePolicy(this, "InteractionDeferredQueuePolicy", new SqsQueuePolicyConfig
-        {
-            QueueUrl = interactionDeferredQueue.Id,
-            Policy = $$"""
-                       {
-                           "Version": "2012-10-17",
-                           "Statement": [
-                               {
-                                   "Effect": "Allow",
-                                   "Principal": {
-                                       "Service": "sns.amazonaws.com"
-                                   },
-                                   "Action": "sqs:SendMessage",
-                                   "Resource": "{{interactionDeferredQueue.Arn}}",
-                                   "Condition": {
-                                       "ArnEquals": {
-                                           "aws:SourceArn": "{{interactionDeferredTopic.Arn}}"
-                                       }
-                                   }
-                               }
-                           ]
-                       }
-                       """
-        });
-        
         var interactionReceivedErrorQueue = new SqsQueue(this, "InteractionReceivedErrorQueue", new SqsQueueConfig
         {
             Name = $"{environment}-{service}-interaction-received-error",
@@ -107,43 +70,6 @@ internal class WasabiBotStack : TerraformStack
             Name = $"{environment}-{service}-interaction-received",
             VisibilityTimeoutSeconds = 30,
             RedrivePolicy = $"{{\"deadLetterTargetArn\":\"{interactionReceivedErrorQueue.Arn}\", \"maxReceiveCount\": 3}}"
-        });
-        
-        var interactionReceivedTopic = new SnsTopic(this, "InteractionReceivedTopic", new SnsTopicConfig
-        {
-            Name = $"{environment}-{service}-interaction-received",
-        });
-        
-        new SnsTopicSubscription(this, "InteractionReceivedSubscription", new SnsTopicSubscriptionConfig
-        {
-            TopicArn = interactionReceivedTopic.Arn,
-            Protocol = "sqs",
-            Endpoint = interactionReceivedQueue.Arn
-        });
-
-        new SqsQueuePolicy(this, "InteractionReceivedQueuePolicy", new SqsQueuePolicyConfig
-        {
-            QueueUrl = interactionReceivedQueue.Id,
-            Policy = $$"""
-                       {
-                           "Version": "2012-10-17",
-                           "Statement": [
-                               {
-                                   "Effect": "Allow",
-                                   "Principal": {
-                                       "Service": "sns.amazonaws.com"
-                                   },
-                                   "Action": "sqs:SendMessage",
-                                   "Resource": "{{interactionReceivedQueue.Arn}}",
-                                   "Condition": {
-                                       "ArnEquals": {
-                                           "aws:SourceArn": "{{interactionReceivedTopic.Arn}}"
-                                       }
-                                   }
-                               }
-                           ]
-                       }
-                       """
         });
         
         var callerIdentity = new DataAwsCallerIdentity(this, "current");
@@ -182,39 +108,6 @@ internal class WasabiBotStack : TerraformStack
                        {
                            "Version": "2012-10-17",
                            "Statement": [
-                               {
-                                   "Effect": "Allow",
-                                   "Action": [
-                                       "sns:ListTopics"
-                                   ],
-                                   "Resource": [
-                                       "arn:aws:sns:us-east-1:*:*"
-                                   ]
-                               },
-                               {
-                                   "Effect": "Allow",
-                                   "Action": [
-                                       "sns:CreateTopic",
-                                       "sns:GetTopicAttributes",
-                                       "sns:Publish",
-                                       "sns:Subscribe"
-                                   ],
-                                   "Resource": [
-                                       "arn:aws:sns:us-east-1:*:MassTransit-ReceiveFault"
-                                   ]
-                               },
-                               {
-                                   "Effect": "Allow",
-                                   "Action": [
-                                       "sns:Publish",
-                                       "sns:Subscribe",
-                                       "sns:GetTopicAttributes"
-                                   ],
-                                   "Resource": [
-                                       "{{interactionDeferredTopic.Arn}}",
-                                       "{{interactionReceivedTopic.Arn}}"
-                                   ]
-                               },
                                {
                                    "Effect": "Allow",
                                    "Action": [

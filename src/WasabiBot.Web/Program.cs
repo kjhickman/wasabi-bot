@@ -1,4 +1,8 @@
 ﻿using System.Data;
+using Amazon;
+using Amazon.Runtime;
+using Amazon.RuntimeDependencies;
+using Amazon.SQS;
 using Npgsql;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
@@ -12,14 +16,9 @@ using WasabiBot.Web.Settings;
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
-builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
 
 builder.ConfigureOpenTelemetry();
-
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
-});
+builder.AddMessageHandlers();
 
 var connectionString = builder.Configuration.GetConnectionString("Postgres");
 builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectionString));
@@ -28,7 +27,26 @@ builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IDiscordService, DiscordService>();
 builder.Services.AddCommands();
 builder.Services.AddHttpClient();
-builder.AddMassTransit();
+builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
+});
+
+// Add AWS Services
+if (!builder.Environment.IsDevelopment())
+{
+    // TODO: is this necessary anymore?
+    var webIdentityCredentials = new AssumeRoleWithWebIdentityCredentials(
+        roleArn: Environment.GetEnvironmentVariable("AWS_ROLE_ARN")!,
+        webIdentityTokenFile: Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!,
+        roleSessionName: Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME")!
+    );
+
+    GlobalRuntimeDependencyRegistry.Instance.RegisterSecurityTokenServiceClient(webIdentityCredentials);
+    
+    builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(RegionEndpoint.USEast1));
+}
 
 var app = builder.Build();
 
