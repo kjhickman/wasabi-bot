@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [ main, purge-masstransit ]
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       environment:
