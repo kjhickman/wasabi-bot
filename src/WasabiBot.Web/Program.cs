@@ -4,7 +4,6 @@ using Amazon.Runtime;
 using Amazon.RuntimeDependencies;
 using Amazon.SecurityToken;
 using Amazon.SQS;
-using Amazon.SQS.Model;
 using Npgsql;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
@@ -38,65 +37,24 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 // Add AWS Services
 if (!builder.Environment.IsDevelopment())
 {
-    try 
-    {
-        Console.WriteLine("Starting AWS credential setup...");
+    // var stsConfig = new AmazonSecurityTokenServiceConfig
+    // {
+    //     RegionEndpoint = RegionEndpoint.USEast1
+    // };
+    //
+    // Console.WriteLine($"Role ARN: {Environment.GetEnvironmentVariable("AWS_ROLE_ARN")}");
+    // Console.WriteLine($"Token File: {Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")}");
+    // Console.WriteLine($"Session Name: {Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME")}");
+    //
+    var webIdentityCredentials = new AssumeRoleWithWebIdentityCredentials(
+        roleArn: Environment.GetEnvironmentVariable("AWS_ROLE_ARN")!,
+        webIdentityTokenFile: Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!,
+        roleSessionName: Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME")!
+    );
+
+    GlobalRuntimeDependencyRegistry.Instance.RegisterSecurityTokenServiceClient(webIdentityCredentials);
     
-        var stsConfig = new AmazonSecurityTokenServiceConfig
-        {
-            RegionEndpoint = RegionEndpoint.USEast1
-        };
-
-        // First, create a basic STS client without web identity credentials
-        Console.WriteLine("Registering STS client...");
-        GlobalRuntimeDependencyRegistry.Instance.RegisterSecurityTokenServiceClient(
-            new AmazonSecurityTokenServiceClient(stsConfig)
-        );
-        Console.WriteLine("STS client registered");
-
-        // Now create the web identity credentials
-        var webIdentityCredentials = new AssumeRoleWithWebIdentityCredentials(
-            roleArn: Environment.GetEnvironmentVariable("AWS_ROLE_ARN")!,
-            webIdentityTokenFile: Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!,
-            roleSessionName: Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME")!
-        );
-        Console.WriteLine("Created web identity credentials");
-    
-        // Try to get credentials explicitly to test the setup
-        try 
-        {
-            var credentials = await webIdentityCredentials.GetCredentialsAsync();
-            Console.WriteLine("Successfully retrieved credentials from STS");
-        }
-        catch (Exception credEx)
-        {
-            Console.WriteLine($"Error getting credentials: {credEx}");
-            throw;
-        }
-
-        Console.WriteLine("Creating SQS client...");
-        var sqsClient = new AmazonSQSClient(webIdentityCredentials, RegionEndpoint.USEast1);
-    
-        // Test SQS access
-        try 
-        {
-            var queueUrls = await sqsClient.ListQueuesAsync(new ListQueuesRequest());
-            Console.WriteLine($"Successfully listed queues: {queueUrls.QueueUrls.Count} found");
-        }
-        catch (Exception sqsEx)
-        {
-            Console.WriteLine($"Error accessing SQS: {sqsEx}");
-            throw;
-        }
-
-        builder.Services.AddSingleton<IAmazonSQS>(sqsClient);
-        Console.WriteLine("SQS client registered");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Overall setup error: {ex}");
-        throw;
-    }
+    builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(RegionEndpoint.USEast1));
 }
 
 
