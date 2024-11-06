@@ -42,6 +42,9 @@ if (!builder.Environment.IsDevelopment())
         RegionEndpoint = RegionEndpoint.USEast1
     };
 
+    Console.WriteLine("AWS_ROLE_ARN: " + Environment.GetEnvironmentVariable("AWS_ROLE_ARN"));
+    Console.WriteLine("AWS_WEB_IDENTITY_TOKEN_FILE: " + Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE"));
+    Console.WriteLine("AWS_ROLE_SESSION_NAME: " + Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME"));
     var webIdentityCredentials = new AssumeRoleWithWebIdentityCredentials(
         roleArn: Environment.GetEnvironmentVariable("AWS_ROLE_ARN")!,
         webIdentityTokenFile: Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!,
