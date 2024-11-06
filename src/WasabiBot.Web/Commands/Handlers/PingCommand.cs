@@ -3,13 +3,12 @@ using WasabiBot.Core.Interfaces;
 
 namespace WasabiBot.Web.Commands.Handlers;
 
-public class PingCommand : IDiscordCommand
+public class PingCommand : ISyncCommand
 {
     public static string Name => "ping";
-    
-    // TODO: support synchronous commands
-    public Task<InteractionResponse> Execute(Interaction interaction, CancellationToken ct)
+
+    public InteractionResponse Execute(Interaction interaction)
     {
-        return Task.FromResult(InteractionResponse.Reply("Pong!"));
+        return InteractionResponse.Reply("Pong!");
     }
 }

@@ -7,8 +7,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddCommands(this IServiceCollection services)
     {
-        services.AddKeyedScoped<IDiscordCommand, PingCommand>(PingCommand.Name);
-        services.AddKeyedScoped<IDiscordCommand, DeferredPingCommand>(DeferredPingCommand.Name);
+        services.AddKeyedScoped<ICommand, PingCommand>(PingCommand.Name);
+        services.AddKeyedScoped<ICommand, MagicConchCommand>(MagicConchCommand.Name);
         return services;
     }
 }

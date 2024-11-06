@@ -16,9 +16,19 @@ public static class Commands
         },
         new()
         {
-            Name = DeferredPingCommand.Name,
-            Description = "Receive a deferred pong",
-            Type = ApplicationCommandType.ChatInput
-        }
+            Name = MagicConchCommand.Name,
+            Description = "Ask the Magic Conch!",
+            Type = ApplicationCommandType.ChatInput,
+            Options =
+            [
+                new ApplicationCommandOption
+                {
+                    Type = ApplicationCommandOptionType.String,
+                    Name = "question",
+                    Description = "What would you like to ask the Magic Conch?",
+                    Required = true
+                }
+            ]
+        },
     ];
 }

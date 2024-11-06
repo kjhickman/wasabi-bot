@@ -2,7 +2,7 @@
 
 namespace WasabiBot.Core.Interfaces;
 
-public interface IDiscordCommand
+public interface IAsyncCommand : ICommand
 {
     Task<InteractionResponse> Execute(Interaction interaction, CancellationToken ct);
 }

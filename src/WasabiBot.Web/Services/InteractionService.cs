@@ -1,3 +1,4 @@
+using Dapper;
 using OpenTelemetry.Trace;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
@@ -40,16 +41,25 @@ public class InteractionService : IInteractionService
             throw new InvalidOperationException("Invalid Interaction Data: missing command name");
         }
 
-        var command = _serviceProvider.GetRequiredKeyedService<IDiscordCommand>(commandName);
+        var command = _serviceProvider.GetRequiredKeyedService<ICommand>(commandName);
         
         var createdAt = SnowflakeHelper.ConvertToDateTimeOffset(long.Parse(interaction.Id));
         var expiration = createdAt + TimeSpan.FromMilliseconds(2500);
+        var timeSpan = expiration - DateTimeOffset.UtcNow;
+        if (timeSpan < TimeSpan.Zero)
+        {
+            return InteractionResponse.Defer();
+        }
         using var cts = new CancellationTokenSource(expiration - DateTimeOffset.UtcNow);
 
         try
         {
-            var response = await command.Execute(interaction, cts.Token);
-            return response;
+            return command switch
+            {
+                ISyncCommand syncCmd => syncCmd.Execute(interaction),
+                IAsyncCommand asyncCmd => await asyncCmd.Execute(interaction, cts.Token),
+                _ => throw new ArgumentException("Unknown command type", nameof(command))
+            };
         }
         catch (OperationCanceledException)
         {
@@ -69,7 +79,7 @@ public class InteractionService : IInteractionService
             throw new InvalidOperationException("Invalid Interaction Data: missing command name");
         }
         
-        var command = _serviceProvider.GetRequiredKeyedService<IDiscordCommand>(commandName);
+        var command = _serviceProvider.GetRequiredKeyedService<IAsyncCommand>(commandName);
         
         _logger.LogInformation("Executing command: {CommandName}", commandName);
         var response = await command.Execute(interaction, ct);
