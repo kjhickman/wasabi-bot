@@ -9,9 +9,10 @@
     </PropertyGroup>
     
     <ItemGroup>
+        <PackageReference Include="AWSSDK.SQS" />
         <PackageReference Include="Dapper" />
         <PackageReference Include="Dapper.AOT" />
-        <PackageReference Include="MassTransit.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Options" />
         <PackageReference Include="Npgsql" />
         <PackageReference Include="OpenTelemetry.Api" />

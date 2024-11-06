@@ -1,8 +1,9 @@
-using MassTransit;
 using OpenTelemetry.Trace;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Core.Interfaces;
+using WasabiBot.DataAccess;
+using WasabiBot.DataAccess.Interfaces;
 using WasabiBot.DataAccess.Messages;
 
 namespace WasabiBot.Web.Services;
@@ -12,16 +13,16 @@ public class InteractionService : IInteractionService
     private readonly IServiceProvider _serviceProvider;
     private readonly IDiscordService _discordService;
     private readonly ILogger<InteractionService> _logger;
-    private readonly IPublishEndpoint _bus;
+    private readonly IMessageClient _messageClient;
     private readonly Tracer _tracer;
 
     public InteractionService(IServiceProvider serviceProvider, IDiscordService discordService,
-        ILogger<InteractionService> logger, IPublishEndpoint bus, Tracer tracer)
+        ILogger<InteractionService> logger, IMessageClient messageClient, Tracer tracer)
     {
         _serviceProvider = serviceProvider;
         _discordService = discordService;
         _logger = logger;
-        _bus = bus;
+        _messageClient = messageClient;
         _tracer = tracer;
     }
 
@@ -53,7 +54,7 @@ public class InteractionService : IInteractionService
         catch (OperationCanceledException)
         {
             _logger.LogWarning("{CommandName} execution timed out", commandName);
-            await _bus.Publish(InteractionDeferredMessage.FromInteraction(interaction), CancellationToken.None);
+            await _messageClient.SendAsync(InteractionDeferredMessage.FromInteraction(interaction));
             return InteractionResponse.Defer();
         }
     }

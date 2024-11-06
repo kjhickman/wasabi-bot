@@ -3,6 +3,10 @@ using Npgsql;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
 using WasabiBot.Core.Interfaces;
+using WasabiBot.DataAccess;
+using WasabiBot.DataAccess.Handlers;
+using WasabiBot.DataAccess.Interfaces;
+using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
 using WasabiBot.Web.DependencyInjection;
 using WasabiBot.Web.Endpoints;
@@ -12,14 +16,9 @@ using WasabiBot.Web.Settings;
 var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
-builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
 
 builder.ConfigureOpenTelemetry();
-
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
-});
+builder.AddMessageHandlers();
 
 var connectionString = builder.Configuration.GetConnectionString("Postgres");
 builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectionString));
@@ -28,7 +27,11 @@ builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IDiscordService, DiscordService>();
 builder.Services.AddCommands();
 builder.Services.AddHttpClient();
-builder.AddMassTransit();
+builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
+});
 
 var app = builder.Build();
 

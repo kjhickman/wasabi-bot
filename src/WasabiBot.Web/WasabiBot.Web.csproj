@@ -23,8 +23,6 @@
 
     <ItemGroup>
         <PackageReference Include="AWSSDK.SecurityToken" />
-        <PackageReference Include="MassTransit" />
-        <PackageReference Include="MassTransit.AmazonSQS" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />

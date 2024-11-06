@@ -1,32 +1,32 @@
-using MassTransit;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Trace;
 using WasabiBot.Core.Interfaces;
+using WasabiBot.DataAccess.Interfaces;
 using WasabiBot.DataAccess.Messages;
 
-namespace WasabiBot.DataAccess.Consumers;
+namespace WasabiBot.DataAccess.Handlers;
 
-public class InteractionDeferredConsumer : IConsumer<InteractionDeferredMessage>
+public class InteractionDeferredHandler : IMessageHandler<InteractionDeferredMessage>
 {
     private readonly IInteractionService _interactionService;
-    private readonly ILogger<InteractionDeferredConsumer> _logger;
+    private readonly ILogger<InteractionDeferredHandler> _logger;
     private readonly Tracer _tracer;
 
-    public InteractionDeferredConsumer(IInteractionService interactionService,
-        ILogger<InteractionDeferredConsumer> logger, Tracer tracer)
+    public InteractionDeferredHandler(IInteractionService interactionService,
+        ILogger<InteractionDeferredHandler> logger, Tracer tracer)
     {
         _interactionService = interactionService;
         _logger = logger;
         _tracer = tracer;
     }
 
-    public async Task Consume(ConsumeContext<InteractionDeferredMessage> context)
+    public async Task HandleAsync(InteractionDeferredMessage message, CancellationToken cancellationToken)
     {
         using var span = _tracer.StartActiveSpan("consumer.interaction_deferred");
         _logger.LogInformation("Handling deferred interaction message");
         try
         {
-            await _interactionService.HandleDeferredInteraction(context.Message, context.CancellationToken);
+            await _interactionService.HandleDeferredInteraction(message, cancellationToken);
         }
         catch (Exception e)
         {

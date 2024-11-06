@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [ main, docker-compose ]
+    branches: [ main, purge-masstransit ]
   workflow_dispatch:
     inputs:
       environment:
