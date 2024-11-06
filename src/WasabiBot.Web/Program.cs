@@ -2,7 +2,6 @@
 using Amazon;
 using Amazon.Runtime;
 using Amazon.RuntimeDependencies;
-using Amazon.SecurityToken;
 using Amazon.SQS;
 using Npgsql;
 using WasabiBot.Web;
@@ -37,15 +36,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 // Add AWS Services
 if (!builder.Environment.IsDevelopment())
 {
-    // var stsConfig = new AmazonSecurityTokenServiceConfig
-    // {
-    //     RegionEndpoint = RegionEndpoint.USEast1
-    // };
-    //
-    // Console.WriteLine($"Role ARN: {Environment.GetEnvironmentVariable("AWS_ROLE_ARN")}");
-    // Console.WriteLine($"Token File: {Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")}");
-    // Console.WriteLine($"Session Name: {Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME")}");
-    //
+    // TODO: is this necessary anymore?
     var webIdentityCredentials = new AssumeRoleWithWebIdentityCredentials(
         roleArn: Environment.GetEnvironmentVariable("AWS_ROLE_ARN")!,
         webIdentityTokenFile: Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!,
@@ -56,8 +47,6 @@ if (!builder.Environment.IsDevelopment())
     
     builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(RegionEndpoint.USEast1));
 }
-
-
 
 var app = builder.Build();
 
