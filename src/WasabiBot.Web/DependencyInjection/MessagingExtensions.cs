@@ -1,4 +1,5 @@
-﻿using WasabiBot.DataAccess.Handlers;
+﻿using Amazon.SQS;
+using WasabiBot.DataAccess.Handlers;
 using WasabiBot.DataAccess.Interfaces;
 using WasabiBot.DataAccess.Messages;
 using WasabiBot.DataAccess.Services;
@@ -17,6 +18,7 @@ public static class MessagingExtensions
         }
         else
         {
+            builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient());
             var messagingConfig = builder.Configuration.GetRequiredSection("Messaging");
             builder.Services.AddSqsMessageBus();
             builder.Services.AddSqsSubscriber<InteractionDeferredHandler, InteractionDeferredMessage>(messagingConfig["InteractionDeferredQueueName"]!);
