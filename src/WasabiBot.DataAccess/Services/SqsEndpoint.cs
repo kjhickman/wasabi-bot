@@ -59,7 +59,7 @@ public class SqsEndpoint<TMessage> : BackgroundService
     {
         // todo: 2 threads
         var response = await _sqs.ReceiveMessageAsync(_request, stoppingToken);
-        if (response.Messages.Count == 0)
+        if (!(response?.Messages.Count > 0))
         {
             return;
         }
