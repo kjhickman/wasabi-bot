@@ -7,7 +7,6 @@ namespace WasabiBot.Web;
 
 [JsonSerializable(typeof(Interaction))]
 [JsonSerializable(typeof(InteractionResponse))]
-[JsonSerializable(typeof(ApplicationCommand[]))]
 [JsonSerializable(typeof(ApplicationCommandRegisterRequest))]
 [JsonSerializable(typeof(RegisterCommandsRequest))]
 [JsonSerializable(typeof(SqsEvent))]

@@ -1,7 +1,7 @@
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Interfaces;
 
-namespace WasabiBot.Web.Commands.Handlers;
+namespace WasabiBot.DataAccess.Commands.Handlers;
 
 public class PingCommand : ISyncCommand
 {

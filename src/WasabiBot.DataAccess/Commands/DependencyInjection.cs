@@ -1,7 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.Web.Commands.Handlers;
+using WasabiBot.DataAccess.Commands.Handlers;
 
-namespace WasabiBot.Web.Commands;
+namespace WasabiBot.DataAccess.Commands;
 
 public static class DependencyInjection
 {
