@@ -25,11 +25,15 @@
         <PackageReference Include="AWSSDK.SecurityToken" />
         <PackageReference Include="MassTransit" />
         <PackageReference Include="MassTransit.AmazonSQS" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+        <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" />
-      <ProjectReference Include="..\WasabiBot.ServiceDefaults\WasabiBot.ServiceDefaults.csproj" />
     </ItemGroup>
 
 </Project>

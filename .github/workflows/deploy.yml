@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, docker-compose ]
   workflow_dispatch:
     inputs:
       environment:
@@ -32,10 +32,10 @@ jobs:
         run: |
           case "$ENVIRONMENT" in
             "stg")
-              echo "ConnectionStrings__wasabiBotDb=${{ secrets.STG_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
+              echo "ConnectionStrings__Postgres=${{ secrets.STG_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
               ;;
             "prd")
-              echo "ConnectionStrings__wasabiBotDb=${{ secrets.PRD_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
+              echo "ConnectionStrings__Postgres=${{ secrets.PRD_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
               ;;
           esac
 

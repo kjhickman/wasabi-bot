@@ -1,7 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using OpenTelemetry;
-using OpenTelemetry.Exporter;
+﻿using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -9,26 +6,8 @@ using OpenTelemetry.Trace;
 // ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.Hosting;
 
-public static class Extensions
+public static class OpenTelemetry
 {
-    public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
-    {
-        builder.ConfigureOpenTelemetry();
-
-        builder.Services.AddServiceDiscovery();
-        
-        builder.Services.ConfigureHttpClientDefaults(http =>
-        {
-            // Turn on resilience by default
-            http.AddStandardResilienceHandler();
-
-            // Turn on service discovery by default
-            http.AddServiceDiscovery();
-        });
-
-        return builder;
-    }
-
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
         builder.Logging.ClearProviders();
@@ -40,10 +19,6 @@ public static class Extensions
         });
 
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resourceBuilder =>
-            {
-                resourceBuilder.AddService("wasabi_bot");
-            })
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
@@ -52,17 +27,13 @@ public static class Extensions
             })
             .WithTracing(tracing =>
             {
-                tracing.AddOtlpExporter(foo =>
-                {
-                    var otlpApiKey = builder.Configuration["OTEL_EXPORTER_API_KEY"];
-                    foo.Headers = $"x-otlp-api-key={otlpApiKey}";
-                });
                 tracing.AddSource("wasabi_bot");
                 tracing.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation();
             });
         
         builder.AddOpenTelemetryExporters();
+        builder.Services.AddSingleton(TracerProvider.Default.GetTracer("wasabi_bot"));
 
         return builder;
     }
@@ -73,9 +44,7 @@ public static class Extensions
 
         if (useOtlpExporter)
         {
-            var otlpApiKey = builder.Configuration["OTEL_EXPORTER_API_KEY"];
-            // builder.Services.Configure<OtlpExporterOptions>(o => o.Headers = $"x-otlp-api-key={otlpApiKey}");
-            // builder.Services.AddOpenTelemetry().UseOtlpExporter();
+            builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
         return builder;

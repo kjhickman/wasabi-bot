@@ -2,7 +2,7 @@
 using WasabiBot.MigrationsRunner;
 
 var configuration = new ConfigurationBuilder().AddEnvironmentVariables().Build();
-var connectionString = configuration.GetConnectionString("wasabiBotDb");
+var connectionString = configuration.GetConnectionString("Postgres");
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {

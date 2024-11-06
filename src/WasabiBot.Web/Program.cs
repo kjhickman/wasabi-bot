@@ -1,6 +1,5 @@
 ﻿using System.Data;
 using Npgsql;
-using OpenTelemetry.Trace;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
 using WasabiBot.Core.Interfaces;
@@ -15,16 +14,14 @@ var builder = WebApplication.CreateSlimBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 builder.Services.Configure<DiscordSettings>(builder.Configuration.GetSection("Discord"));
 
-// Add service defaults & Aspire components.
-builder.AddServiceDefaults();
-builder.Services.AddSingleton(TracerProvider.Default.GetTracer("wasabi_bot"));
+builder.ConfigureOpenTelemetry();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
 });
 
-var connectionString = builder.Configuration.GetConnectionString("wasabiBotDb"); // TODO: fixme
+var connectionString = builder.Configuration.GetConnectionString("Postgres");
 builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectionString));
 builder.Services.AddScoped<InteractionRecordService>();
 builder.Services.AddScoped<IInteractionService, InteractionService>();

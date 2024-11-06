@@ -12,8 +12,8 @@ primary_region = 'dfw'
 [env]
   ASPNETCORE_ENVIRONMENT = 'Production'
   DOTNET_ENVIRONMENT = 'Production'
-  Logging__Console__FormatterName = 'Simple'
   Dashboard__Otlp__AuthMode="ApiKey"
+  # Logging__Console__FormatterName = 'Simple'
 
 [http_service]
   internal_port = 18888
