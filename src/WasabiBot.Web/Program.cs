@@ -42,9 +42,10 @@ if (!builder.Environment.IsDevelopment())
         RegionEndpoint = RegionEndpoint.USEast1
     };
 
-    Console.WriteLine("AWS_ROLE_ARN: " + Environment.GetEnvironmentVariable("AWS_ROLE_ARN"));
-    Console.WriteLine("AWS_WEB_IDENTITY_TOKEN_FILE: " + Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE"));
-    Console.WriteLine("AWS_ROLE_SESSION_NAME: " + Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME"));
+    Console.WriteLine($"Role ARN: {Environment.GetEnvironmentVariable("AWS_ROLE_ARN")}");
+    Console.WriteLine($"Token File: {Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")}");
+    Console.WriteLine($"Session Name: {Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME")}");
+    
     var webIdentityCredentials = new AssumeRoleWithWebIdentityCredentials(
         roleArn: Environment.GetEnvironmentVariable("AWS_ROLE_ARN")!,
         webIdentityTokenFile: Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!,
@@ -54,6 +55,12 @@ if (!builder.Environment.IsDevelopment())
     GlobalRuntimeDependencyRegistry.Instance.RegisterSecurityTokenServiceClient(new AmazonSecurityTokenServiceClient(webIdentityCredentials, stsConfig));
     
     builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(webIdentityCredentials, RegionEndpoint.USEast1));
+    
+    AWSConfigs.LoggingConfig.LogTo = LoggingOptions.SystemDiagnostics;
+    AWSConfigs.LoggingConfig.LogResponses = ResponseLoggingOption.Always;
+    AWSConfigs.LoggingConfig.LogMetrics = true;
+    
+    System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.ConsoleTraceListener());
 }
 
 
