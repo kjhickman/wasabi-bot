@@ -20,7 +20,6 @@ public static class MessagingExtensions
         }
         else
         {
-            builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(RegionEndpoint.USEast1));
             var messagingConfig = builder.Configuration.GetRequiredSection("Messaging");
             builder.Services.AddSqsMessageBus();
             builder.Services.AddSqsSubscriber<InteractionDeferredHandler, InteractionDeferredMessage>(messagingConfig["InteractionDeferredQueueName"]!);

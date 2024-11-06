@@ -1,7 +1,9 @@
 ﻿using System.Data;
 using Amazon;
 using Amazon.Runtime;
+using Amazon.RuntimeDependencies;
 using Amazon.SecurityToken;
+using Amazon.SQS;
 using Npgsql;
 using WasabiBot.Web;
 using WasabiBot.Web.Commands;
@@ -32,17 +34,26 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
 });
 
-var webIdentityCredentials = new AssumeRoleWithWebIdentityCredentials(
-    roleArn: Environment.GetEnvironmentVariable("AWS_ROLE_ARN")!,
-    webIdentityTokenFile: Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!,
-    roleSessionName: Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME")
-);
-var stsConfig = new AmazonSecurityTokenServiceConfig
+// Add AWS Services
+if (!builder.Environment.IsDevelopment())
 {
-    RegionEndpoint = RegionEndpoint.USEast1
-};
+    var stsConfig = new AmazonSecurityTokenServiceConfig
+    {
+        RegionEndpoint = RegionEndpoint.USEast1
+    };
 
-Amazon.RuntimeDependencies.GlobalRuntimeDependencyRegistry.Instance.RegisterSecurityTokenServiceClient( new AmazonSecurityTokenServiceClient(webIdentityCredentials, stsConfig));
+    var webIdentityCredentials = new AssumeRoleWithWebIdentityCredentials(
+        roleArn: Environment.GetEnvironmentVariable("AWS_ROLE_ARN")!,
+        webIdentityTokenFile: Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!,
+        roleSessionName: Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME")!
+    );
+
+    GlobalRuntimeDependencyRegistry.Instance.RegisterSecurityTokenServiceClient(new AmazonSecurityTokenServiceClient(webIdentityCredentials, stsConfig));
+    
+    builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(webIdentityCredentials, RegionEndpoint.USEast1));
+}
+
+
 
 var app = builder.Build();
 
