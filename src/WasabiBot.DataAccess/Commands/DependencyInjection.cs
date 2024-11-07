@@ -10,6 +10,7 @@ public static class DependencyInjection
     {
         services.AddKeyedScoped<ICommand, PingCommand>(PingCommand.Name);
         services.AddKeyedScoped<ICommand, MagicConchCommand>(MagicConchCommand.Name);
+        services.AddKeyedScoped<ICommand, WheelCommand>(WheelCommand.Name);
         return services;
     }
 }
