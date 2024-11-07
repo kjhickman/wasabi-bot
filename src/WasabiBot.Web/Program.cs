@@ -2,6 +2,8 @@
 using Amazon;
 using Amazon.Runtime;
 using Amazon.RuntimeDependencies;
+using Amazon.SecurityToken;
+using Amazon.SecurityToken.Model;
 using Amazon.SQS;
 using Npgsql;
 using WasabiBot.Web;
@@ -36,7 +38,36 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 // Add AWS Services
 if (!builder.Environment.IsDevelopment())
 {
-    builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(RegionEndpoint.USEast1));
+    // Read the web identity token file path from env var
+    var tokenFile = Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!;
+    var roleArn = Environment.GetEnvironmentVariable("AWS_ROLE_ARN");
+    var session = Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME");
+        
+    // Read the token file
+    var token = await File.ReadAllTextAsync(tokenFile);
+        
+    // Create assume role request
+    var assumeRoleRequest = new AssumeRoleWithWebIdentityRequest
+    {
+        RoleArn = roleArn,
+        WebIdentityToken = token,
+        RoleSessionName = session
+    };
+
+    // Create STS client
+    using var stsClient = new AmazonSecurityTokenServiceClient();
+        
+    // Get temporary credentials
+    var response = await stsClient.AssumeRoleWithWebIdentityAsync(assumeRoleRequest);
+        
+    // Create credentials object
+    var credentials = new SessionAWSCredentials(
+        response.Credentials.AccessKeyId,
+        response.Credentials.SecretAccessKey,
+        response.Credentials.SessionToken
+    );
+    
+    builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(credentials, RegionEndpoint.USEast1));
 }
 
 var app = builder.Build();
