@@ -36,15 +36,6 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 // Add AWS Services
 if (!builder.Environment.IsDevelopment())
 {
-    // TODO: is this necessary anymore?
-    var webIdentityCredentials = new AssumeRoleWithWebIdentityCredentials(
-        roleArn: Environment.GetEnvironmentVariable("AWS_ROLE_ARN")!,
-        webIdentityTokenFile: Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!,
-        roleSessionName: Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME")!
-    );
-
-    GlobalRuntimeDependencyRegistry.Instance.RegisterSecurityTokenServiceClient(webIdentityCredentials);
-    
     builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(RegionEndpoint.USEast1));
 }
 
