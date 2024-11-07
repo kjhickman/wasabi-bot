@@ -1,6 +1,5 @@
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
-using WasabiBot.DataAccess.Commands.Handlers;
 
 namespace WasabiBot.DataAccess.Commands;
 

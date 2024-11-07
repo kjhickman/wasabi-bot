@@ -1,10 +1,9 @@
-using Microsoft.Extensions.DependencyInjection;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess.Commands.Handlers;
+using WasabiBot.DataAccess.Commands;
 
-namespace WasabiBot.DataAccess.Commands;
+namespace WasabiBot.Web.DependencyInjection;
 
-public static class DependencyInjection
+public static class Commands
 {
     public static IServiceCollection AddCommands(this IServiceCollection services)
     {

@@ -2,7 +2,7 @@ using System.Text;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Interfaces;
 
-namespace WasabiBot.DataAccess.Commands.Handlers;
+namespace WasabiBot.DataAccess.Commands;
 
 public class WheelCommand : ISyncCommand
 {
