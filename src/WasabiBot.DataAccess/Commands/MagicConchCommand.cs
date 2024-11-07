@@ -20,7 +20,7 @@ public class MagicConchCommand: ISyncCommand
     public InteractionResponse Execute(Interaction interaction)
     {
         var userId = interaction.User?.Id ?? interaction.GuildMember?.User?.Id;
-        var mention = userId is null ? "User" : $"<@{userId}>";
+        var mention = userId is null ? "User" : Format.Mention(userId);
         var question = interaction.Data?.Options?.FirstOrDefault()?.Value?.GetString();
         if (question is null)
         {
@@ -33,7 +33,7 @@ public class MagicConchCommand: ISyncCommand
     private string BuildResponse(string mention, string question)
     {
         var stringBuilder = new StringBuilder();
-        stringBuilder.Append($"{mention} asked \"{question}\"");
+        stringBuilder.Append($"{mention} asked {Format.Italics(question)}");
         stringBuilder.AppendLine();
         var response = GetMagicConchResponse();
         stringBuilder.Append($"The Magic Conch says... {response}");
