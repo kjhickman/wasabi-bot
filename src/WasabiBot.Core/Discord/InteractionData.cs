@@ -14,7 +14,7 @@ public class InteractionData
     public int Type { get; set; }
 
     [JsonPropertyName("options")]
-    public IEnumerable<InteractionDataOption>? Options { get; set; }
+    public InteractionDataOption[]? Options { get; set; }
 
     [JsonPropertyName("guild_id")]
     public string? GuildId { get; set; }
