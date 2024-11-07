@@ -29,7 +29,24 @@ public static class OpenTelemetry
             {
                 tracing.AddSource("wasabi_bot");
                 tracing.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation(options =>
+                    {
+                        options.FilterHttpRequestMessage = request =>
+                        {
+                            // Check if this is an SQS request
+                            if (request.RequestUri?.Host.Contains("sqs") != true) return true;
+                            
+                            // Check if this is a polling request (usually a ReceiveMessage action)
+                            var isPolling = request.RequestUri.Query.Contains("Action=ReceiveMessage") ||
+                                            (request.Content is { Headers.ContentType.MediaType: "application/x-www-form-urlencoded" } && 
+                                             request.Content.ReadAsStringAsync().Result.Contains("Action=ReceiveMessage"));
+                            
+                            // Return false to filter out polling requests
+                            return !isPolling;
+
+                            // Include all other requests
+                        };
+                    });
             });
         
         builder.AddOpenTelemetryExporters();
