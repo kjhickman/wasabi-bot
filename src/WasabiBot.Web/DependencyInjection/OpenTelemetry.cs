@@ -40,6 +40,19 @@ public static class OpenTelemetry
                             }
                             return true;
                         };
+                        
+                        options.EnrichWithHttpRequestMessage = (activity, request) =>
+                        {
+                            if (!request.Headers.TryGetValues("X-Amz-Target", out var targetValues)) return;
+                            
+                            var operationName = targetValues.FirstOrDefault();
+                            if (operationName is null)
+                            {
+                                return;
+                            }
+                            
+                            activity.DisplayName = $"{operationName}";
+                        };
                     });
             });
         
