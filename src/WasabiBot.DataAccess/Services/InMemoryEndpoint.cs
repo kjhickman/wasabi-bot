@@ -30,7 +30,7 @@ public class InMemoryEndpoint<TMessage> : BackgroundService where TMessage : cla
         {
             try
             {
-                await DoWorkAsync(stoppingToken);
+                await PollQueueAsync(stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -43,7 +43,7 @@ public class InMemoryEndpoint<TMessage> : BackgroundService where TMessage : cla
         }
     }
 
-    private async Task DoWorkAsync(CancellationToken stoppingToken)
+    private async Task PollQueueAsync(CancellationToken stoppingToken)
     {
         var messages = InMemoryMessageBus.DequeueMessages<TMessage>(_queueUrl, 10).ToList();
         if (messages.Count == 0)
