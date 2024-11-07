@@ -23,7 +23,7 @@ public class DiscordValidationFilter : IEndpointFilter
 
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        using var span = _tracer.StartActiveSpan("filter.validate_interaction");
+        using var span = _tracer.StartActiveSpan($"{nameof(DiscordValidationFilter)}.{nameof(InvokeAsync)}");
         _logger.LogInformation("Validating discord interaction");
         var request = context.HttpContext.Request;
 

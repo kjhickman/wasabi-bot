@@ -29,7 +29,7 @@ public class InteractionService : IInteractionService
 
     public async Task<InteractionResponse> HandleInteraction(Interaction interaction)
     {
-        using var span = _tracer.StartActiveSpan("interaction.handle");
+        using var span = _tracer.StartActiveSpan($"{nameof(InteractionService)}.{nameof(HandleInteraction)}");
         if (interaction.Type == InteractionType.Ping)
         {
             return InteractionResponse.Pong();
@@ -71,7 +71,7 @@ public class InteractionService : IInteractionService
 
     public async Task HandleDeferredInteraction(Interaction interaction, CancellationToken ct = default)
     {
-        using var span = _tracer.StartActiveSpan("interaction.handle_deferred");
+        using var span = _tracer.StartActiveSpan($"{nameof(InteractionService)}.{nameof(HandleDeferredInteraction)}");
         _logger.LogInformation("Handling deferred interaction");
         var commandName = interaction.Data?.Name;
         if (commandName is null)

@@ -22,7 +22,7 @@ public class InteractionDeferredHandler : IMessageHandler<InteractionDeferredMes
 
     public async Task HandleAsync(InteractionDeferredMessage message, CancellationToken cancellationToken)
     {
-        using var span = _tracer.StartActiveSpan("consumer.interaction_deferred");
+        using var span = _tracer.StartActiveSpan($"{nameof(InteractionDeferredHandler)}.{nameof(HandleAsync)}");
         _logger.LogInformation("Handling deferred interaction message");
         try
         {

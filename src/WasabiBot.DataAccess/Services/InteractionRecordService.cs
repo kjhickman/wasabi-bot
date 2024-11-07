@@ -18,7 +18,7 @@ public class InteractionRecordService
 
     public async Task<bool> CreateAsync(InteractionRecord record)
     {
-        using var span = _tracer.StartActiveSpan("database.insert.interaction_record");
+        using var span = _tracer.StartActiveSpan($"{nameof(InteractionRecordService)}.{nameof(CreateAsync)}");
         const string sql = 
             """
             INSERT INTO interaction_record (

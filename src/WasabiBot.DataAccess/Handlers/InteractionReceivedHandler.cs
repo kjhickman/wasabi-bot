@@ -7,13 +7,13 @@ using WasabiBot.DataAccess.Services;
 
 namespace WasabiBot.DataAccess.Handlers;
 
-public class InteractionReceivedConsumer : IMessageHandler<InteractionReceivedMessage>
+public class InteractionReceivedHandler : IMessageHandler<InteractionReceivedMessage>
 {
     private readonly InteractionRecordService _interactionRecordService;
     private readonly Tracer _tracer;
-    private readonly ILogger<InteractionReceivedConsumer> _logger;
+    private readonly ILogger<InteractionReceivedHandler> _logger;
 
-    public InteractionReceivedConsumer(InteractionRecordService interactionRecordService, Tracer tracer, ILogger<InteractionReceivedConsumer> logger)
+    public InteractionReceivedHandler(InteractionRecordService interactionRecordService, Tracer tracer, ILogger<InteractionReceivedHandler> logger)
     {
         _interactionRecordService = interactionRecordService;
         _tracer = tracer;
@@ -22,8 +22,8 @@ public class InteractionReceivedConsumer : IMessageHandler<InteractionReceivedMe
 
     public async Task HandleAsync(InteractionReceivedMessage message, CancellationToken cancellationToken)
     {
+        using var span = _tracer.StartActiveSpan($"{nameof(InteractionReceivedHandler)}.{nameof(HandleAsync)}");
         _logger.LogInformation("Received interaction: {InteractionId}", message.Id);
-        using var span = _tracer.StartActiveSpan("consumer.interaction_received");
         var result = InteractionRecord.Create(message);
         await _interactionRecordService.CreateAsync(result);
     }

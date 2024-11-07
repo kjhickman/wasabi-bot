@@ -16,14 +16,14 @@ public static class MessagingExtensions
         {
             builder.Services.AddInMemoryMessageBus();
             builder.Services.AddInMemorySubscriber<InteractionDeferredHandler, InteractionDeferredMessage>();
-            builder.Services.AddInMemorySubscriber<InteractionReceivedConsumer, InteractionReceivedMessage>();
+            builder.Services.AddInMemorySubscriber<InteractionReceivedHandler, InteractionReceivedMessage>();
         }
         else
         {
             var messagingConfig = builder.Configuration.GetRequiredSection("Messaging");
             builder.Services.AddSqsMessageBus();
             builder.Services.AddSqsSubscriber<InteractionDeferredHandler, InteractionDeferredMessage>(messagingConfig["InteractionDeferredQueueName"]!);
-            builder.Services.AddSqsSubscriber<InteractionReceivedConsumer, InteractionReceivedMessage>(messagingConfig["InteractionReceivedQueueName"]!);
+            builder.Services.AddSqsSubscriber<InteractionReceivedHandler, InteractionReceivedMessage>(messagingConfig["InteractionReceivedQueueName"]!);
         }
     }
     
