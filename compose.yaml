@@ -32,7 +32,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: src/WasabiBot.Web/dev.Dockerfile
+      dockerfile: src/WasabiBot.Web/Dockerfile
     depends_on:
       migrations:
         condition: service_completed_successfully
