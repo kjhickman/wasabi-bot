@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using WasabiBot.Core.Discord;
-using WasabiBot.Core.Models.Aws;
 using WasabiBot.Core.Models.Contracts;
 
 namespace WasabiBot.Web;
@@ -9,6 +8,4 @@ namespace WasabiBot.Web;
 [JsonSerializable(typeof(InteractionResponse))]
 [JsonSerializable(typeof(ApplicationCommandRegisterRequest))]
 [JsonSerializable(typeof(RegisterCommandsRequest))]
-[JsonSerializable(typeof(SqsEvent))]
-[JsonSerializable(typeof(SqsBatchResponse))]
 public partial class WebJsonContext : JsonSerializerContext;

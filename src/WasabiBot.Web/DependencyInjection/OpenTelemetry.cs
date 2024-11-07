@@ -46,9 +46,31 @@ public static class OpenTelemetry
 
                             // Include all other requests
                         };
-                        options.EnrichWithHttpRequestMessage = (activity, message) =>
+                        options.EnrichWithHttpRequestMessage = (activity, request) =>
                         {
-                            activity.AddBaggage("foo", string.Join(',', message.Headers));
+                            // Add headers (be careful not to log sensitive information)
+                            foreach (var header in request.Headers)
+                            {
+                                if (!header.Key.Contains("Authorization", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    activity.SetTag($"http.header.{header.Key.ToLowerInvariant()}", 
+                                        string.Join(",", header.Value));
+                                }
+                            }
+                            
+                            // If it's a POST request, try to capture the action
+                            if (request.Content != null)
+                            {
+                                activity.SetTag("http.content_type", 
+                                    request.Content.Headers.ContentType?.MediaType);
+                            
+                                // Be careful with this in production - you might want to be more selective
+                                if (request.Content.Headers.ContentType?.MediaType == "application/x-www-form-urlencoded")
+                                {
+                                    var content = request.Content.ReadAsStringAsync().Result;
+                                    activity.SetTag("http.request.content", content);
+                                }
+                            }
                         };
                     });
             });
