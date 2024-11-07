@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using WasabiBot.Core.Discord;
 using WasabiBot.DataAccess.Messages;
 
 namespace WasabiBot.DataAccess;

@@ -4,10 +4,7 @@ using HashiCorp.Cdktf.Providers.Aws.DataAwsCallerIdentity;
 using HashiCorp.Cdktf.Providers.Aws.IamRole;
 using HashiCorp.Cdktf.Providers.Aws.IamRolePolicy;
 using HashiCorp.Cdktf.Providers.Aws.Provider;
-using HashiCorp.Cdktf.Providers.Aws.SnsTopic;
-using HashiCorp.Cdktf.Providers.Aws.SnsTopicSubscription;
 using HashiCorp.Cdktf.Providers.Aws.SqsQueue;
-using HashiCorp.Cdktf.Providers.Aws.SqsQueuePolicy;
 
 // ReSharper disable ObjectCreationAsStatement
 

@@ -1,9 +1,7 @@
-using Dapper;
 using OpenTelemetry.Trace;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Discord.Enums;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess;
 using WasabiBot.DataAccess.Interfaces;
 using WasabiBot.DataAccess.Messages;
 

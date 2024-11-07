@@ -1,14 +1,13 @@
 ﻿using System.Data;
 using Amazon;
 using Amazon.Runtime;
-using Amazon.RuntimeDependencies;
 using Amazon.SecurityToken;
 using Amazon.SecurityToken.Model;
 using Amazon.SQS;
 using Npgsql;
+using WasabiBot.Core.Constants;
 using WasabiBot.Web;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess.Commands;
 using WasabiBot.DataAccess.Services;
 using WasabiBot.Web.DependencyInjection;
 using WasabiBot.Web.Endpoints;
@@ -35,38 +34,30 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, WebJsonContext.Default);
 });
 
-// Add AWS Services
+// Add AWS Services. TODO: Move to a separate extension methods DI/Aws.cs
 if (!builder.Environment.IsDevelopment())
 {
-    // Read the web identity token file path from env var
-    var tokenFile = Environment.GetEnvironmentVariable("AWS_WEB_IDENTITY_TOKEN_FILE")!;
-    var roleArn = Environment.GetEnvironmentVariable("AWS_ROLE_ARN");
-    var session = Environment.GetEnvironmentVariable("AWS_ROLE_SESSION_NAME");
-        
-    // Read the token file
-    var token = await File.ReadAllTextAsync(tokenFile);
-        
-    // Create assume role request
+    var roleArn = Environment.GetEnvironmentVariable(Aws.RoleArn);
+    var session = Environment.GetEnvironmentVariable(Aws.RoleSessionName);
+    var tokenPath = Environment.GetEnvironmentVariable(Aws.WebIdentityTokenFile);
+    var token = await File.ReadAllTextAsync(tokenPath!);
+    
     var assumeRoleRequest = new AssumeRoleWithWebIdentityRequest
     {
         RoleArn = roleArn,
         WebIdentityToken = token,
         RoleSessionName = session
     };
-
-    // Create STS client
+    
     using var stsClient = new AmazonSecurityTokenServiceClient(RegionEndpoint.USEast1);
-        
-    // Get temporary credentials
     var response = await stsClient.AssumeRoleWithWebIdentityAsync(assumeRoleRequest);
-        
-    // Create credentials object
     var credentials = new SessionAWSCredentials(
         response.Credentials.AccessKeyId,
         response.Credentials.SecretAccessKey,
         response.Credentials.SessionToken
     );
     
+    // Add AWS Services
     builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient(credentials, RegionEndpoint.USEast1));
 }
 

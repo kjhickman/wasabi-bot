@@ -2,6 +2,7 @@
 using System.Text.Json.Serialization.Metadata;
 using Amazon.SQS;
 using Amazon.SQS.Model;
+using OpenTelemetry.Trace;
 using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.DataAccess.Services;
@@ -9,14 +10,17 @@ namespace WasabiBot.DataAccess.Services;
 public class SqsMessageClient : IMessageClient
 {
     private readonly IAmazonSQS _sqs;
+    private readonly Tracer _tracer;
 
-    public SqsMessageClient(IAmazonSQS sqs)
+    public SqsMessageClient(IAmazonSQS sqs, Tracer tracer)
     {
         _sqs = sqs;
+        _tracer = tracer;
     }
 
     public async Task SendAsync<T>(T message) where T : class
     {
+        using var span = _tracer.StartActiveSpan($"{nameof(SqsMessageClient)}.{nameof(SendAsync)}");
         var messageTypeRegistered = QueueInfo.UrlMap.TryGetValue(typeof(T).Name, out var queueUrl);
         if (!messageTypeRegistered || queueUrl is null)
         {

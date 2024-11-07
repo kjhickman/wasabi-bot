@@ -1,6 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using Amazon;
-using Amazon.SQS;
 using WasabiBot.DataAccess.Handlers;
 using WasabiBot.DataAccess.Interfaces;
 using WasabiBot.DataAccess.Messages;
