@@ -3,7 +3,7 @@ using WasabiBot.Core.Discord.Enums;
 
 namespace WasabiBot.DataAccess.Commands;
 
-public static class Commands
+public static class ApplicationCommands
 {
     public static readonly ApplicationCommand[] Definitions =
     [
