@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Trace;
 using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.DataAccess.Services;
@@ -11,11 +12,13 @@ public class InMemoryEndpoint<TMessage> : BackgroundService where TMessage : cla
     private readonly string _queueUrl;
     private readonly ILogger<InMemoryEndpoint<TMessage>> _logger;
     private readonly PeriodicTimer _timer;
+    private readonly Tracer _tracer;
 
-    public InMemoryEndpoint(IServiceProvider serviceProvider, ILogger<InMemoryEndpoint<TMessage>> logger)
+    public InMemoryEndpoint(IServiceProvider serviceProvider, ILogger<InMemoryEndpoint<TMessage>> logger, Tracer tracer)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _tracer = tracer;
         _queueUrl = QueueInfo.UrlMap[typeof(TMessage).Name];
         _timer = new PeriodicTimer(TimeSpan.FromSeconds(1)); // Poll every second
         
@@ -54,6 +57,7 @@ public class InMemoryEndpoint<TMessage> : BackgroundService where TMessage : cla
             CancellationToken = stoppingToken
         };
 
+        using var span = _tracer.StartActiveSpan($"{nameof(InMemoryEndpoint<TMessage>)}.ProcessBatch");
         await Parallel.ForEachAsync(messages, parallelOptions, async (message, ct) =>
         {
             try

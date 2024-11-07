@@ -6,6 +6,7 @@ using Amazon.SQS.Model;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Trace;
 using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.DataAccess.Services;
@@ -17,12 +18,14 @@ public class SqsEndpoint<TMessage> : BackgroundService
     private readonly ReceiveMessageRequest _request;
     private readonly JsonTypeInfo<TMessage> _jsonTypeInfo;
     private readonly ILogger<SqsEndpoint<TMessage>> _logger;
+    private readonly Tracer _tracer;
 
-    public SqsEndpoint(IAmazonSQS sqs, IServiceProvider serviceProvider, ILogger<SqsEndpoint<TMessage>> logger)
+    public SqsEndpoint(IAmazonSQS sqs, IServiceProvider serviceProvider, ILogger<SqsEndpoint<TMessage>> logger, Tracer tracer)
     {
         _sqs = sqs;
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _tracer = tracer;
 
         var queueUrl = QueueInfo.UrlMap[typeof(TMessage).Name];
         _request = new ReceiveMessageRequest
@@ -42,7 +45,7 @@ public class SqsEndpoint<TMessage> : BackgroundService
         {
             try
             {
-                await DoWorkAsync(stoppingToken);
+                await PollSqsQueue(stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -55,7 +58,7 @@ public class SqsEndpoint<TMessage> : BackgroundService
         }
     }
 
-    private async Task DoWorkAsync(CancellationToken stoppingToken)
+    private async Task PollSqsQueue(CancellationToken stoppingToken)
     {
         // todo: 2 threads
         var response = await _sqs.ReceiveMessageAsync(_request, stoppingToken);
@@ -70,13 +73,12 @@ public class SqsEndpoint<TMessage> : BackgroundService
             CancellationToken = stoppingToken
         };
 
-        // foreach message, get scoped handler. 1 message per thread
+        using var span = _tracer.StartActiveSpan($"{nameof(SqsEndpoint<TMessage>)}.ProcessBatch");
         var successfulMessages = new ConcurrentBag<Message>();
         await Parallel.ForEachAsync(response.Messages, parallelOptions, async (message, ct) =>
         {
             try
             {
-                // track successful messages
                 using var scope = _serviceProvider.CreateScope();
                 var subscriber = scope.ServiceProvider.GetRequiredService<IMessageHandler<TMessage>>();
                 var t = JsonSerializer.Deserialize(message.Body, _jsonTypeInfo) ??
