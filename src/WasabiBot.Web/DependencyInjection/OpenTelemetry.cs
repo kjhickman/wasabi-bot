@@ -33,44 +33,12 @@ public static class OpenTelemetry
                     {
                         options.FilterHttpRequestMessage = request =>
                         {
-                            // Check if this is an SQS request
-                            if (request.RequestUri?.Host.Contains("sqs") != true) return true;
-                            
-                            // Check if this is a polling request (usually a ReceiveMessage action)
-                            var isPolling = request.RequestUri.Query.Contains("Action=ReceiveMessage") ||
-                                            (request.Content is { Headers.ContentType.MediaType: "application/x-www-form-urlencoded" } && 
-                                             request.Content.ReadAsStringAsync().Result.Contains("Action=ReceiveMessage"));
-                            
-                            // Return false to filter out polling requests
-                            return !isPolling;
-
-                            // Include all other requests
-                        };
-                        options.EnrichWithHttpRequestMessage = (activity, request) =>
-                        {
-                            // Add headers (be careful not to log sensitive information)
-                            foreach (var header in request.Headers)
+                            // Filter out SQS polling traces
+                            if (request.Headers.TryGetValues("X-Amz-Target", out var targetValues))
                             {
-                                if (!header.Key.Contains("Authorization", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    activity.SetTag($"http.header.{header.Key.ToLowerInvariant()}", 
-                                        string.Join(",", header.Value));
-                                }
+                                return !targetValues.Contains("AmazonSQS.ReceiveMessage");
                             }
-                            
-                            // If it's a POST request, try to capture the action
-                            if (request.Content != null)
-                            {
-                                activity.SetTag("http.content_type", 
-                                    request.Content.Headers.ContentType?.MediaType);
-                            
-                                // Be careful with this in production - you might want to be more selective
-                                if (request.Content.Headers.ContentType?.MediaType == "application/x-www-form-urlencoded")
-                                {
-                                    var content = request.Content.ReadAsStringAsync().Result;
-                                    activity.SetTag("http.request.content", content);
-                                }
-                            }
+                            return true;
                         };
                     });
             });
