@@ -46,6 +46,10 @@ public static class OpenTelemetry
 
                             // Include all other requests
                         };
+                        options.EnrichWithHttpRequestMessage = (activity, message) =>
+                        {
+                            activity.AddBaggage("foo", string.Join(',', message.Headers));
+                        };
                     });
             });
         
