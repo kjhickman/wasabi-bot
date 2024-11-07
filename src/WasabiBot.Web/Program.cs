@@ -55,7 +55,7 @@ if (!builder.Environment.IsDevelopment())
     };
 
     // Create STS client
-    using var stsClient = new AmazonSecurityTokenServiceClient();
+    using var stsClient = new AmazonSecurityTokenServiceClient(RegionEndpoint.USEast1);
         
     // Get temporary credentials
     var response = await stsClient.AssumeRoleWithWebIdentityAsync(assumeRoleRequest);
