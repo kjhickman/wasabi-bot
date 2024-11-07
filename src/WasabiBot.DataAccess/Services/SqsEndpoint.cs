@@ -53,7 +53,7 @@ public class SqsEndpoint<TMessage> : BackgroundService
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                _logger.LogError(e, "Error polling messages");
             }
         }
     }
@@ -73,8 +73,9 @@ public class SqsEndpoint<TMessage> : BackgroundService
             CancellationToken = stoppingToken
         };
 
-        using var span = _tracer.StartActiveSpan($"{nameof(SqsEndpoint<TMessage>)}.ProcessBatch");
+        using var span = _tracer.StartActiveSpan($"{nameof(SqsEndpoint<TMessage>)}.{typeof(TMessage).Name}.ProcessBatch");
         var successfulMessages = new ConcurrentBag<Message>();
+        _logger.LogInformation("Processing {MessageCount} messages", response.Messages.Count);
         await Parallel.ForEachAsync(response.Messages, parallelOptions, async (message, ct) =>
         {
             try

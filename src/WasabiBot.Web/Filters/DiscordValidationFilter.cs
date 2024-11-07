@@ -51,7 +51,6 @@ public class DiscordValidationFilter : IEndpointFilter
             return TypedResults.BadRequest();
         }
         
-        _logger.LogInformation("Discord interaction validated");
         span.End();
         return await next(context);
     }

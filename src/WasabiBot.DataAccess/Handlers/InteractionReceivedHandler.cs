@@ -23,7 +23,8 @@ public class InteractionReceivedHandler : IMessageHandler<InteractionReceivedMes
     public async Task HandleAsync(InteractionReceivedMessage message, CancellationToken cancellationToken)
     {
         using var span = _tracer.StartActiveSpan($"{nameof(InteractionReceivedHandler)}.{nameof(HandleAsync)}");
-        _logger.LogInformation("Received interaction: {InteractionId}", message.Id);
+        var username = message.GuildMember?.User?.Username ?? message.User?.Username;
+        _logger.LogInformation("Received interaction from {Username}", username);
         var result = InteractionRecord.Create(message);
         await _interactionRecordService.CreateAsync(result);
     }

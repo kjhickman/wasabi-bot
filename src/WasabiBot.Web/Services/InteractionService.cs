@@ -41,6 +41,7 @@ public class InteractionService : IInteractionService
             throw new InvalidOperationException("Invalid Interaction Data: missing command name");
         }
 
+        _logger.LogInformation("Handling command: {CommandName}", commandName);
         var command = _serviceProvider.GetRequiredKeyedService<ICommand>(commandName);
         
         var createdAt = SnowflakeHelper.ConvertToDateTimeOffset(long.Parse(interaction.Id));
@@ -72,16 +73,15 @@ public class InteractionService : IInteractionService
     public async Task HandleDeferredInteraction(Interaction interaction, CancellationToken ct = default)
     {
         using var span = _tracer.StartActiveSpan($"{nameof(InteractionService)}.{nameof(HandleDeferredInteraction)}");
-        _logger.LogInformation("Handling deferred interaction");
         var commandName = interaction.Data?.Name;
         if (commandName is null)
         {
             throw new InvalidOperationException("Invalid Interaction Data: missing command name");
         }
         
+        _logger.LogInformation("Handling deferred command: {CommandName}", commandName);
         var command = _serviceProvider.GetRequiredKeyedService<IAsyncCommand>(commandName);
         
-        _logger.LogInformation("Executing command: {CommandName}", commandName);
         var response = await command.Execute(interaction, ct);
         
         _logger.LogInformation("Creating followup message for command: {CommandName}", commandName);
