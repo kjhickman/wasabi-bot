@@ -1,2 +1,0 @@
-using Dapper;
-[module: DapperAot]

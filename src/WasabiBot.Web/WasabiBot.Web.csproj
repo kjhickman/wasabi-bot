@@ -40,8 +40,4 @@
       <ProjectReference Include="..\WasabiBot.Discord\WasabiBot.Discord.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Settings\" />
-    </ItemGroup>
-
 </Project>
