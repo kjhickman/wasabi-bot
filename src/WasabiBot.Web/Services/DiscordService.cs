@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Interfaces;
-using WasabiBot.Web.Settings;
+using WasabiBot.Discord;
 
 namespace WasabiBot.Web.Services;
 

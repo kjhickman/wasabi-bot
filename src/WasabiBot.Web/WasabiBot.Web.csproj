@@ -23,6 +23,7 @@
 
     <ItemGroup>
         <PackageReference Include="AWSSDK.SecurityToken" />
+        <PackageReference Include="Discord.Net" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
@@ -36,6 +37,11 @@
 
     <ItemGroup>
       <ProjectReference Include="..\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" />
+      <ProjectReference Include="..\WasabiBot.Discord\WasabiBot.Discord.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Settings\" />
     </ItemGroup>
 
 </Project>

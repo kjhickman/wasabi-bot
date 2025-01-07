@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using OpenTelemetry.Trace;
 using WasabiBot.Core.Discord;
 using WasabiBot.Core.Extensions;
-using WasabiBot.Web.Settings;
+using WasabiBot.Discord;
 
 namespace WasabiBot.Web.Filters;
 
