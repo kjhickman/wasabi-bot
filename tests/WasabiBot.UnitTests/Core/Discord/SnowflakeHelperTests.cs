@@ -1,4 +1,4 @@
-using WasabiBot.Core.Discord;
+using WasabiBot.Discord;
 
 namespace WasabiBot.UnitTests.Core.Discord;
 

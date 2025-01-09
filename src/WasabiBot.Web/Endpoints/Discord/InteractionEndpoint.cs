@@ -1,34 +1,42 @@
-using Microsoft.AspNetCore.Http.HttpResults;
-using WasabiBot.Core.Discord;
-using WasabiBot.Core.Interfaces;
-using WasabiBot.DataAccess.Interfaces;
-using WasabiBot.DataAccess.Messages;
+﻿using Discord.Interactions;
+using Discord.Rest;
+using WasabiBot.DataAccess.Entities;
+using WasabiBot.DataAccess.Services;
+using IResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace WasabiBot.Web.Endpoints.Discord;
 
-public class InteractionEndpoint
+public static class InteractionEndpoint
 {
-    public static async Task<Results<Ok<InteractionResponse>, ProblemHttpResult>> Handle(HttpContext ctx,
-        IInteractionService interactionService, ILogger<InteractionEndpoint> logger, IMessageClient messageClient)
+    public static async Task<IResult> Handle(HttpContext ctx, DiscordRestClient discord, InteractionService interactions,
+        IServiceProvider provider, InteractionRecordService interactionRecordService)
     {
-        var interaction = await ctx.Request.ReadFromJsonAsync(WebJsonContext.Default.Interaction);
-        if (interaction is null)
+        if (ctx.Items["Interaction"] is not RestInteraction interaction)
         {
-            logger.LogError("Interaction was null");
-            return TypedResults.Problem();
+            return Results.BadRequest();
+        }
+        
+        // TODO: convert to middleware
+        var sr = new StreamReader(ctx.Request.Body);
+        var interactionJson = await sr.ReadToEndAsync();
+        var interactionRecord = InteractionRecord.FromInteractionJson(interactionJson);
+        await interactionRecordService.CreateAsync(interactionRecord);
+
+        if (interaction is RestPingInteraction ping)
+        {
+            Console.WriteLine("Ping received");
+            return Results.Text(ping.AcknowledgePing(), contentType: "application/json", statusCode: StatusCodes.Status200OK);
         }
 
-        await messageClient.SendAsync(InteractionReceivedMessage.FromInteraction(interaction));
-
-        try
+        var tcs = new TaskCompletionSource<string>();
+        var interactionCtx = new RestInteractionContext(discord, interaction, str => 
         {
-            var response = await interactionService.HandleInteraction(interaction);
-            return TypedResults.Ok(response);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Failed to handle interaction");
-            return TypedResults.Problem();
-        }
+            tcs.SetResult(str);
+            return Task.CompletedTask;
+        });
+        await interactions.ExecuteCommandAsync(interactionCtx, provider);
+        var response = await tcs.Task;
+            
+        return Results.Text(response, contentType: "application/json", statusCode: StatusCodes.Status200OK);
     }
 }

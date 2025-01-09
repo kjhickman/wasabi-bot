@@ -1,6 +1,5 @@
 ﻿using OpenTelemetry;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 // ReSharper disable once CheckNamespace

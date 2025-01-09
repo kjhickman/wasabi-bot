@@ -1,7 +1,7 @@
 using System.Data;
 using Dapper;
 using OpenTelemetry.Trace;
-using WasabiBot.Core.Models.Entities;
+using WasabiBot.DataAccess.Entities;
 
 namespace WasabiBot.DataAccess.Services;
 
@@ -32,7 +32,7 @@ public class InteractionRecordService
                 @MemberPermissions, @UserId, @Username, @UserGlobalName, @Version, @CreatedAt, now()
             );
             """;
-        
+
         return await _connection.ExecuteAsync(sql, record) > 0;
     }
 }
