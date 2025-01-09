@@ -23,12 +23,6 @@ services:
     environment:
       ConnectionStrings__Postgres: "Host=postgres;Database=wasabi_bot;Username=postgres;Password=postgres"
 
-  commands-tool:
-    build:
-      context: .
-      dockerfile: tools/WasabiBot.CommandsTool/Dockerfile
-    command: dotnet run 1103853199322001468 $DISCORD_TOKEN
-
   server:
     build:
       context: .
