@@ -2,16 +2,29 @@ using System.Text;
 using Discord;
 using Discord.Interactions;
 using Discord.Rest;
+using Microsoft.Extensions.Logging;
+using OpenTelemetry.Trace;
 
 namespace WasabiBot.Discord.Modules;
 
 public class MagicConchModule : RestInteractionModuleBase<RestInteractionContext>
 {
-    // TODO: I would like to have each command in it's own class / file with it's own dependencies. Preferably
+    private readonly Tracer _tracer;
+    private readonly ILogger<MagicConchModule> _logger;
+
+    public MagicConchModule(Tracer tracer, ILogger<MagicConchModule> logger)
+    {
+        _tracer = tracer;
+        _logger = logger;
+    }
+
+    // TODO: I would like to have each command in its own class / file with its own dependencies. Preferably
     //       more like minimal apis as opposed to controllers
     [SlashCommand("conch", "Ask the Magic Conch!")]
     public async Task MagicConch(string question)
     {
+        using var span = _tracer.StartActiveSpan($"{nameof(MagicConchModule)}.{nameof(MagicConch)}");
+        _logger.LogInformation("Processing Magic Conch question from {User}", Context.User);
         var stringBuilder = new StringBuilder();
         stringBuilder.Append($"{Context.User.Mention} asked {Format.Italics(question)}");
         stringBuilder.AppendLine();

@@ -6,11 +6,13 @@ using IResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace WasabiBot.Web.Endpoints.Discord;
 
-public static class InteractionEndpoint
+public class InteractionEndpoint
 {
     public static async Task<IResult> Handle(HttpContext ctx, DiscordRestClient discord, InteractionService interactions,
-        IServiceProvider provider, InteractionRecordService interactionRecordService)
+        IServiceProvider provider, InteractionRecordService interactionRecordService, ILogger<InteractionEndpoint> logger)
     {
+        logger.LogInformation("Received interaction");
+        
         if (ctx.Items["Interaction"] is not RestInteraction interaction)
         {
             return Results.BadRequest();
@@ -24,10 +26,10 @@ public static class InteractionEndpoint
 
         if (interaction is RestPingInteraction ping)
         {
-            Console.WriteLine("Ping received");
+            logger.LogInformation("Received ping interaction");
             return Results.Text(ping.AcknowledgePing(), contentType: "application/json", statusCode: StatusCodes.Status200OK);
         }
-
+        
         var tcs = new TaskCompletionSource<string>();
         var interactionCtx = new RestInteractionContext(discord, interaction, str => 
         {
