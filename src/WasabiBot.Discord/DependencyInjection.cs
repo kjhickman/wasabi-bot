@@ -45,6 +45,13 @@ public static class DependencyInjection
 
     public static async Task AddWasabiBotModules(this InteractionService interactions, IServiceProvider? provider = null)
     {
-        await interactions.AddModuleAsync<MagicConchModule>(provider);
+        if (provider is null)
+        {
+            await interactions.AddModuleAsync<MagicConchModule>(null);
+        }
+        else
+        {
+            await interactions.AddModuleAsync<MagicConchModule>(provider);
+        }
     }
 }
