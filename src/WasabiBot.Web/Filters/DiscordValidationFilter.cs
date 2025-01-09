@@ -46,7 +46,7 @@ public class DiscordValidationFilter : IEndpointFilter
         }
         catch (BadSignatureException)
         {
-            Console.WriteLine("Bad signature");
+            _logger.LogWarning("Received interaction with invalid signature");
             return Results.BadRequest();
         }
 
