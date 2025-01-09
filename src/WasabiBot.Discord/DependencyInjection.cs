@@ -41,17 +41,14 @@ public static class DependencyInjection
         {
             await interactions.RegisterCommandsToGuildAsync(settings.TestGuildId.Value);
         }
-    }
-
-    public static async Task AddWasabiBotModules(this InteractionService interactions, IServiceProvider? provider = null)
-    {
-        if (provider is null)
-        {
-            await interactions.AddModuleAsync<MagicConchModule>(null);
-        }
         else
         {
-            await interactions.AddModuleAsync<MagicConchModule>(provider);
+            await interactions.RegisterCommandsGloballyAsync();
         }
+    }
+
+    public static async Task AddWasabiBotModules(this InteractionService interactions, IServiceProvider provider)
+    {
+        await interactions.AddModuleAsync<MagicConchModule>(provider);
     }
 }
