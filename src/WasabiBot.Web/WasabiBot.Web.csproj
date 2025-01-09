@@ -7,7 +7,8 @@
         <Nullable>enable</Nullable>
         <PublishReadyToRun>true</PublishReadyToRun>
         <InvariantGlobalization>false</InvariantGlobalization>
-    </PropertyGroup>
+      <UserSecretsId>2eb9d941-7f57-47f9-aca8-7d549dbbff45</UserSecretsId>
+  </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

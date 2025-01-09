@@ -20,7 +20,6 @@ public static class DependencyInjection
         };
         services.AddSingleton(config);
         services.AddSingleton<InteractionService>(x => new InteractionService(x.GetRequiredService<DiscordRestClient>()));
-
         services.Configure<DiscordSettings>(configuration.GetSection("Discord"));
         return services;
     }
