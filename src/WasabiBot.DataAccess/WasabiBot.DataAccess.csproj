@@ -10,13 +10,13 @@
     
     <ItemGroup>
         <PackageReference Include="Dapper" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Options" />
         <PackageReference Include="Npgsql" />
         <PackageReference Include="OpenTelemetry.Api" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\WasabiBot.Core\WasabiBot.Core.csproj" />
         <ProjectReference Include="..\WasabiBot.Discord\WasabiBot.Discord.csproj" />
     </ItemGroup>
 
