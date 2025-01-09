@@ -6,6 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PublishReadyToRun>true</PublishReadyToRun>
+        <InvariantGlobalization>false</InvariantGlobalization>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -22,17 +23,12 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="AWSSDK.SecurityToken" />
         <PackageReference Include="Discord.Net" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
         <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <TrimmerRootAssembly Include="AWSSDK.SecurityToken" />
     </ItemGroup>
 
     <ItemGroup>

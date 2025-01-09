@@ -1,8 +1,11 @@
 ﻿using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
+using Discord.Rest;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using WasabiBot.Discord.Modules;
 
 namespace WasabiBot.Discord;
 
@@ -10,19 +13,39 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddDiscord(this IServiceCollection services, IConfiguration configuration)
     {
-        var socketConfig = new DiscordSocketConfig
+        services.AddSingleton<DiscordRestClient>();
+        var config = new InteractionServiceConfig
         {
-            GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers,
-            AlwaysDownloadUsers = true,
+            UseCompiledLambda = true,
+            DefaultRunMode = RunMode.Sync
         };
-
-        services.AddSingleton(socketConfig);
-        services.AddSingleton<DiscordSocketClient>();
-        services.AddSingleton<InteractionService>(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()));
-        services.AddSingleton<InteractionHandler>();
-        services.AddHostedService<DiscordHostedService>();
+        services.AddSingleton(config);
+        services.AddSingleton<InteractionService>(x => new InteractionService(x.GetRequiredService<DiscordRestClient>()));
 
         services.Configure<DiscordSettings>(configuration.GetSection("Discord"));
         return services;
+    }
+    
+    public static async Task InitializeDiscordAsync(this IServiceProvider provider)
+    {
+        // Log client in
+        var discord = provider.GetRequiredService<DiscordRestClient>();
+        var settings = provider.GetRequiredService<IOptions<DiscordSettings>>().Value;
+        await discord.LoginAsync(TokenType.Bot, settings.Token);
+        
+        // Add commands to the interaction service
+        var interactions = provider.GetRequiredService<InteractionService>();
+        await interactions.AddWasabiBotModules(provider);
+        
+        // Register commands to the test guild if in development
+        if (settings.TestGuildId.HasValue && provider.GetRequiredService<IHostEnvironment>().IsDevelopment())
+        {
+            await interactions.RegisterCommandsToGuildAsync(settings.TestGuildId.Value);
+        }
+    }
+
+    public static async Task AddWasabiBotModules(this InteractionService interactions, IServiceProvider? provider = null)
+    {
+        await interactions.AddModuleAsync<MagicConchModule>(provider);
     }
 }

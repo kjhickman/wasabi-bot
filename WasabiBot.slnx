@@ -1,8 +1,5 @@
 ﻿<Solution>
-  <Folder Name="/infra/">
-    <Project Path="infra/WasabiBot.Terraform/WasabiBot.Terraform.csproj" Type="Classic C#" />
-  </Folder>
-  <Folder Name="/infra/fly/">
+  <Folder Name="/fly/">
     <File Path="infra\fly\fly.aspire.toml" />
   </Folder>
   <Folder Name="/src/">

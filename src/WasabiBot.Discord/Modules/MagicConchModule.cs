@@ -1,11 +1,14 @@
 using System.Text;
 using Discord;
 using Discord.Interactions;
+using Discord.Rest;
 
 namespace WasabiBot.Discord.Modules;
 
-public class MagicConchModule : InteractionModuleBase<SocketInteractionContext>
+public class MagicConchModule : RestInteractionModuleBase<RestInteractionContext>
 {
+    // TODO: I would like to have each command in it's own class / file with it's own dependencies. Preferably
+    //       more like minimal apis as opposed to controllers
     [SlashCommand("conch", "Ask the Magic Conch!")]
     public async Task MagicConch(string question)
     {
@@ -39,7 +42,7 @@ public class MagicConchModule : InteractionModuleBase<SocketInteractionContext>
                 return response.Response;
         }
 
-        // Fallback (shouldn't occur)
+        // Fallback, should be unreachable
         return MagicConchResponses[0].Response;
     }
 }

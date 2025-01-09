@@ -20,92 +20,92 @@ env:
   ENVIRONMENT: ${{ github.event.inputs.environment || 'stg' }}
 
 jobs:
-  migrate:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-    steps:
-      # Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # migrate:
+  #   runs-on: ubuntu-latest
+  #   if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+  #   steps:
+  #     # Checkout the repository
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
       
-      # Set environment-specific variables
-      - name: Set environment-specific variables
-        id: vars
-        run: |
-          case "$ENVIRONMENT" in
-            "stg")
-              echo "ConnectionStrings__Postgres=${{ secrets.STG_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
-              ;;
-            "prd")
-              echo "ConnectionStrings__Postgres=${{ secrets.PRD_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
-              ;;
-          esac
+  #     # Set environment-specific variables
+  #     - name: Set environment-specific variables
+  #       id: vars
+  #       run: |
+  #         case "$ENVIRONMENT" in
+  #           "stg")
+  #             echo "ConnectionStrings__Postgres=${{ secrets.STG_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
+  #             ;;
+  #           "prd")
+  #             echo "ConnectionStrings__Postgres=${{ secrets.PRD_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
+  #             ;;
+  #         esac
 
-      # Set up .NET Core
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.x'
+  #     # Set up .NET Core
+  #     - name: Setup .NET Core
+  #       uses: actions/setup-dotnet@v4
+  #       with:
+  #         dotnet-version: '9.x'
 
-      # Restore the project
-      - name: Restore project
-        run: dotnet restore tools/WasabiBot.MigrationsRunner
+  #     # Restore the project
+  #     - name: Restore project
+  #       run: dotnet restore tools/WasabiBot.MigrationsRunner
 
-      # Build the project
-      - name: Build project
-        run: dotnet build tools/WasabiBot.MigrationsRunner --no-restore --tl
+  #     # Build the project
+  #     - name: Build project
+  #       run: dotnet build tools/WasabiBot.MigrationsRunner --no-restore --tl
 
-      # Migrate the database
-      - name: Migrate database
-        run: dotnet run --project tools/WasabiBot.MigrationsRunner --no-build --tl
+  #     # Migrate the database
+  #     - name: Migrate database
+  #       run: dotnet run --project tools/WasabiBot.MigrationsRunner --no-build --tl
 
-  terraform:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      # Checkout the repository
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Set up .NET Core
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.x'
-        
-      # Restore the project
-      - name: Restore project
-        run: dotnet restore infra/WasabiBot.Terraform
-
-      # Build the project
-      - name: Build project
-        run: dotnet build infra/WasabiBot.Terraform --no-restore
-      
-      # Run CDKTF
-      - name: Run CDKTF
-        run: dotnet run $ENVIRONMENT --project infra/WasabiBot.Terraform --no-build
-
-      # Set up Terraform
-      - uses: hashicorp/setup-terraform@v3
-
-      # Configure AWS credentials
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
-          aws-region: us-east-1
-
-      # Initialize Terraform backend
-      - name: Terraform init
-        run: terraform -chdir=cdktf.out/stacks/WasabiBot.Terraform init
-
-      # Apply Terraform
-      - name: Terraform apply
-        run: terraform -chdir=cdktf.out/stacks/WasabiBot.Terraform apply -auto-approve
+#  terraform:
+#    runs-on: ubuntu-latest
+#    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+#    permissions:
+#      id-token: write
+#      contents: read
+#
+#    steps:
+#      # Checkout the repository
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      # Set up .NET Core
+#      - name: Setup .NET Core
+#        uses: actions/setup-dotnet@v4
+#        with:
+#          dotnet-version: '9.x'
+#        
+#      # Restore the project
+#      - name: Restore project
+#        run: dotnet restore infra/WasabiBot.Terraform
+#
+#      # Build the project
+#      - name: Build project
+#        run: dotnet build infra/WasabiBot.Terraform --no-restore
+#      
+#      # Run CDKTF
+#      - name: Run CDKTF
+#        run: dotnet run $ENVIRONMENT --project infra/WasabiBot.Terraform --no-build
+#
+#      # Set up Terraform
+#      - uses: hashicorp/setup-terraform@v3
+#
+#      # Configure AWS credentials
+#      - name: Configure AWS Credentials
+#        uses: aws-actions/configure-aws-credentials@v4
+#        with:
+#          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions
+#          aws-region: us-east-1
+#
+#      # Initialize Terraform backend
+#      - name: Terraform init
+#        run: terraform -chdir=cdktf.out/stacks/WasabiBot.Terraform init
+#
+#      # Apply Terraform
+#      - name: Terraform apply
+#        run: terraform -chdir=cdktf.out/stacks/WasabiBot.Terraform apply -auto-approve
   
   commands:
     runs-on: ubuntu-latest
@@ -121,11 +121,9 @@ jobs:
           case "$ENVIRONMENT" in
             "stg")
               echo "DISCORD_TOKEN=${{ secrets.STG_DISCORD_TOKEN }}" >> $GITHUB_ENV
-              echo "DISCORD_APPLICATION_ID=${{ secrets.STG_DISCORD_APPLICATION_ID }}" >> $GITHUB_ENV
               ;;
             "prd")
               echo "DISCORD_TOKEN=${{ secrets.PRD_DISCORD_TOKEN }}" >> $GITHUB_ENV
-              echo "DISCORD_APPLICATION_ID=${{ secrets.PRD_DISCORD_APPLICATION_ID }}" >> $GITHUB_ENV
               ;;
           esac
 
@@ -145,24 +143,24 @@ jobs:
 
       # Register commands
       - name: Register commands
-        run: dotnet run $DISCORD_APPLICATION_ID $DISCORD_TOKEN --project tools/WasabiBot.CommandsTool --no-build --tl
+        run: dotnet run $DISCORD_TOKEN --project tools/WasabiBot.CommandsTool --no-build --tl
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [migrate, terraform, commands]
-    concurrency:
-      group: $ENVIRONMENT
-      cancel-in-progress: false
-    steps:
-      # Checkout the repository
-      - uses: actions/checkout@v4
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: [migrate, commands] # terraform,
+  #   concurrency:
+  #     group: $ENVIRONMENT
+  #     cancel-in-progress: false
+  #   steps:
+  #     # Checkout the repository
+  #     - uses: actions/checkout@v4
 
-      # Setup Flyctl
-      - name: Setup Flyctl
-        uses: superfly/flyctl-actions/setup-flyctl@master
+  #     # Setup Flyctl
+  #     - name: Setup Flyctl
+  #       uses: superfly/flyctl-actions/setup-flyctl@master
 
-      # Deploy to Fly.io
-      - name: Deploy to Fly.io
-        run: flyctl deploy --config ./src/WasabiBot.Web/fly.$ENVIRONMENT.toml --dockerfile ./src/WasabiBot.Web/Dockerfile --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  #     # Deploy to Fly.io
+  #     - name: Deploy to Fly.io
+  #       run: flyctl deploy --config ./src/WasabiBot.Web/fly.$ENVIRONMENT.toml --dockerfile ./src/WasabiBot.Web/Dockerfile --remote-only
+  #       env:
+  #         FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

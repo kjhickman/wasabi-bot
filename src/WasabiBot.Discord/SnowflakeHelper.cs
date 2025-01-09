@@ -1,4 +1,4 @@
-﻿namespace WasabiBot.Core.Discord;
+﻿namespace WasabiBot.Discord;
 
 public static class SnowflakeHelper
 {
