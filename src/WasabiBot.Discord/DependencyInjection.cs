@@ -3,7 +3,6 @@ using Discord.Interactions;
 using Discord.Rest;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using WasabiBot.Discord.Modules;
 
@@ -38,7 +37,7 @@ public static class DependencyInjection
         await interactions.AddWasabiBotModules(provider);
         
         // Register commands to the test guild if in development
-        if (settings.TestGuildId.HasValue && provider.GetRequiredService<IHostEnvironment>().IsDevelopment())
+        if (settings.TestGuildId.HasValue)
         {
             await interactions.RegisterCommandsToGuildAsync(settings.TestGuildId.Value);
         }
