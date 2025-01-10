@@ -47,7 +47,8 @@ services:
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
       NGROK_DOMAIN: ${NGROK_DOMAIN}
-    command: http server:8080 --url=${NGROK_DOMAIN}
+      TARGET_HOST: ${TARGET_HOST:-server}  # Default to "server" if not set
+    command: http ${TARGET_HOST}:8080 --url=${NGROK_DOMAIN}
   
   aspire:
     image: mcr.microsoft.com/dotnet/aspire-dashboard
