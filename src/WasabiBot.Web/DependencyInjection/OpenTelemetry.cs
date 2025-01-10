@@ -21,40 +21,13 @@ public static class OpenTelemetry
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddHttpClientInstrumentation();
             })
             .WithTracing(tracing =>
             {
                 tracing.AddSource("wasabi_bot");
                 tracing.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation(options =>
-                    {
-                        options.FilterHttpRequestMessage = request =>
-                        {
-                            // Filter out SQS http traces
-                            if (request.Headers.TryGetValues("X-Amz-Target", out var targetValues))
-                            {
-                                return !targetValues.Contains("AmazonSQS");
-                            }
-                            
-                            return true;
-                        };
-
-                        options.EnrichWithHttpRequestMessage = (activity, request) =>
-                        {
-                            // Keep these:
-                            if (!request.Headers.TryGetValues("X-Amz-Target", out var targetValues)) return;
-
-                            var operationName = targetValues.FirstOrDefault();
-                            if (operationName is null)
-                            {
-                                return;
-                            }
-
-                            activity.DisplayName = $"{operationName}";
-                        };
-                    });
+                    .AddHttpClientInstrumentation();
             });
         
         builder.AddOpenTelemetryExporters();
