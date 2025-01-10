@@ -8,7 +8,10 @@
       "applicationUrl": "http://localhost:8080",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "OTEL_EXPORTER_API_KEY": "local-foo-key"
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4317",
+        "OTEL_EXPORTER_OTLP_HEADERS": "x-otlp-api-key=youshallnotpass",
+        "OTEL_SERVICE_NAME": "wasabi-bot",
+        "OTEL_METRIC_EXPORT_INTERVAL": "10000"
       }
     }
   }

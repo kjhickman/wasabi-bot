@@ -50,7 +50,13 @@ tasks:
       - docker compose up -d postgres
     silent: true
 
+  aspire:
+    desc: Start aspire
+    cmds:
+      - docker compose up -d aspire
+    silent: true
+
   debug:
     desc: Start server in debug mode
-    deps: [migrate, ngrok, postgres]
+    deps: [migrate, ngrok, postgres, aspire]
     silent: true
