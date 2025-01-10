@@ -33,18 +33,17 @@ public static class DependencyInjection
         
         // Add commands to the interaction service
         var interactions = provider.GetRequiredService<InteractionService>();
-        // await interactions.AddWasabiBotModules(provider);
+        await interactions.AddWasabiBotModules(provider);
         
         // Register commands to the test guild if in development
-        // if (settings.TestGuildId.HasValue)
-        // {
-        //     await interactions.RegisterCommandsToGuildAsync(settings.TestGuildId.Value);
-        // }
-        // else
-        // {
-        //     await interactions.RegisterCommandsGloballyAsync();
-        // }
-        await interactions.RegisterCommandsGloballyAsync();
+        if (settings.TestGuildId.HasValue)
+        {
+            await interactions.RegisterCommandsToGuildAsync(settings.TestGuildId.Value);
+        }
+        else
+        {
+            await interactions.RegisterCommandsGloballyAsync();
+        }
     }
 
     public static async Task AddWasabiBotModules(this InteractionService interactions, IServiceProvider provider)
