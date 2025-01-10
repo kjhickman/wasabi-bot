@@ -22,8 +22,8 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.10.0" />
     <PackageVersion Include="Npgsql" Version="9.0.2" />
-    <PackageVersion Include="System.Text.Encodings.Web" Version="4.5.1" />
     <!-- Required to pin version with CVE CVE-2021-26701 Fix -->
+    <PackageVersion Include="System.Text.Encodings.Web" Version="4.5.1" />
     <PackageVersion Include="TUnit" Version="0.6.60" />
   </ItemGroup>
 </Project>
