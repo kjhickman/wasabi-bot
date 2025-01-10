@@ -42,7 +42,7 @@ public class DiscordValidationFilter : IEndpointFilter
         RestInteraction? interaction;
         try
         {
-            interaction = await _discord.ParseHttpInteractionAsync(_settings.PublicKey, signature, timestamp, requestBody);
+            interaction = await _discord.ParseHttpInteractionAsync(_settings.PublicKey, signature, timestamp, requestBody, _ => false);
         }
         catch (BadSignatureException)
         {

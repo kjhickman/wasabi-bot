@@ -4,6 +4,7 @@ using Npgsql;
 using WasabiBot.DataAccess.Services;
 using WasabiBot.Discord;
 using WasabiBot.Web.Endpoints;
+using WasabiBot.Web.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -17,6 +18,7 @@ var connectionString = builder.Configuration.GetConnectionString("Postgres");
 builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectionString));
 builder.Services.AddScoped<InteractionRecordService>();
 builder.Services.AddDiscord(builder.Configuration);
+builder.Services.AddHostedService<BackgroundInteractionService>();
 
 var app = builder.Build();
 
