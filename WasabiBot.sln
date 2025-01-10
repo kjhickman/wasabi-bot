@@ -1,10 +1,5 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fly", "fly", "{3CE874D3-7EC9-AEED-8C6C-7DB7C3E2E4FF}"
-	ProjectSection(SolutionItems) = preProject
-		infra/fly/fly.aspire.toml = infra/fly/fly.aspire.toml
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasabiBot.Core", "src/WasabiBot.Core/WasabiBot.Core.csproj", "{96B40044-5128-0387-8AF3-4E0A31105C26}"
@@ -22,6 +17,11 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{07C2787E-EAC7-C090-1BA3-A61EC2A24D84}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasabiBot.MigrationsRunner", "tools/WasabiBot.MigrationsRunner/WasabiBot.MigrationsRunner.csproj", "{63307BC7-7C19-474C-BB4F-8407D854EC90}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fly", "fly", "{A584D77A-20C3-40A1-AB4B-FBA304B170C9}"
+	ProjectSection(SolutionItems) = preProject
+		fly\fly.aspire.toml = fly\fly.aspire.toml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
