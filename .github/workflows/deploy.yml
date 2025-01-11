@@ -1,45 +1,24 @@
-name: Deploy
+name: Deploy Application
 
 on:
-  workflow_run:
-    workflows: ["Build and Test"]
-    types:
-      - completed
-  workflow_dispatch:
+  workflow_call:
     inputs:
       environment:
-        description: 'Deploy to environment'
         required: true
-        default: 'prd'
-        type: choice
-        options:
-          - prd
-          - stg
-
-env:
-  ENVIRONMENT: ${{ github.event.inputs.environment || 'stg' }}
+        type: string
+        description: 'Environment to deploy to (staging/production)'
+    secrets:
+      PG_CONNECTION_STRING:
+        required: true
 
 jobs:
   migrate:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    environment: ${{ inputs.environment }}
     steps:
       # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      # Set environment-specific variables
-      - name: Set environment-specific variables
-        id: vars
-        run: |
-          case "$ENVIRONMENT" in
-            "stg")
-              echo "ConnectionStrings__Postgres=${{ secrets.STG_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
-              ;;
-            "prd")
-              echo "ConnectionStrings__Postgres=${{ secrets.PRD_PG_CONNECTION_STRING }}" >> $GITHUB_ENV
-              ;;
-          esac
 
       # Set up .NET Core
       - name: Setup .NET Core
@@ -57,10 +36,13 @@ jobs:
 
       # Migrate the database
       - name: Migrate database
+        env:
+          ConnectionStrings__Postgres: ${{ secrets.PG_CONNECTION_STRING }}
         run: dotnet run --project tools/WasabiBot.MigrationsRunner --no-build --tl
 
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     needs: [migrate]
     concurrency:
       group: $ENVIRONMENT

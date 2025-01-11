@@ -1,0 +1,13 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ cicd-improvements ]
+
+jobs:
+  deploy-staging:
+    uses: ./.github/workflows/deploy.yml@main
+    with:
+      environment: staging
+    secrets:
+      PG_CONNECTION_STRING: ${{ secrets.PG_CONNECTION_STRING }}

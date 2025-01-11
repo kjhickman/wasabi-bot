@@ -1,0 +1,11 @@
+name: Deploy to Production
+
+on: workflow_dispatch
+
+jobs:
+  deploy-production:
+    uses: ./.github/workflows/deploy.yml@main
+    with:
+      environment: production
+    secrets:
+      PG_CONNECTION_STRING: ${{ secrets.PG_CONNECTION_STRING }}
