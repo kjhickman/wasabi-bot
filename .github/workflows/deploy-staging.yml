@@ -6,7 +6,7 @@ on:
 
 jobs:
   deploy-staging:
-    uses: ./.github/workflows/deploy.yml@main
+    uses: ./.github/workflows/deploy.yml
     with:
       environment: staging
     secrets:
