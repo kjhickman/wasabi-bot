@@ -7,7 +7,7 @@
 - .NET 9 SDK
 - Docker
 - Ngrok account with static subdomain
-- [Taskfile](https://github.com/go-task/task)
+- [just](https://github.com/casey/just)
 
 ### Creating a Discord application
 TODO: guide on creating discord application
