@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using Discord;
-using FluentAssertions;
+using Shouldly;
 using WasabiBot.DataAccess.Entities;
 using WasabiBot.Discord.Api;
 
@@ -15,7 +15,7 @@ public class InteractionRecordTests
         
         var result = () => InteractionRecord.FromInteractionJson(json);
         
-        result.Should().Throw<JsonException>();
+        result.ShouldThrow<JsonException>();
     }
     
     [Fact]
@@ -40,13 +40,13 @@ public class InteractionRecordTests
         var result = InteractionRecord.FromInteractionJson(json);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Id.Should().Be(123456789012345678);
-        result.Type.Should().Be((int)InteractionType.ApplicationCommand);
-        result.UserId.Should().Be("user123");
-        result.Username.Should().Be("JsonUser");
-        result.UserGlobalName.Should().Be("JsonGlobalName");
-        result.Version.Should().Be(1);
+        result.ShouldNotBeNull();
+        result.Id.ShouldBe(123456789012345678);
+        result.Type.ShouldBe((int)InteractionType.ApplicationCommand);
+        result.UserId.ShouldBe("user123");
+        result.Username.ShouldBe("JsonUser");
+        result.UserGlobalName.ShouldBe("JsonGlobalName");
+        result.Version.ShouldBe(1);
     }
 
     [Fact]
@@ -88,27 +88,27 @@ public class InteractionRecordTests
         var result = InteractionRecord.FromInteraction(interaction);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Id.Should().Be(123456789012345678);
-        result.Type.Should().Be((int)InteractionType.ApplicationCommand);
-        result.Data.Should().NotBeNull();
-        result.Data.Should().Contain("test-command");
-        result.GuildId.Should().Be("guild123");
-        result.ChannelId.Should().Be("channel456");
-        result.MemberNickname.Should().Be("TestNick");
-        result.MemberAvatarHash.Should().Be("abc123");
-        result.MemberRoleIds.Should().BeEquivalentTo("role1", "role2");
-        result.MemberJoinedAt.Should().Be(interaction.GuildMember.JoinedAt);
-        result.MemberPremiumSince.Should().Be(interaction.GuildMember.PremiumSince);
-        result.MemberDeafened.Should().BeTrue();
-        result.MemberMuted.Should().BeFalse();
-        result.MemberPermissions.Should().Be("12345");
-        result.UserId.Should().Be("user789");
-        result.Username.Should().Be("TestUser");
-        result.UserGlobalName.Should().Be("TestGlobalName");
-        result.Version.Should().Be(1);
-        result.CreatedAt.Should().NotBe(default);
-        result.InsertedAt.Should().Be(DateTimeOffset.MinValue);
+        result.ShouldNotBeNull();
+        result.Id.ShouldBe(123456789012345678);
+        result.Type.ShouldBe((int)InteractionType.ApplicationCommand);
+        result.Data.ShouldNotBeNull();
+        result.Data.ShouldContain("test-command");
+        result.GuildId.ShouldBe("guild123");
+        result.ChannelId.ShouldBe("channel456");
+        result.MemberNickname.ShouldBe("TestNick");
+        result.MemberAvatarHash.ShouldBe("abc123");
+        result.MemberRoleIds.ShouldBeEquivalentTo(new[] { "role1", "role2" });
+        result.MemberJoinedAt.ShouldBe(interaction.GuildMember.JoinedAt);
+        result.MemberPremiumSince.ShouldBe(interaction.GuildMember.PremiumSince);
+        result.MemberDeafened.ShouldBe(true);
+        result.MemberMuted.ShouldBe(false);
+        result.MemberPermissions.ShouldBe("12345");
+        result.UserId.ShouldBe("user789");
+        result.Username.ShouldBe("TestUser");
+        result.UserGlobalName.ShouldBe("TestGlobalName");
+        result.Version.ShouldBe(1);
+        result.CreatedAt.ShouldNotBe(default);
+        result.InsertedAt.ShouldBe(DateTimeOffset.MinValue);
     }
 
     [Fact]
@@ -136,9 +136,9 @@ public class InteractionRecordTests
         var result = InteractionRecord.FromInteraction(interaction);
 
         // Assert
-        result.Should().NotBeNull();
-        result.UserId.Should().Be("guildUser123");
-        result.Username.Should().Be("GuildUser");
-        result.UserGlobalName.Should().Be("GuildGlobalName");
+        result.ShouldNotBeNull();
+        result.UserId.ShouldBe("guildUser123");
+        result.Username.ShouldBe("GuildUser");
+        result.UserGlobalName.ShouldBe("GuildGlobalName");
     }
 }

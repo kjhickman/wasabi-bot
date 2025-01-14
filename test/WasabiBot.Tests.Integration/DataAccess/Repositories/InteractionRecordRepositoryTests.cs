@@ -1,8 +1,8 @@
 ﻿using System.Data;
 using Discord;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Trace;
+using Shouldly;
 using WasabiBot.DataAccess.Entities;
 using WasabiBot.DataAccess.Repositories;
 
@@ -40,6 +40,6 @@ public class InteractionRecordRepositoryTests
         var result = await _sut.CreateAsync(interactionRecord);
         
         // Assert
-        result.Should().BeTrue();
+        result.ShouldBeTrue();
     }
 }
