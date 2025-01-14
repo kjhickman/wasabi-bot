@@ -25,12 +25,18 @@ public class MagicConchModule : RestInteractionModuleBase<RestInteractionContext
     {
         using var span = _tracer.StartActiveSpan($"{nameof(MagicConchModule)}.{nameof(MagicConch)}");
         _logger.LogInformation("Processing Magic Conch question from {User}", Context.User);
+        var response = BuildMagicConchResponse(question, Context.User.Mention);
+        await RespondAsync(response);
+    }
+    
+    internal static string BuildMagicConchResponse(string question, string mention)
+    {
         var stringBuilder = new StringBuilder();
-        stringBuilder.Append($"{Context.User.Mention} asked {Format.Italics(question)}");
+        stringBuilder.Append($"{mention} asked {Format.Italics(question)}");
         stringBuilder.AppendLine();
-        var response = GetMagicConchResponse();
+        var response = RandomlyChooseResponse();
         stringBuilder.Append($"The Magic Conch says... {response}");
-        await RespondAsync(stringBuilder.ToString());
+        return stringBuilder.ToString();
     }
     
     private static readonly List<(string Response, int Weight)> MagicConchResponses =
@@ -42,7 +48,7 @@ public class MagicConchModule : RestInteractionModuleBase<RestInteractionContext
         ("Try asking again", 3),
     ];
 
-    private static string GetMagicConchResponse()
+    private static string RandomlyChooseResponse()
     {
         var totalWeight = MagicConchResponses.Sum(r => r.Weight);
         var randomNumber = Random.Shared.Next(totalWeight);
