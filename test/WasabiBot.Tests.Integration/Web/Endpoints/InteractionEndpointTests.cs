@@ -1,7 +1,4 @@
-﻿using Discord;
-using WasabiBot.Discord.Api;
-
-namespace WasabiBot.Tests.Integration.Web.Endpoints;
+﻿namespace WasabiBot.Tests.Integration.Web.Endpoints;
 
 public class InteractionEndpointTests : IClassFixture<WasabiBotApiFactory>
 {
