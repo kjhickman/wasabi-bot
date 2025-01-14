@@ -30,6 +30,10 @@ postgres:
 migrate: postgres
     docker compose up -d migrations
 
+# Run migrations (requires postgres)
+commands:
+    docker compose up commands
+
 # Start aspire
 aspire:
     docker compose up -d aspire

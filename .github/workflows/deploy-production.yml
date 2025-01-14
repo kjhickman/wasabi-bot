@@ -10,3 +10,4 @@ jobs:
     secrets:
       PG_CONNECTION_STRING: ${{ secrets.PG_CONNECTION_STRING }}
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}

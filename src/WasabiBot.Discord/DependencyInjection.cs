@@ -4,6 +4,7 @@ using Discord.Rest;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Trace;
 using WasabiBot.Discord.Modules;
 
 namespace WasabiBot.Discord;
@@ -27,27 +28,25 @@ public static class DependencyInjection
     public static async Task InitializeDiscordAsync(this IServiceProvider provider)
     {
         // Log client in
-        var discord = provider.GetRequiredService<DiscordRestClient>();
-        var settings = provider.GetRequiredService<IOptions<DiscordSettings>>().Value;
-        await discord.LoginAsync(TokenType.Bot, settings.Token);
+        // var discord = provider.GetRequiredService<DiscordRestClient>();
+        // var settings = provider.GetRequiredService<IOptions<DiscordSettings>>().Value;
+        // await discord.LoginAsync(TokenType.Bot, settings.Token);
         
         // Add commands to the interaction service
         var interactions = provider.GetRequiredService<InteractionService>();
         await interactions.AddWasabiBotModules(provider);
-        
-        // Register commands to the test guild if in development
-        if (settings.TestGuildId.HasValue)
-        {
-            await interactions.RegisterCommandsToGuildAsync(settings.TestGuildId.Value);
-        }
-        else
-        {
-            await interactions.RegisterCommandsGloballyAsync();
-        }
     }
 
-    public static async Task AddWasabiBotModules(this InteractionService interactions, IServiceProvider provider)
+    public static async Task AddWasabiBotModules(this InteractionService interactions, IServiceProvider? provider)
     {
+        if (provider is null)
+        {
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton(TracerProvider.Default.GetTracer("wasabi-bot"));
+            provider = services.BuildServiceProvider();
+        }
+        
         await interactions.AddModuleAsync<MagicConchModule>(provider);
     }
 }
