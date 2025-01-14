@@ -10,6 +10,8 @@ on:
     secrets:
       PG_CONNECTION_STRING:
         required: true
+      FLY_API_TOKEN:
+        required: true
 
 concurrency: 
   group: ${{ inputs.environment }}
