@@ -1,7 +1,7 @@
 using FluentAssertions;
 using WasabiBot.Discord;
 
-namespace WasabiBot.Tests.Unit.Core.Discord;
+namespace WasabiBot.Tests.Unit.Discord.Discord;
 
 public class SnowflakeHelperTests
 {

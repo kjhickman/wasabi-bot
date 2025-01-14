@@ -33,7 +33,12 @@ public class InteractionRecord
         {
             throw new Exception("Failed to deserialize interaction");
         }
-        
+
+        return FromInteraction(interaction);
+    }
+
+    public static InteractionRecord FromInteraction(Interaction interaction)
+    {
         var id = long.Parse(interaction.Id);
         string? data = null;
         if (interaction.Data is not null)
