@@ -46,7 +46,7 @@ jobs:
       # Migrate the database
       - name: Migrate database
         env:
-          ConnectionStrings__Postgres: ${{ secrets.PG_CONNECTION_STRING }}
+          PG_CONNECTION_STRING: ${{ secrets.PG_CONNECTION_STRING }}
         run: dotnet run --project tools/WasabiBot.MigrationsRunner --no-build --tl
 
   commands:
