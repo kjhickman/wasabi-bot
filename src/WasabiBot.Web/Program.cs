@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using System.Reflection;
 using Npgsql;
-using WasabiBot.DataAccess.Services;
+using WasabiBot.DataAccess.Repositories;
 using WasabiBot.Discord;
 using WasabiBot.Web.Endpoints;
 using WasabiBot.Web.Services;
@@ -16,7 +16,7 @@ builder.Configuration
 builder.ConfigureOpenTelemetry();
 var connectionString = builder.Configuration.GetConnectionString("Postgres");
 builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectionString));
-builder.Services.AddScoped<InteractionRecordService>();
+builder.Services.AddScoped<InteractionRecordRepository>();
 builder.Services.AddDiscord(builder.Configuration);
 builder.Services.AddHostedService<BackgroundInteractionService>();
 

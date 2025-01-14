@@ -1,7 +1,7 @@
 ﻿using System.Threading.Channels;
 using OpenTelemetry.Trace;
 using WasabiBot.DataAccess.Entities;
-using WasabiBot.DataAccess.Services;
+using WasabiBot.DataAccess.Repositories;
 
 namespace WasabiBot.Web.Services;
 
@@ -52,7 +52,7 @@ public class BackgroundInteractionService : BackgroundService
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
         var tracer = scope.ServiceProvider.GetRequiredService<Tracer>();
-        var interactionRecordService = scope.ServiceProvider.GetRequiredService<InteractionRecordService>();
+        var interactionRecordService = scope.ServiceProvider.GetRequiredService<InteractionRecordRepository>();
         using var span = tracer.StartActiveSpan($"{nameof(BackgroundInteractionService)}.{nameof(ProcessInteractionAsync)}");
         await interactionRecordService.CreateAsync(interaction);
     }

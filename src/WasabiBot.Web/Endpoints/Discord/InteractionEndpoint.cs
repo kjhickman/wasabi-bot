@@ -2,7 +2,6 @@
 using Discord.Rest;
 using Microsoft.AspNetCore.Mvc;
 using WasabiBot.DataAccess.Entities;
-using WasabiBot.DataAccess.Services;
 using WasabiBot.Web.Services;
 using IResult = Microsoft.AspNetCore.Http.IResult;
 
