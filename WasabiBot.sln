@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasabiBot.Tests.Unit", "tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasabiBot.Tests.Integration", "test\WasabiBot.Tests.Integration\WasabiBot.Tests.Integration.csproj", "{D803D480-1813-4609-90AE-3B51A78EDD22}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasabiBot.CommandsRegister", "tools\WasabiBot.CommandsRegister\WasabiBot.CommandsRegister.csproj", "{6A6281EB-F8E3-4420-9676-90E2CF63AEE3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,10 @@ Global
 		{D803D480-1813-4609-90AE-3B51A78EDD22}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D803D480-1813-4609-90AE-3B51A78EDD22}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D803D480-1813-4609-90AE-3B51A78EDD22}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A6281EB-F8E3-4420-9676-90E2CF63AEE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A6281EB-F8E3-4420-9676-90E2CF63AEE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A6281EB-F8E3-4420-9676-90E2CF63AEE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A6281EB-F8E3-4420-9676-90E2CF63AEE3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{96B40044-5128-0387-8AF3-4E0A31105C26} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
@@ -68,5 +74,6 @@ Global
 		{63307BC7-7C19-474C-BB4F-8407D854EC90} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{3523902A-C454-4A61-B32A-C2A679184668} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{D803D480-1813-4609-90AE-3B51A78EDD22} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{6A6281EB-F8E3-4420-9676-90E2CF63AEE3} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 	EndGlobalSection
 EndGlobal

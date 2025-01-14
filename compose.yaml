@@ -22,6 +22,14 @@ services:
         condition: service_healthy
     environment:
       ConnectionStrings__Postgres: "Host=postgres;Database=wasabi_bot;Username=postgres;Password=postgres"
+  
+  commands:
+    build:
+      context: .
+      dockerfile: tools/WasabiBot.CommandsRegister/Dockerfile
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DISCORD_TEST_GUILD_ID: ${DISCORD_TEST_GUILD_ID}
 
   server:
     build:
