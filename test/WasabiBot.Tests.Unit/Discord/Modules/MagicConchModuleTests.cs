@@ -1,5 +1,5 @@
 ﻿using Discord;
-using FluentAssertions;
+using Shouldly;
 using WasabiBot.Discord.Modules;
 
 namespace WasabiBot.Tests.Unit.Discord.Modules;
@@ -17,8 +17,8 @@ public class MagicConchModuleTests
         var response = MagicConchModule.BuildMagicConchResponse(question, mention);
 
         // Assert
-        response.Should().StartWith($"{mention} asked");
-        response.Should().Contain(Format.Italics(question));
+        response.ShouldStartWith($"{mention} asked");
+        response.ShouldContain(Format.Italics(question));
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public class MagicConchModuleTests
         var response = MagicConchModule.BuildMagicConchResponse(question, mention);
 
         // Assert
-        response.Should().Contain("The Magic Conch says...");
+        response.ShouldContain("The Magic Conch says...");
     }
 
     [Theory]
@@ -47,9 +47,9 @@ public class MagicConchModuleTests
         var response = MagicConchModule.BuildMagicConchResponse(question, mention);
 
         // Assert
-        response.Should().NotBeNullOrEmpty();
-        response.Should().StartWith(mention);
-        response.Should().Contain("The Magic Conch says...");
+        response.ShouldNotBeNullOrEmpty();
+        response.ShouldStartWith(mention);
+        response.ShouldContain("The Magic Conch says...");
     }
 
     [Fact]
@@ -64,8 +64,9 @@ public class MagicConchModuleTests
 
         // Assert
         var lines = response.Split(Environment.NewLine);
-        lines.Should().HaveCount(2);
-        lines[0].Should().Contain(mention).And.Contain(question);
-        lines[1].Should().Contain("The Magic Conch says...");
+        lines.Length.ShouldBe(2);
+        lines[0].ShouldContain(mention);
+        lines[0].ShouldContain(question);
+        lines[1].ShouldContain("The Magic Conch says...");
     }
 }

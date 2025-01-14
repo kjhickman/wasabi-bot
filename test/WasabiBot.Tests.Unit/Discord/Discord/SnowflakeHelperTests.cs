@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using WasabiBot.Discord;
 
 namespace WasabiBot.Tests.Unit.Discord.Discord;
@@ -13,6 +13,6 @@ public class SnowflakeHelperTests
         
         var result = SnowflakeHelper.ConvertToDateTimeOffset(snowflakeId);
 
-        result.Should().Be(expectedDateTimeOffset);
+        result.ShouldBe(expectedDateTimeOffset);
     }
 }
