@@ -34,4 +34,7 @@ public class Interaction
 
     [JsonPropertyName("version")]
     public int Version { get; set; }
+
+    [JsonPropertyName("entitlements")]
+    public Entitlement[] Entitlements { get; set; } = [];
 }

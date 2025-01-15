@@ -50,6 +50,11 @@ public class DiscordValidationFilter : IEndpointFilter
             return Results.BadRequest();
         }
 
+        if (interaction is null)
+        {
+            return Results.BadRequest();
+        }
+
         context.HttpContext.Items["Interaction"] = interaction;
         
         span.End();

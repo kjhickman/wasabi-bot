@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Testcontainers.PostgreSql;
+using WasabiBot.Discord;
 using WasabiBot.MigrationsRunner;
 
 namespace WasabiBot.Tests.Integration.Web;
@@ -19,12 +21,30 @@ public class WasabiBotApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLife
             .WithPassword("postgres")
             .Build();
 
+    private readonly string _publicKey;
+    
+    // Needed by tests to sign simulated discord requests
+    public string PrivateKey { get; }
+
+    public WasabiBotApiFactory()
+    {
+        var (privateKey, publicKey) = SignatureUtility.GenerateKeyPair();
+        _publicKey = publicKey;
+        PrivateKey = privateKey;
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<IDbConnection>();
             services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(_dbContainer.GetConnectionString()));
+
+            services.RemoveAll<IOptions<DiscordSettings>>();
+            services.Configure<DiscordSettings>(options =>
+            {
+                options.PublicKey = _publicKey;
+            });
         });
     }
 
