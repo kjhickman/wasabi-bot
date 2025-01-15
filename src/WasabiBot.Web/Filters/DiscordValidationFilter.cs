@@ -31,8 +31,12 @@ public class DiscordValidationFilter : IEndpointFilter
         // Ensure the body can be read multiple times
         request.EnableBuffering();
 
-        var signature = request.Headers["x-signature-ed25519"];
-        var timestamp = request.Headers["x-signature-timestamp"];
+        var signature = request.Headers["x-signature-ed25519"].ToString();
+        var timestamp = request.Headers["x-signature-timestamp"].ToString();
+        if (signature.Length == 0 || timestamp.Length == 0)
+        {
+            return Results.BadRequest();
+        }
         using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
         var requestBody = await reader.ReadToEndAsync();
 

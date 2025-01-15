@@ -29,4 +29,16 @@ public class InteractionEndpointTests : IClassFixture<WasabiBotApiFactory>
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
+
+    [Fact]
+    public async Task InteractionEndpoint_ReturnsBadRequest_WhenInvalidSignature()
+    {
+        var jsonBody = new InteractionBuilder()
+            .WithTestValues()
+            .WithType(InteractionType.Ping)
+            .BuildJson();
+        
+        var response = await _httpClient.PostAsync("/v1/interaction", new StringContent(jsonBody), TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
 }
