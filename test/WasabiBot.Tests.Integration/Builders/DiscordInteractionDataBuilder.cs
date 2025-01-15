@@ -9,7 +9,6 @@ public class DiscordInteractionDataBuilder
     private int _type = (int)ApplicationCommandType.Slash;
     private List<InteractionDataOption>? _options;
     private string? _guildId;
-    private string? _targetId;
 
     public DiscordInteractionDataBuilder WithTestValues()
     {
@@ -46,7 +45,6 @@ public class DiscordInteractionDataBuilder
             Type = _type,
             Options = _options?.ToArray(),
             GuildId = _guildId,
-            TargetId = _targetId
         };
     }
 }

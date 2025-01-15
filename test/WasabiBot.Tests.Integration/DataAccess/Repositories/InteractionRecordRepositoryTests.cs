@@ -8,20 +8,22 @@ using WasabiBot.DataAccess.Repositories;
 
 namespace WasabiBot.Tests.Integration.DataAccess.Repositories;
 
-[Collection(nameof(PostgresTestCollectionFixture))]
-public class InteractionRecordRepositoryTests
+[Collection(nameof(PostgresTestFixture))]
+public class InteractionRecordRepositoryTests : IAsyncDisposable
 {
+    private readonly PostgresTestFixture _fixture;
     private readonly InteractionRecordRepository _sut;
     
     public InteractionRecordRepositoryTests(PostgresTestFixture fixture)
     {
+        _fixture = fixture;
         var connection = fixture.ServiceProvider.GetRequiredService<IDbConnection>();
         var tracer = fixture.ServiceProvider.GetRequiredService<Tracer>();
         _sut = new InteractionRecordRepository(connection, tracer);
     }
     
     [Fact]
-    public async Task Test()
+    public async Task CreateAsync_SavedInteractionRecord_WhenValid()
     {
         // Arrange
         var interactionRecord = new InteractionRecord
@@ -41,5 +43,10 @@ public class InteractionRecordRepositoryTests
         
         // Assert
         result.ShouldBeTrue();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _fixture.ResetDatabase();
     }
 }

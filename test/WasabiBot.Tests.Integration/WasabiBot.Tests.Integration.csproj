@@ -17,6 +17,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="NSec.Cryptography" />
+        <PackageReference Include="Respawn" />
         <PackageReference Include="Shouldly" />
         <PackageReference Include="Testcontainers.PostgreSql" />
         <PackageReference Include="xunit.analyzers">
