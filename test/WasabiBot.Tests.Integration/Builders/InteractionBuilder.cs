@@ -17,6 +17,7 @@ public class InteractionBuilder
     private string? _channelId;
     private Entitlement[] _entitlements = [];
     private GuildMember? _guildMember;
+    private DiscordInteractionData? _data;
 
     public InteractionBuilder WithTestValues()
     {
@@ -44,6 +45,7 @@ public class InteractionBuilder
             {
                 Id = Random.Shared.NextInt64().ToString(),
                 Username = "testuser",
+                GlobalName = "User",
                 Discriminator = "1234"
             },
             RoleIds = []
@@ -55,6 +57,12 @@ public class InteractionBuilder
     public InteractionBuilder WithType(InteractionType type)
     {
         _type = type;
+        return this;
+    }
+    
+    public InteractionBuilder WithData(DiscordInteractionData data)
+    {
+        _data = data;
         return this;
     }
   
@@ -70,7 +78,8 @@ public class InteractionBuilder
             GuildId = _guildId,
             ChannelId = _channelId,
             Entitlements = _entitlements,
-            GuildMember = _guildMember
+            GuildMember = _guildMember,
+            Data = _data,
         };
     }
   

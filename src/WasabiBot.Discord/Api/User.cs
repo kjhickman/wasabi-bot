@@ -5,13 +5,13 @@ namespace WasabiBot.Discord.Api;
 public class User
 {
     [JsonPropertyName("id")]
-    public string Id { get; set; } = null!;
+    public required string Id { get; set; }
 
     [JsonPropertyName("username")]
-    public string Username { get; set; } = null!;
+    public required string Username { get; set; }
 
     [JsonPropertyName("discriminator")]
-    public string Discriminator { get; set; } = null!;
+    public required string Discriminator { get; set; }
 
     [JsonPropertyName("display_name")]
     public string? DisplayName { get; set; }

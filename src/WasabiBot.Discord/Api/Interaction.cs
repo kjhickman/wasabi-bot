@@ -9,7 +9,7 @@ public class Interaction
     public required string Id { get; set; }
 
     [JsonPropertyName("application_id")]
-    public string ApplicationId { get; set; } = null!;
+    public required string ApplicationId { get; set; }
 
     [JsonPropertyName("type")]
     public InteractionType Type { get; set; }
@@ -24,7 +24,7 @@ public class Interaction
     public string? ChannelId { get; set; }
 
     [JsonPropertyName("token")]
-    public string Token { get; set; } = null!;
+    public required string Token { get; set; }
 
     [JsonPropertyName("member")]
     public GuildMember? GuildMember { get; set; }

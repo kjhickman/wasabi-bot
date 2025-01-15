@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using WasabiBot.Discord;
 using WasabiBot.Discord.Api;
 
@@ -6,6 +7,10 @@ namespace WasabiBot.DataAccess.Entities;
 
 public class InteractionRecord
 {
+    private static JsonSerializerOptions JsonSerializerOptions = new()
+    {
+        RespectNullableAnnotations = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
     public required long Id { get; init; }
     public required int Type { get; init; }
     public string? Data { get; init; }
@@ -28,7 +33,7 @@ public class InteractionRecord
     
     public static InteractionRecord FromInteractionJson(string interactionJson)
     {
-        var interaction = JsonSerializer.Deserialize<Interaction>(interactionJson);
+        var interaction = JsonSerializer.Deserialize<Interaction>(interactionJson, JsonSerializerOptions);
         if (interaction is null)
         {
             throw new Exception("Failed to deserialize interaction");
@@ -43,7 +48,7 @@ public class InteractionRecord
         string? data = null;
         if (interaction.Data is not null)
         {
-            data = JsonSerializer.Serialize(interaction.Data);
+            data = JsonSerializer.Serialize(interaction.Data, JsonSerializerOptions);
         }
         
         return new InteractionRecord

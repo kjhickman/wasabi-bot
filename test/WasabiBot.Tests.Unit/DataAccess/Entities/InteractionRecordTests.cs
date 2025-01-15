@@ -22,17 +22,25 @@ public class InteractionRecordTests
     public void FromInteractionJson_WithValidJson_ShouldDeserializeAndMapCorrectly()
     {
         // Arrange
+        var id = Random.Shared.NextInt64();
+        var userId = Random.Shared.NextInt64().ToString();
+        var username = "JsonUser";
+        var globalName = "JsonGlobalName";
+        var discriminator = "1234";
         var interaction = new Interaction
         {
-            Id = "123456789012345678",
+            Id = id.ToString(),
             Type = InteractionType.ApplicationCommand,
             User = new User
             {
-                Id = "user123",
-                Username = "JsonUser",
-                GlobalName = "JsonGlobalName"
+                Id = userId,
+                Username = username,
+                GlobalName = globalName,
+                Discriminator = discriminator
             },
-            Version = 1
+            Version = 1,
+            ApplicationId = Random.Shared.NextInt64().ToString(),
+            Token = "test-token",
         };
         var json = JsonSerializer.Serialize(interaction);
 
@@ -41,11 +49,11 @@ public class InteractionRecordTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.Id.ShouldBe(123456789012345678);
+        result.Id.ShouldBe(id);
         result.Type.ShouldBe((int)InteractionType.ApplicationCommand);
-        result.UserId.ShouldBe("user123");
-        result.Username.ShouldBe("JsonUser");
-        result.UserGlobalName.ShouldBe("JsonGlobalName");
+        result.UserId.ShouldBe(userId);
+        result.Username.ShouldBe(username);
+        result.UserGlobalName.ShouldBe(globalName);
         result.Version.ShouldBe(1);
     }
 
@@ -78,10 +86,13 @@ public class InteractionRecordTests
                 {
                     Id = "user789",
                     Username = "TestUser",
-                    GlobalName = "TestGlobalName"
+                    GlobalName = "TestGlobalName",
+                    Discriminator = "1234"
                 }
             },
-            Version = 1
+            Version = 1,
+            ApplicationId = Random.Shared.NextInt64().ToString(),
+            Token = "test-token"
         };
 
         // Act
@@ -125,11 +136,14 @@ public class InteractionRecordTests
                 {
                     Id = "guildUser123",
                     Username = "GuildUser",
-                    GlobalName = "GuildGlobalName"
+                    GlobalName = "GuildGlobalName",
+                    Discriminator = "1234"
                 },
                 RoleIds = []
             },
-            Version = 1
+            Version = 1,
+            ApplicationId = Random.Shared.NextInt64().ToString(),
+            Token = "test-token"
         };
 
         // Act
