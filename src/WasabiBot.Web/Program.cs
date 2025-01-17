@@ -4,6 +4,7 @@ using Npgsql;
 using WasabiBot.DataAccess.Repositories;
 using WasabiBot.Discord;
 using WasabiBot.Web.Endpoints;
+using WasabiBot.Web.Middleware;
 using WasabiBot.Web.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -19,8 +20,11 @@ builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectio
 builder.Services.AddScoped<InteractionRecordRepository>();
 builder.Services.AddDiscord(builder.Configuration);
 builder.Services.AddHostedService<BackgroundInteractionService>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 var app = builder.Build();
+
+app.UseMiddleware<ResponseTimeMiddleware>();
 
 await app.Services.InitializeDiscordAsync();
 

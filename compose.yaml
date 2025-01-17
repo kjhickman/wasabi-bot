@@ -21,7 +21,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      ConnectionStrings__Postgres: "Host=postgres;Database=wasabi_bot;Username=postgres;Password=postgres"
+      PG_CONNECTION_STRING: "Host=postgres;Database=wasabi_bot;Username=postgres;Password=postgres"
   
   commands:
     build:
