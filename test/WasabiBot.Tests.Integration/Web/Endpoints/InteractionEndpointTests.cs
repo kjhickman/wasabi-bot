@@ -5,7 +5,8 @@ using WasabiBot.Tests.Integration.Builders;
 
 namespace WasabiBot.Tests.Integration.Web.Endpoints;
 
-public class InteractionEndpointTests : IClassFixture<WasabiBotApiFactory>
+[Collection(nameof(WasabiBotApiFactory))]
+public class InteractionEndpointTests
 {
     private readonly HttpClient _httpClient;
     private readonly string _privateKey;
