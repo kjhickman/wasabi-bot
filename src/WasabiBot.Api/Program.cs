@@ -15,7 +15,8 @@ var app = builder.Build();
 app.MapGet("/", () => "Hello World!");
 app.MapDefaultEndpoints();
 
-app.AddSlashCommand("ping", "Ping!", () => "Pong!");
+var guildId = app.Configuration.GetValue<ulong?>("Discord:TestGuildId");
+app.AddSlashCommand("ping", "Ping!", () => "Pong!", guildId: guildId);
 app.UseGatewayEventHandlers();
 
 app.Run();
