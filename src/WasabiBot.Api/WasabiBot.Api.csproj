@@ -7,10 +7,10 @@
         <InvariantGlobalization>true</InvariantGlobalization>
         <PublishAot>true</PublishAot>
         <UserSecretsId>3fb4ccc6-b8c3-4dc0-90b8-ea6c79a0da21</UserSecretsId>
-  </PropertyGroup>
+    </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.356" />
+      <PackageReference Include="NetCord.Hosting.Services" />
     </ItemGroup>
 
     <ItemGroup>
