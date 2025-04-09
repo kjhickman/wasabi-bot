@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasabiBot.ServiceDefaults",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasabiBot.AppHost", "src\WasabiBot.AppHost\WasabiBot.AppHost.csproj", "{089FB4F5-5460-44CD-A3A2-2A5CA3C85B23}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasabiBot.Migrations", "src\WasabiBot.Migrations\WasabiBot.Migrations.csproj", "{82553EE9-53FE-434D-ABC4-2C82CA4BD82B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WasabiBot.DataAccess", "src\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj", "{66FB293F-4A21-41E2-8127-7BC96F8BB962}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +34,13 @@ Global
 		{089FB4F5-5460-44CD-A3A2-2A5CA3C85B23}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{089FB4F5-5460-44CD-A3A2-2A5CA3C85B23}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{089FB4F5-5460-44CD-A3A2-2A5CA3C85B23}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82553EE9-53FE-434D-ABC4-2C82CA4BD82B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82553EE9-53FE-434D-ABC4-2C82CA4BD82B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82553EE9-53FE-434D-ABC4-2C82CA4BD82B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82553EE9-53FE-434D-ABC4-2C82CA4BD82B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66FB293F-4A21-41E2-8127-7BC96F8BB962}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66FB293F-4A21-41E2-8127-7BC96F8BB962}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66FB293F-4A21-41E2-8127-7BC96F8BB962}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66FB293F-4A21-41E2-8127-7BC96F8BB962}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
