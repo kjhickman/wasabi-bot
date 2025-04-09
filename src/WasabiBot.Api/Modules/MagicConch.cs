@@ -11,24 +11,23 @@ public static class MagicConch
 
     static MagicConch()
     {
-        var rngTool = AIFunctionFactory.Create(RandomlyChooseResponse);
-        ChatOptions = new ChatOptions { Tools = [rngTool] };
+        var magicConchFunction = AIFunctionFactory.Create(GetMagicConchResponse);
+        ChatOptions = new ChatOptions { Tools = [magicConchFunction] };
     }
 
     public static async Task<string> Command(IChatClient chat, ApplicationCommandContext ctx, string question)
     {
-        var prompt = "The magic conch shell is a mystical object that can answer any question. " +
-            "The user asks a yes/no question, and the magic conch shell provides a response. " +
-            "If the question is not a yes/no question, respond with 'Try asking again'" +
-            "If you know the answer, you may only respond with one of the following words or phrases: Yes, No. " +
-            "If you don't know the answer, use RandomlyChooseResponse()" +
-            $"The user asked: {question}";
+        var prompt = "The user asks a yes/no question, and the magic conch shell provides a response. " +
+                     "If the question is not a yes/no question, respond with 'Try asking again'. " +
+                     "If you know the answer, you may only respond with Yes or No. " +
+                     "If you don't know the answer, use GetMagicConchResponse()" +
+                     $"The user asked: {question}";
         var response = await chat.GetResponseAsync(prompt, ChatOptions);
         return response.Text;
     }
 
     [Description("Randomly chooses a response from the magic conch shell if the answer is unknown.")]
-    private static string RandomlyChooseResponse()
+    private static string GetMagicConchResponse()
     {
         var totalWeight = MagicConchResponses.Sum(r => r.Weight);
         var randomNumber = Random.Shared.Next(totalWeight);

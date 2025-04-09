@@ -13,10 +13,12 @@
 
     <ItemGroup>
         <PackageReference Include="Aspire.Hosting.AppHost" />
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\WasabiBot.Api\WasabiBot.Api.csproj" />
+      <ProjectReference Include="..\WasabiBot.Migrations\WasabiBot.Migrations.csproj" />
     </ItemGroup>
 
 </Project>
