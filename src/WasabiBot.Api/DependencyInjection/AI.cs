@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.AI;
 using OpenAI;
 
-namespace WasabiBot.Api.AI;
+namespace Microsoft.Extensions.DependencyInjection;
 
-public static class DependencyInjection
+public static class AI
 {
     public static void AddAIServices(this WebApplicationBuilder builder)
     {

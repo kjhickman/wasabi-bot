@@ -1,5 +1,4 @@
-using WasabiBot.Api.AI;
-using WasabiBot.Api.Modules;
+using WasabiBot.Api.DependencyInjection;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Configuration.AddUserSecrets<Program>(optional: true);
