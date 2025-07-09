@@ -28,7 +28,7 @@ public class InteractionRepository(IDbConnection connection) : IInteractionRepos
                                ) 
                                values (
                                    @Id, @ChannelId, @ApplicationId, @UserId, @GuildId,
-                                   @Username, @GlobalName, @Nickname, @Data, @CreatedAt
+                                   @Username, @GlobalName, @Nickname, @Data::jsonb, @CreatedAt
                                )
                            """;
 

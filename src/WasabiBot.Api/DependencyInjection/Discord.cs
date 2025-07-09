@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using NetCord.Hosting.Gateway;
+﻿using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services.ApplicationCommands;
 using WasabiBot.Api.EventHandlers;
 using WasabiBot.Api.Modules;
@@ -12,7 +11,7 @@ public static class Discord
     {
         services.AddDiscordGateway();
         services.AddApplicationCommands();
-        services.AddGatewayEventHandler<InteractionCreatedEventHandler>();
+        services.AddGatewayHandler<InteractionCreatedEventHandler>();
     }
 
     public static void MapDiscordCommands(this WebApplication app)
@@ -21,6 +20,6 @@ public static class Discord
         app.AddSlashCommand("ping", "Ping!", () => "Pong!", guildId: guildId);
         app.AddSlashCommand("conch", "Ask the magic conch a question.", MagicConch.Command, guildId: guildId);
         app.AddSlashCommand("sock", "Ask the sock salesman a question.", Sock.Command, guildId: guildId);
-        app.UseGatewayEventHandlers();
+        app.UseGatewayHandlers();
     }
 }
