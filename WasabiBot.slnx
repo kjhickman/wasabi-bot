@@ -4,4 +4,5 @@
   <Project Path="src\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" Type="Classic C#" />
   <Project Path="src\WasabiBot.Migrations\WasabiBot.Migrations.csproj" Type="Classic C#" />
   <Project Path="src\WasabiBot.ServiceDefaults\WasabiBot.ServiceDefaults.csproj" Type="Classic C#" />
+  <Project Path="test\WasabiBot.AspireTests\WasabiBot.AspireTests.csproj" Type="Classic C#" />
 </Solution>

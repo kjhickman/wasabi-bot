@@ -26,5 +26,7 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 app.MapDiscordCommands();
 
+app.MapGet("/", () => "Hello, world!");
+
 app.Run();
 
