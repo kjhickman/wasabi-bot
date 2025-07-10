@@ -5,7 +5,7 @@ using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.DataAccess.Repositories;
 
-public class InteractionRepository(IDbConnection connection) : IInteractionRepository
+public sealed class InteractionRepository(IDbConnection connection) : IInteractionRepository
 {
     public async Task<InteractionEntity?> GetByIdAsync(ulong id)
     {

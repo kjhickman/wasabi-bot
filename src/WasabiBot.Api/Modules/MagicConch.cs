@@ -5,7 +5,7 @@ using NetCord.Services.ApplicationCommands;
 
 namespace WasabiBot.Api.Modules;
 
-public static class MagicConch
+internal static class MagicConch
 {
     private static readonly ChatOptions? ChatOptions;
 

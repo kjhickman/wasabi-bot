@@ -3,7 +3,7 @@ using OpenAI;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-public static class AI
+internal static class AI
 {
     public static void AddAIServices(this WebApplicationBuilder builder)
     {

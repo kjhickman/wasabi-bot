@@ -5,7 +5,7 @@ using WasabiBot.Api.Modules;
 
 namespace WasabiBot.Api.DependencyInjection;
 
-public static class Discord
+internal static class Discord
 {
     public static void AddDiscord(this IServiceCollection services)
     {

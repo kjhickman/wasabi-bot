@@ -5,7 +5,7 @@ using WasabiBot.DataAccess.Entities;
 
 namespace WasabiBot.Api.Extensions;
 
-public static class InteractionExtensions
+internal static class InteractionExtensions
 {
     public static InteractionEntity ToEntity(this Interaction interaction)
     {

@@ -1,6 +1,6 @@
 namespace WasabiBot.DataAccess.Entities;
 
-public class InteractionEntity
+public sealed class InteractionEntity
 {
     public long Id { get; init; }
     public long ChannelId { get; init; }

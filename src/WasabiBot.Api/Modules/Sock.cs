@@ -1,12 +1,10 @@
 ﻿using System.ComponentModel;
 using Microsoft.Extensions.AI;
-using NetCord.Gateway;
-using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
 namespace WasabiBot.Api.Modules;
 
-public class Sock
+internal static class Sock
 {
     private static readonly ChatOptions? ChatOptions;
 

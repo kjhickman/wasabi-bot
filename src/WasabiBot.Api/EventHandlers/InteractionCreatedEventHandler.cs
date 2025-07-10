@@ -5,7 +5,7 @@ using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.Api.EventHandlers;
 
-public class InteractionCreatedEventHandler(IServiceProvider provider) : IInteractionCreateGatewayHandler
+internal sealed class InteractionCreatedEventHandler(IServiceProvider provider) : IInteractionCreateGatewayHandler
 {
     public async ValueTask HandleAsync(Interaction interaction)
     {
