@@ -22,7 +22,7 @@ internal static class InteractionExtensions
             Username = interaction.User.Username,
             GlobalName = interaction.User.GlobalName,
             Data = JsonSerializer.Serialize(interactionData, JsonContext.Default.JsonInteractionData),
-            CreatedAt = interaction.CreatedAt
+            CreatedAt = interaction.CreatedAt.DateTime
         };
     }
 }

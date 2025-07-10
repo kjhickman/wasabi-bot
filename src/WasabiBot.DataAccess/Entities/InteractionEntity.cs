@@ -11,6 +11,6 @@ public sealed class InteractionEntity
     public string? GlobalName { get; init; }
     public string? Nickname { get; init; }
     public string? Data { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
 
 }

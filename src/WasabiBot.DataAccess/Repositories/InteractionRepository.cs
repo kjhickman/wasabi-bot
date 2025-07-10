@@ -7,7 +7,7 @@ namespace WasabiBot.DataAccess.Repositories;
 
 public sealed class InteractionRepository(IDbConnection connection) : IInteractionRepository
 {
-    public async Task<InteractionEntity?> GetByIdAsync(ulong id)
+    public async Task<InteractionEntity?> GetByIdAsync(long id)
     {
         const string sql = """
                                select id, channel_id, application_id, user_id, guild_id, 
