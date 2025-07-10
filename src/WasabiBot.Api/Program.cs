@@ -17,7 +17,7 @@ builder.Services.AddDiscord();
 builder.AddAIServices();
 builder.AddServiceDefaults();
 
-builder.Services.AddScoped<IInteractionRepository, InteractionRepository>();
+builder.Services.AddTransient<IInteractionRepository, InteractionRepository>();
 
 var connectionString = builder.Configuration.GetConnectionString("wasabi-db");
 builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectionString));
