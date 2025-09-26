@@ -4,10 +4,8 @@
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <InvariantGlobalization>true</InvariantGlobalization>
-        <PublishAot>true</PublishAot>
+        <PublishReadyToRun>true</PublishReadyToRun>
         <UserSecretsId>3fb4ccc6-b8c3-4dc0-90b8-ea6c79a0da21</UserSecretsId>
-        <InterceptorsNamespaces>$(InterceptorsPreviewNamespaces);Microsoft.EntityFrameworkCore.GeneratedInterceptors</InterceptorsNamespaces>
     </PropertyGroup>
 
     <ItemGroup>

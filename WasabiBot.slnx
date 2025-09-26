@@ -1,0 +1,13 @@
+﻿<Solution>
+  <Folder Name="/src/">
+    <Project Path="src\WasabiBot.Api\WasabiBot.Api.csproj" Type="Classic C#" />
+    <Project Path="src\WasabiBot.AppHost\WasabiBot.AppHost.csproj" Type="Classic C#" />
+    <Project Path="src\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" Type="Classic C#" />
+    <Project Path="src\WasabiBot.Migrations\WasabiBot.Migrations.csproj" Type="Classic C#" />
+    <Project Path="src\WasabiBot.ServiceDefaults\WasabiBot.ServiceDefaults.csproj" Type="Classic C#" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test\WasabiBot.AspireTests\WasabiBot.AspireTests.csproj" Type="Classic C#" />
+    <Project Path="test\WasabiBot.IntegrationTests\WasabiBot.IntegrationTests.csproj" Type="Classic C#" />
+  </Folder>
+</Solution>

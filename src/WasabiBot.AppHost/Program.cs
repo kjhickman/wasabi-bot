@@ -9,6 +9,7 @@ var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
     .WithReference(database);
 
 var migrations = builder.AddProject<Projects.WasabiBot_Migrations>("migrations")
-    .WithReference(database);
+    .WithReference(database)
+    .WaitFor(database);
 
 builder.Build().Run();
