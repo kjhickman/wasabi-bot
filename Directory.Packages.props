@@ -12,7 +12,7 @@
     <PackageVersion Include="Dapper.AOT" Version="1.0.48" />
     <PackageVersion Include="dbup" Version="5.0.41" />
     <PackageVersion Include="dbup-postgresql" Version="6.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="9.4.0-preview.1.25207.5" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="9.9.1" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="9.4.0-preview.1.25207.5" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.6" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.4" />

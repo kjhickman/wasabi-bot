@@ -19,7 +19,6 @@ internal static class Discord
         var guildId = app.Configuration.GetValue<ulong?>("Discord:TestGuildId");
         app.AddSlashCommand("ping", "Ping!", () => "Pong!", guildId: guildId);
         app.AddSlashCommand("conch", "Ask the magic conch a question.", MagicConch.Command, guildId: guildId);
-        app.AddSlashCommand("sock", "Ask the sock salesman a question.", Sock.Command, guildId: guildId);
         app.UseGatewayHandlers();
     }
 }
