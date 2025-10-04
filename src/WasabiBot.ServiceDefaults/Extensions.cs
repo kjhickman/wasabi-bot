@@ -113,6 +113,12 @@ public static class Extensions
                     .AddHttpClientInstrumentation();
             });
 
+        builder.Services.AddSingleton(provider =>
+        {
+            var tracerProvider = provider.GetRequiredService<TracerProvider>();
+            return tracerProvider.GetTracer(builder.Environment.ApplicationName);
+        });
+
         builder.AddOpenTelemetryExporters();
 
         return builder;

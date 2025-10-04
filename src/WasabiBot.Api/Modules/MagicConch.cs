@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
 using NetCord.Services.ApplicationCommands;
+using OpenTelemetry.Trace;
 
 namespace WasabiBot.Api.Modules;
 
@@ -15,8 +16,9 @@ internal static class MagicConch
         ChatOptions = new ChatOptions { Tools = [magicConchFunction] };
     }
 
-    public static async Task<string> Command(IChatClient chat, ApplicationCommandContext ctx, string question)
+    public static async Task<string> Command(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string question)
     {
+        using var span = tracer.StartActiveSpan($"{nameof(MagicConch)}.{nameof(Command)}");
         var prompt = "The user asks a yes/no question, and the magic conch shell provides a response. " +
                      "If the question is not a yes/no question, respond with 'Try asking again'. " +
                      "If you know the answer, you may only respond with Yes or No. " +
