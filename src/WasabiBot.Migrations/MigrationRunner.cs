@@ -1,5 +1,7 @@
-﻿using System.Reflection;
-using DbUp;
+﻿using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using WasabiBot.DataAccess;
 
 namespace WasabiBot.Migrations;
 
@@ -7,40 +9,49 @@ public static class MigrationRunner
 {
     public static int Run(string connectionString)
     {
-        if (string.IsNullOrEmpty(connectionString))
+        if (string.IsNullOrWhiteSpace(connectionString))
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("Connection string not found in configuration");
+            Console.WriteLine("Connection string not provided");
             Console.ResetColor();
             return -1;
         }
 
-        var upgradeEngine = DeployChanges.To
-            .PostgresqlDatabase(connectionString)
-            .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
-            .LogToConsole()
-            .WithTransaction()
-            .Build();
-
-        if (upgradeEngine.IsUpgradeRequired())
+        try
         {
-            var result = upgradeEngine.PerformUpgrade();
-            if (!result.Successful)
+            var services = new ServiceCollection();
+            services.AddDbContext<WasabiBotContext>(o => o.UseNpgsql(connectionString));
+
+            using var provider = services.BuildServiceProvider();
+            using var scope = provider.CreateScope();
+            var ctx = scope.ServiceProvider.GetRequiredService<WasabiBotContext>();
+
+            var isMigrationNeeded = ctx.Database.GetPendingMigrations().Any();
+            if (!isMigrationNeeded)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(result.Error);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Database is up to date.");
                 Console.ResetColor();
-                return -1;
+                return 0;
             }
 
+            var ts = Stopwatch.GetTimestamp();
+            Console.WriteLine("Applying migrations...");
+            ctx.Database.Migrate();
+
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Database migration completed successfully");
+            var elapsed = Stopwatch.GetElapsedTime(ts);
+            Console.WriteLine($"Migrations complete in {elapsed.TotalMilliseconds}ms.");
             Console.ResetColor();
             return 0;
         }
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("No database migration required");
-        return 0;
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Migration failed: " + ex.Message);
+            Console.WriteLine(ex);
+            Console.ResetColor();
+            return -1;
+        }
     }
 }

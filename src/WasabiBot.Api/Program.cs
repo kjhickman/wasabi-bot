@@ -1,10 +1,11 @@
-using System.Data;
-using Npgsql;
-using WasabiBot.Api.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using WasabiBot.DataAccess;
 using WasabiBot.DataAccess.Interfaces;
-using WasabiBot.DataAccess.Repositories;
+using WasabiBot.DataAccess.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
+
+builder.WebHost.UseKestrel(options => options.AddServerHeader = false);
 
 builder.Host.UseDefaultServiceProvider(options =>
 {
@@ -17,10 +18,11 @@ builder.Services.AddDiscord();
 builder.AddAIServices();
 builder.AddServiceDefaults();
 
-builder.Services.AddTransient<IInteractionRepository, InteractionRepository>();
-
-var connectionString = builder.Configuration.GetConnectionString("wasabi-db");
-builder.Services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(connectionString));
+builder.Services.AddScoped<IInteractionService, InteractionService>();
+builder.Services.AddDbContext<WasabiBotContext>(options =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("wasabi-db"));
+});
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
@@ -29,4 +31,3 @@ app.MapDiscordCommands();
 app.MapGet("/", () => "Hello, world!");
 
 app.Run();
-

@@ -3,7 +3,7 @@ using NetCord.Hosting.Services.ApplicationCommands;
 using WasabiBot.Api.EventHandlers;
 using WasabiBot.Api.Modules;
 
-namespace WasabiBot.Api.DependencyInjection;
+namespace Microsoft.Extensions.DependencyInjection;
 
 internal static class Discord
 {

@@ -2,7 +2,7 @@
 
 namespace WasabiBot.DataAccess.Interfaces;
 
-public interface IInteractionRepository
+public interface IInteractionService
 {
     Task<InteractionEntity?> GetByIdAsync(long id);
     Task<bool> CreateAsync(InteractionEntity interaction);

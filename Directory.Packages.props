@@ -8,10 +8,9 @@
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.5.1" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="9.5.1" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="Dapper" Version="2.1.66" />
-    <PackageVersion Include="Dapper.AOT" Version="1.0.48" />
-    <PackageVersion Include="dbup" Version="5.0.41" />
-    <PackageVersion Include="dbup-postgresql" Version="6.0.3" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="9.9.1" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="9.9.1-preview.1.25474.6" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0-rc.1.25451.107" />

@@ -1,10 +1,11 @@
-﻿using System.Data;
-using System.Data.Common;
+﻿using System.Data.Common;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Respawn;
 using Testcontainers.PostgreSql;
-using WasabiBot.Migrations;
+using WasabiBot.DataAccess;
+using WasabiBot.DataAccess.Services;
 using Xunit;
 
 namespace WasabiBot.IntegrationTests;
@@ -24,10 +25,11 @@ public class TestFixture : IAsyncLifetime
     public TestFixture()
     {
         var services = new ServiceCollection();
-        services.AddTransient<IDbConnection>(_ => new NpgsqlConnection(_dbContainer.GetConnectionString()));
+
+        services.AddDbContext<WasabiBotContext>(options => options.UseNpgsql(_dbContainer.GetConnectionString()));
+        services.AddTransient<InteractionService>();
 
         ServiceProvider = services.BuildServiceProvider();
-
     }
 
     public IServiceProvider ServiceProvider { get; private set; }
@@ -35,7 +37,10 @@ public class TestFixture : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         await _dbContainer.StartAsync();
-        MigrationRunner.Run(_dbContainer.GetConnectionString());
+
+        var dbContext = ServiceProvider.GetRequiredService<WasabiBotContext>();
+        await dbContext.Database.EnsureCreatedAsync();
+
         _connection = new NpgsqlConnection(_dbContainer.GetConnectionString());
         await _connection.OpenAsync();
         _respawner = await Respawner.CreateAsync(_connection, new RespawnerOptions

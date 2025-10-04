@@ -22,7 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\WasabiBot.AppHost\WasabiBot.AppHost.csproj" />
     <ProjectReference Include="..\..\src\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" />
-    <ProjectReference Include="..\..\src\WasabiBot.Migrations\WasabiBot.Migrations.csproj" />
   </ItemGroup>
 
 </Project>

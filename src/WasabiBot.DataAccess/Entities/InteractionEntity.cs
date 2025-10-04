@@ -1,16 +1,19 @@
+// ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
 namespace WasabiBot.DataAccess.Entities;
+
+using System.ComponentModel.DataAnnotations.Schema;
 
 public sealed class InteractionEntity
 {
-    public long Id { get; init; }
-    public long ChannelId { get; init; }
-    public long ApplicationId { get; init; }
-    public long UserId { get; init; }
-    public long? GuildId { get; init; }
-    public required string Username { get; init; }
-    public string? GlobalName { get; init; }
-    public string? Nickname { get; init; }
-    public string? Data { get; init; }
-    public DateTime CreatedAt { get; init; }
-
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public long Id { get; set; }
+    public long ChannelId { get; set; }
+    public long ApplicationId { get; set; }
+    public long UserId { get; set; }
+    public long? GuildId { get; set; }
+    public required string Username { get; set; }
+    public string? GlobalName { get; set; }
+    public string? Nickname { get; set; }
+    public string? Data { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 }

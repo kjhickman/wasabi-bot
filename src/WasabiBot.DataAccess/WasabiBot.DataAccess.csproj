@@ -4,14 +4,13 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <IsAotCompatible>true</IsAotCompatible>
-        <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Dapper" />
-      <PackageReference Include="Dapper.AOT" />
-      <PackageReference Include="Npgsql" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" PrivateAssets="all" />
     </ItemGroup>
 
 </Project>

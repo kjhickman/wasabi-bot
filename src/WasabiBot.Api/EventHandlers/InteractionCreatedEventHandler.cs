@@ -5,12 +5,13 @@ using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.Api.EventHandlers;
 
-internal sealed class InteractionCreatedEventHandler(IInteractionRepository repository)
-    : IInteractionCreateGatewayHandler
+internal sealed class InteractionCreatedEventHandler(IServiceProvider sp) : IInteractionCreateGatewayHandler
 {
     public async ValueTask HandleAsync(Interaction interaction)
     {
+        await using var scope = sp.CreateAsyncScope();
+        var interactionService = scope.ServiceProvider.GetRequiredService<IInteractionService>();
         var entity = interaction.ToEntity();
-        await repository.CreateAsync(entity);
+        await interactionService.CreateAsync(entity);
     }
 }
