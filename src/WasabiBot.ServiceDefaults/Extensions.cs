@@ -3,20 +3,24 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Events;
+using Serilog.Core;
+using Serilog.Formatting.Json;
+using System.Diagnostics;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.Hosting;
 
-// Adds common .NET Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
-// This project should be referenced by each service project in your solution.
-// To learn more about using this project, see https://aka.ms/dotnet/aspire/service-defaults
 public static class Extensions
 {
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        builder.ConfigureSerilog();
         builder.ConfigureOpenTelemetry();
 
         builder.AddDefaultHealthChecks();
@@ -41,6 +45,51 @@ public static class Extensions
         return builder;
     }
 
+    // Configure Serilog logging pipeline
+    private static TBuilder ConfigureSerilog<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    {
+        builder.Logging.ClearProviders();
+
+        var loggerConfig = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+            .MinimumLevel.Override("NetCord", LogEventLevel.Information)
+            .Enrich.FromLogContext()
+            .Enrich.With(new ActivityEnricher())
+            .Enrich.WithProperty("Application", builder.Environment.ApplicationName)
+            .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
+            .WriteTo.Console(new JsonFormatter(renderMessage: true));
+
+        var serilogSection = builder.Configuration.GetSection("Serilog");
+        if (serilogSection.Exists())
+        {
+            loggerConfig.ReadFrom.Configuration(builder.Configuration);
+        }
+
+        var logger = loggerConfig.CreateLogger();
+        builder.Logging.AddSerilog(logger, dispose: true);
+
+        return builder;
+    }
+
+    private sealed class ActivityEnricher : ILogEventEnricher
+    {
+        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
+        {
+            var activity = Activity.Current;
+            if (activity == null)
+            {
+                logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("TraceId", ""));
+                logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SpanId", ""));
+                return;
+            }
+
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("TraceId", activity.TraceId.ToString()));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SpanId", activity.SpanId.ToString()));
+        }
+    }
+
     private static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
@@ -61,8 +110,6 @@ public static class Extensions
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
                     .AddAspNetCoreInstrumentation()
-                    // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
-                    //.AddGrpcClientInstrumentation()
                     .AddHttpClientInstrumentation();
             });
 
@@ -81,13 +128,6 @@ public static class Extensions
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
-        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
-        //if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-        //{
-        //    builder.Services.AddOpenTelemetry()
-        //       .UseAzureMonitor();
-        //}
-
         return builder;
     }
 
@@ -95,7 +135,6 @@ public static class Extensions
         where TBuilder : IHostApplicationBuilder
     {
         builder.Services.AddHealthChecks()
-            // Add a default liveness check to ensure app is responsive
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
 
         return builder;
