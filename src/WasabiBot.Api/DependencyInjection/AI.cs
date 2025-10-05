@@ -14,13 +14,18 @@ internal static class AI
         };
 
         var openAiKey = builder.Configuration.GetValue<string?>("OpenAI:ApiKey") ?? throw new Exception("OpenAI API key is missing.");
-        var chatClient = new OpenAIClient(new ApiKeyCredential(openAiKey), openAiClientOptions)
-            .GetChatClient("gpt-oss-120b")
-            .AsIChatClient();
 
-        builder.Services.AddChatClient(chatClient)
-            .UseFunctionInvocation()
-            .UseOpenTelemetry()
-            .UseLogging();
+        builder.Services.AddChatClient(serviceProvider =>
+        {
+            var chatClient = new OpenAIClient(new ApiKeyCredential(openAiKey), openAiClientOptions)
+                .GetChatClient("gpt-oss-120b")
+                .AsIChatClient();
+
+            return new ChatClientBuilder(chatClient)
+                .UseOpenTelemetry(serviceProvider.GetRequiredService<ILoggerFactory>(), "Microsoft.Extensions.AI")
+                .UseFunctionInvocation()
+                .UseLogging()
+                .Build(serviceProvider);
+        });
     }
 }

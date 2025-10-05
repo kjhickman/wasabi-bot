@@ -109,6 +109,7 @@ public static class Extensions
             .WithTracing(tracing =>
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
+                    .AddSource("Microsoft.Extensions.AI")
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation();
             });
