@@ -17,3 +17,6 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
         });
     }
 }
+
+// Adding a new migration:
+// dotnet ef migrations add <MigrationName> --project src/WasabiBot.DataAccess
