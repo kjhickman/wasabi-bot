@@ -8,17 +8,12 @@ internal static class AI
 {
     public static void AddAIServices(this WebApplicationBuilder builder)
     {
-        var openAiClientOptions = new OpenAIClientOptions
-        {
-            Endpoint = new Uri("https://api.cerebras.ai/v1/"),
-        };
-
         var openAiKey = builder.Configuration.GetValue<string?>("OpenAI:ApiKey") ?? throw new Exception("OpenAI API key is missing.");
 
         builder.Services.AddChatClient(serviceProvider =>
         {
-            var chatClient = new OpenAIClient(new ApiKeyCredential(openAiKey), openAiClientOptions)
-                .GetChatClient("gpt-oss-120b")
+            var chatClient = new OpenAIClient(new ApiKeyCredential(openAiKey))
+                .GetChatClient("gpt-5-mini")
                 .AsIChatClient();
 
             return new ChatClientBuilder(chatClient)

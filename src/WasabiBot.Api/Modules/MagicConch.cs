@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
+using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 
@@ -8,6 +9,9 @@ namespace WasabiBot.Api.Modules;
 
 internal static class MagicConch
 {
+    public const string CommandName = "conch";
+    public const string CommandDescription = "Ask the magic conch a question.";
+
     private static readonly ChatOptions? ChatOptions;
 
     static MagicConch()
@@ -16,16 +20,19 @@ internal static class MagicConch
         ChatOptions = new ChatOptions { Tools = [magicConchFunction] };
     }
 
-    public static async Task<string> Command(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string question)
+    public static async Task Command(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string question)
     {
         using var span = tracer.StartActiveSpan($"{nameof(MagicConch)}.{nameof(Command)}");
+
+        await ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
+
         var prompt = "The user asks a yes/no question, and the magic conch shell provides a response. " +
                      "If the question is not a yes/no question, respond with 'Try asking again'. " +
                      "If you know the answer, you may only respond with Yes or No. " +
                      "If you don't know the answer, use GetMagicConchResponse()" +
                      $"The user asked: {question}";
         var response = await chat.GetResponseAsync(prompt, ChatOptions);
-        return response.Text;
+        await ctx.Interaction.SendFollowupMessageAsync(response.Text);
     }
 
     [Description("Randomly chooses a response from the magic conch shell if the answer is unknown.")]

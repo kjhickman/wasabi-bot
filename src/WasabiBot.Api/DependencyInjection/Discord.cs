@@ -16,7 +16,7 @@ internal static class Discord
 
     public static void MapDiscordCommands(this WebApplication app)
     {
-        app.AddSlashCommand("ping", "Ping!", () => "Pong!");
-        app.AddSlashCommand("conch", "Ask the magic conch a question.", MagicConch.Command);
+        app.AddSlashCommand(MagicConch.CommandName, MagicConch.CommandDescription, MagicConch.Command);
+        app.AddSlashCommand(CaptionThis.CommandName, CaptionThis.CommandDescription, CaptionThis.Command);
     }
 }
