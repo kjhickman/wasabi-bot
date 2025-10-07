@@ -11,7 +11,7 @@ internal static class CaptionThis
     public const string CommandName = "caption";
     public const string CommandDescription = "Generate a funny caption for an image.";
 
-    public static async Task Command(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, Attachment image)
+    public static async Task Command(IChatClient chat, HttpClient httpClient, Tracer tracer, ApplicationCommandContext ctx, Attachment image)
     {
         using var span = tracer.StartActiveSpan($"{nameof(CaptionThis)}.{nameof(Command)}");
 
@@ -30,19 +30,21 @@ internal static class CaptionThis
 
         try
         {
-            const string prompt = "Look at this image and create a funny, witty caption for it. " +
+            const string prompt = "Look at this image and create a funny, witty caption for it: " +
                                   "Keep it concise but entertaining. Don't describe what you see, just provide the caption.";
 
+            var imageBytes = await httpClient.GetByteArrayAsync(image.Url);
             var messages = new List<ChatMessage>
             {
                 new(ChatRole.User, [
                     new TextContent(prompt),
-                    new UriContent(image.Url, image.ContentType!)
+                    new DataContent(imageBytes, image.ContentType!)
                 ])
             };
 
-            var response = await chat.GetResponseAsync(messages);
-            await ctx.Interaction.SendFollowupMessageAsync(response.Text);
+            var caption = await chat.GetResponseAsync(messages);
+            var response = image.Url + "\n" + caption;
+            await ctx.Interaction.SendFollowupMessageAsync(response);
         }
         catch (Exception ex)
         {
