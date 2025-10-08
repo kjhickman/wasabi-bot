@@ -18,5 +18,6 @@ internal static class Discord
     {
         app.AddSlashCommand(MagicConch.CommandName, MagicConch.CommandDescription, MagicConch.Command);
         app.AddSlashCommand(CaptionThis.CommandName, CaptionThis.CommandDescription, CaptionThis.Command);
+        app.AddSlashCommand(RemindMe.CommandName, RemindMe.CommandDescription, RemindMe.Command);
     }
 }
