@@ -6,6 +6,7 @@ namespace WasabiBot.DataAccess;
 public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options) : DbContext(options)
 {
     public DbSet<InteractionEntity> Interactions => Set<InteractionEntity>();
+    public DbSet<ReminderEntity> Reminders => Set<ReminderEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -14,6 +15,10 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
         {
             builder.HasIndex(e => e.UserId);
             builder.HasIndex(e => e.GuildId).HasFilter("\"GuildId\" IS NOT NULL");
+        });
+        modelBuilder.Entity<ReminderEntity>(builder =>
+        {
+            builder.HasIndex(r => r.RemindAt).HasFilter("\"IsReminderSent\" = FALSE");
         });
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
+using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.Api.Modules;
 
@@ -37,8 +38,7 @@ internal static class RemindMe
             .AddSeconds(seconds);
     }
 
-    // Reordered parameters: timeframe first, then reminder text for intuitive usage.
-    public static async Task Command(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string when, string reminder)
+    public static async Task Command(IChatClient chat, Tracer tracer, IReminderService reminderService, ApplicationCommandContext ctx, string when, string reminder)
     {
         using var span = tracer.StartActiveSpan($"{nameof(RemindMe)}.{nameof(Command)}");
         await ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
@@ -73,8 +73,25 @@ internal static class RemindMe
 
             if (DateTimeOffset.TryParse(functionResult.Result!.ToString()!, out var targetTime))
             {
+                if (targetTime <= DateTimeOffset.UtcNow.AddSeconds(3))
+                {
+                    targetTime = DateTimeOffset.UtcNow.AddSeconds(3);
+                }
+
+                var created = await reminderService.CreateAsync(
+                    userId: (long)ctx.Interaction.User.Id,
+                    channelId: (long)ctx.Interaction.Channel.Id,
+                    reminder: reminder,
+                    remindAt: targetTime);
+
+                if (!created)
+                {
+                    await ctx.Interaction.SendFollowupMessageAsync("Failed to store reminder in database.");
+                    return;
+                }
+
                 var unixTimeSeconds = targetTime.ToUnixTimeSeconds();
-                await ctx.Interaction.SendFollowupMessageAsync($"I'll remind you <t:{unixTimeSeconds}:R> to *{reminder}*");
+                await ctx.Interaction.SendFollowupMessageAsync($"I'll remind you <t:{unixTimeSeconds}:f> to *{reminder}*");
             }
             else
             {

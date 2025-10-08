@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WasabiBot.DataAccess;
 using WasabiBot.DataAccess.Interfaces;
 using WasabiBot.DataAccess.Services;
+using WasabiBot.Api.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -19,6 +20,10 @@ builder.AddAIServices();
 builder.AddServiceDefaults();
 
 builder.Services.AddScoped<IInteractionService, InteractionService>();
+builder.Services.AddScoped<IReminderService, ReminderService>();
+
+builder.Services.AddHostedService<ReminderDispatcher>();
+
 builder.Services.AddDbContext<WasabiBotContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("wasabi-db"));
