@@ -1,30 +1,32 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
-using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
+using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Services;
 
 namespace WasabiBot.Api.Modules;
 
-internal static class MagicConch
+internal sealed class MagicConchCommand : ISlashCommand
 {
-    public const string CommandName = "conch";
-    public const string CommandDescription = "Ask the magic conch a question.";
+    public string Name => "conch";
+    public string Description => "Ask the magic conch a question.";
 
-    private static readonly ChatOptions? ChatOptions;
-
-    static MagicConch()
+    private static readonly ChatOptions ChatOptions = new()
     {
-        var magicConchFunction = AIFunctionFactory.Create(GetMagicConchResponse);
-        ChatOptions = new ChatOptions { Tools = [magicConchFunction] };
+        Tools = [AIFunctionFactory.Create(GetMagicConchResponse)]
+    };
+
+    public void Register(WebApplication app)
+    {
+        app.AddSlashCommand(Name, Description, ExecuteAsync);
     }
 
-    public static async Task Command(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string question)
+    private async Task ExecuteAsync(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string question)
     {
-        using var span = tracer.StartActiveSpan($"{nameof(MagicConch)}.{nameof(Command)}");
+        using var span = tracer.StartActiveSpan($"{nameof(MagicConchCommand)}.{nameof(ExecuteAsync)}");
 
         await using var responder = new AutoResponder(
             threshold: TimeSpan.FromMilliseconds(2300),
@@ -32,11 +34,13 @@ internal static class MagicConch
             respond: (text, ephemeral) => ctx.Interaction.SendResponseAsync(InteractionCallback.Message(InteractionMessageFactory.Create(text, ephemeral))),
             followup: (text, ephemeral) => ctx.Interaction.SendFollowupMessageAsync(InteractionMessageFactory.Create(text, ephemeral)));
 
-        var prompt = "The user asks a yes/no question, and the magic conch shell provides a response. " +
-                     "If the question is not a yes/no question, respond with 'Try asking again'. " +
-                     "If you know the answer, you may only respond with Yes or No. " +
-                     "If you don't know the answer, use GetMagicConchResponse()" +
-                     $"The user asked: {question}";
+        var prompt = "You are the Magic Conch shell. The user asks a yes/no style question and you reply succinctly. " +
+                     "Rules: If the question is NOT yes/no, respond exactly with 'Try asking again'. " +
+                     "If you confidently know, reply only 'Yes' or 'No'. " +
+                     "If uncertain or ambiguous, invoke GetMagicConchResponse() (do not guess). " +
+                     "Never add extra commentary, punctuation, or markdown.\n" +
+                     $"Question: {question}";
+
         var response = await chat.GetResponseAsync(prompt, ChatOptions);
         await responder.SendAsync(response.Text);
     }
@@ -58,7 +62,7 @@ internal static class MagicConch
         throw new UnreachableException("Failed to randomly choose a response.");
     }
 
-    private static readonly List<(string Response, int Weight)> MagicConchResponses =
+    private static readonly (string Response, int Weight)[] MagicConchResponses =
     [
         ("Yes", 44),
         ("No", 32),

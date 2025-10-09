@@ -12,12 +12,17 @@ internal static class Discord
         services.AddDiscordGateway();
         services.AddApplicationCommands();
         services.AddGatewayHandler<InteractionCreatedEventHandler>();
+        services.AddSingleton<ISlashCommand, MagicConchCommand>();
+        services.AddSingleton<ISlashCommand, CaptionThisCommand>();
+        services.AddSingleton<ISlashCommand, RemindMeCommand>();
     }
 
     public static void MapDiscordCommands(this WebApplication app)
     {
-        app.AddSlashCommand(MagicConch.CommandName, MagicConch.CommandDescription, MagicConch.Command);
-        app.AddSlashCommand(CaptionThis.CommandName, CaptionThis.CommandDescription, CaptionThis.Command);
-        app.AddSlashCommand(RemindMe.CommandName, RemindMe.CommandDescription, RemindMe.Command);
+        var commands = app.Services.GetServices<ISlashCommand>();
+        foreach (var command in commands)
+        {
+            command.Register(app);
+        }
     }
 }

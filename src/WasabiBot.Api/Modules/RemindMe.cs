@@ -1,27 +1,31 @@
 ﻿using System.ComponentModel;
 using Microsoft.Extensions.AI;
-using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
+using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.DataAccess.Interfaces;
 using WasabiBot.Api.Services;
 
 namespace WasabiBot.Api.Modules;
 
-internal static class RemindMe
+internal sealed class RemindMeCommand : ISlashCommand
 {
-    public const string CommandName = "remindme";
-    public const string CommandDescription = "Set a reminder for yourself.";
+    public string Name => "remindme";
+    public string Description => "Set a reminder for yourself.";
 
-    private static readonly ChatOptions? ChatOptions;
+    private static readonly ChatOptions ChatOptions;
 
-    static RemindMe()
+    static RemindMeCommand()
     {
         var relativeTimeFunction = AIFunctionFactory.Create(GetTargetUtcTime);
         var absoluteTimeFunction = AIFunctionFactory.Create(GetAbsoluteUtcTime);
-
         ChatOptions = new ChatOptions { Tools = [relativeTimeFunction, absoluteTimeFunction] };
+    }
+
+    public void Register(WebApplication app)
+    {
+        app.AddSlashCommand(Name, Description, ExecuteAsync);
     }
 
     [Description(
@@ -130,10 +134,9 @@ internal static class RemindMe
         }
     }
 
-
-    public static async Task Command(IChatClient chat, Tracer tracer, IReminderService reminderService, ApplicationCommandContext ctx, string when, string reminder)
+    private async Task ExecuteAsync(IChatClient chat, Tracer tracer, IReminderService reminderService, ApplicationCommandContext ctx, string when, string reminder)
     {
-        using var span = tracer.StartActiveSpan($"{nameof(RemindMe)}.{nameof(Command)}");
+        using var span = tracer.StartActiveSpan($"{nameof(RemindMeCommand)}.{nameof(ExecuteAsync)}");
 
         await using var responder = new AutoResponder(
             threshold: TimeSpan.FromMilliseconds(2300),

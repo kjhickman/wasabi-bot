@@ -2,19 +2,25 @@
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
+using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Services;
 
 namespace WasabiBot.Api.Modules;
 
-internal static class CaptionThis
+internal sealed class CaptionThisCommand : ISlashCommand
 {
-    public const string CommandName = "caption";
-    public const string CommandDescription = "Generate a funny caption for an image.";
+    public string Name => "caption";
+    public string Description => "Generate a funny caption for an image.";
 
-    public static async Task Command(IChatClient chat, HttpClient httpClient, Tracer tracer, ApplicationCommandContext ctx, Attachment image)
+    public void Register(WebApplication app)
     {
-        using var span = tracer.StartActiveSpan($"{nameof(CaptionThis)}.{nameof(Command)}");
+        app.AddSlashCommand(Name, Description, ExecuteAsync);
+    }
+
+    private async Task ExecuteAsync(IChatClient chat, HttpClient httpClient, Tracer tracer, ApplicationCommandContext ctx, Attachment image)
+    {
+        using var span = tracer.StartActiveSpan($"{nameof(CaptionThisCommand)}.{nameof(ExecuteAsync)}");
 
         await using var responder = new AutoResponder(
             threshold: TimeSpan.FromMilliseconds(2300),
