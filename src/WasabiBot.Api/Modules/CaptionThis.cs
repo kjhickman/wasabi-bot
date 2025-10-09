@@ -3,6 +3,7 @@ using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Services;
 
 namespace WasabiBot.Api.Modules;
 
@@ -15,16 +16,21 @@ internal static class CaptionThis
     {
         using var span = tracer.StartActiveSpan($"{nameof(CaptionThis)}.{nameof(Command)}");
 
-        await ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
+        await using var responder = new AutoResponder(
+            threshold: TimeSpan.FromMilliseconds(2300),
+            defer: _ => ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage()),
+            respond: (text, ephemeral) => ctx.Interaction.SendResponseAsync(InteractionCallback.Message(InteractionMessageFactory.Create(text, ephemeral))),
+            followup: (text, ephemeral) => ctx.Interaction.SendFollowupMessageAsync(InteractionMessageFactory.Create(text, ephemeral)));
+
         if (!IsImageAttachment(image))
         {
-            await ctx.Interaction.SendFollowupMessageAsync("Please provide a valid image file (jpg, jpeg, png, gif, webp).");
+            await responder.SendAsync("Please provide a valid image file (jpg, jpeg, png, gif, webp).", ephemeral: true);
             return;
         }
 
         if (image.Size > 10 * 1024 * 1024) // 10MB limit
         {
-            await ctx.Interaction.SendFollowupMessageAsync("Image is too large. Please provide an image smaller than 10MB.");
+            await responder.SendAsync("Image is too large. Please provide an image smaller than 10MB.", ephemeral: true);
             return;
         }
 
@@ -44,12 +50,12 @@ internal static class CaptionThis
 
             var caption = await chat.GetResponseAsync(messages);
             var response = image.Url + "\n" + caption;
-            await ctx.Interaction.SendFollowupMessageAsync(response);
+            await responder.SendAsync(response);
         }
         catch (Exception ex)
         {
             span.RecordException(ex);
-            await ctx.Interaction.SendFollowupMessageAsync("Sorry, I had trouble processing that image. Please try again with a different image.");
+            await responder.SendAsync("Sorry, I had trouble processing that image. Please try again with a different image.", ephemeral: true);
         }
     }
 

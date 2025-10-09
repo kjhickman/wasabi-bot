@@ -1,16 +1,18 @@
 ﻿using System.ComponentModel;
 using Microsoft.Extensions.AI;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.DataAccess.Interfaces;
+using WasabiBot.Api.Services;
 
 namespace WasabiBot.Api.Modules;
 
 internal static class RemindMe
 {
     public const string CommandName = "remindme";
-    public const string CommandDescription = "Prototype: parse timeframe using AI tool call and echo result.";
+    public const string CommandDescription = "Set a reminder for yourself.";
 
     private static readonly ChatOptions? ChatOptions;
 
@@ -132,7 +134,12 @@ internal static class RemindMe
     public static async Task Command(IChatClient chat, Tracer tracer, IReminderService reminderService, ApplicationCommandContext ctx, string when, string reminder)
     {
         using var span = tracer.StartActiveSpan($"{nameof(RemindMe)}.{nameof(Command)}");
-        await ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage());
+
+        await using var responder = new AutoResponder(
+            threshold: TimeSpan.FromMilliseconds(2300),
+            defer: _ => ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage()),
+            respond: (text, ephemeral) => ctx.Interaction.SendResponseAsync(InteractionCallback.Message(InteractionMessageFactory.Create(text, ephemeral))),
+            followup: (text, ephemeral) => ctx.Interaction.SendFollowupMessageAsync(InteractionMessageFactory.Create(text, ephemeral)));
 
         const string systemInstructions = "The user gives a natural language timeframe. Select the best tool: " +
                                           "Use GetTargetUtcTime for relative offsets like 'in 3 hours', " +
@@ -155,12 +162,12 @@ internal static class RemindMe
             var toolMessage = response.Messages.FirstOrDefault(x => x.Role == ChatRole.Tool);
             if (toolMessage is null)
             {
-                await ctx.Interaction.SendFollowupMessageAsync("Failed to get a response from the AI tool.");
+                await responder.SendAsync("Failed to get a response from the AI tool.", ephemeral: true);
                 return;
             }
             if (toolMessage.Contents.FirstOrDefault() is not FunctionResultContent functionResult)
             {
-                await ctx.Interaction.SendFollowupMessageAsync("The AI did not call the expected function.");
+                await responder.SendAsync("The AI did not call the expected function.", ephemeral: true);
                 return;
             }
 
@@ -168,7 +175,7 @@ internal static class RemindMe
             {
                 if (targetTime <= DateTimeOffset.UtcNow.AddSeconds(30))
                 {
-                    await ctx.Interaction.SendFollowupMessageAsync("Only future times are allowed.");
+                    await responder.SendAsync("Only future times are allowed.", ephemeral: true);
                     return;
                 }
 
@@ -180,22 +187,22 @@ internal static class RemindMe
 
                 if (!created)
                 {
-                    await ctx.Interaction.SendFollowupMessageAsync("Failed to store reminder in database.");
+                    await responder.SendAsync("Failed to store reminder in database.", ephemeral: true);
                     return;
                 }
 
                 var unixTimeSeconds = targetTime.ToUnixTimeSeconds();
-                await ctx.Interaction.SendFollowupMessageAsync($"I'll remind you <t:{unixTimeSeconds}:f> to *{reminder}*");
+                await responder.SendAsync($"I'll remind you <t:{unixTimeSeconds}:f> to *{reminder}*");
             }
             else
             {
-                await ctx.Interaction.SendFollowupMessageAsync("Could not parse tool result into a date/time.");
+                await responder.SendAsync("Could not parse tool result into a date/time.", ephemeral: true);
             }
         }
         catch (Exception ex)
         {
             span.RecordException(ex);
-            await ctx.Interaction.SendFollowupMessageAsync($"Failed to process timeframe. Error: {ex.Message}\nOriginal timeframe: {when}\nReminder: {reminder}");
+            await responder.SendAsync($"Failed to process timeframe. Error: {ex.Message}\nOriginal timeframe: {when}\nReminder: {reminder}", ephemeral: true);
         }
     }
 }
