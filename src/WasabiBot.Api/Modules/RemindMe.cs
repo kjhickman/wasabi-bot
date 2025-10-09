@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.AI;
+﻿using System.ComponentModel;
+using Microsoft.Extensions.AI;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
@@ -59,38 +60,40 @@ internal sealed class RemindMeCommand : ISlashCommand
                 return;
             }
 
-            if (!DateTimeOffset.TryParse(functionResult.Result?.ToString(), out var targetTime))
+            var raw = functionResult.Result?.ToString();
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                await responder.SendAsync("I couldn't interpret that timeframe.", ephemeral: true);
+                return;
+            }
+
+            if (DateTimeOffset.TryParse(raw, out var targetTime))
+            {
+                if (targetTime <= DateTimeOffset.UtcNow.AddSeconds(30))
+                {
+                    await responder.SendAsync("Only future times are allowed.", ephemeral: true);
+                    return;
+                }
+
+                var created = await reminderService.CreateAsync(
+                    userId: (long)ctx.Interaction.User.Id,
+                    channelId: (long)ctx.Interaction.Channel.Id,
+                    reminder: reminder,
+                    remindAt: targetTime);
+
+                if (!created)
+                {
+                    await responder.SendAsync("Failed to store reminder in database.", ephemeral: true);
+                    return;
+                }
+
+                var unixTimeSeconds = targetTime.ToUnixTimeSeconds();
+                await responder.SendAsync($"I'll remind you <t:{unixTimeSeconds}:f> to *{reminder}*");
+            }
+            else
             {
                 await responder.SendAsync("Could not parse tool result into a date/time.", ephemeral: true);
-                return;
             }
-
-            if (targetTime == DateTimeOffset.MinValue)
-            {
-                await responder.SendAsync("I couldn't interpret that timeframe. Try something like 'in 2 hours' or 'March 5 at 9am'.", ephemeral: true);
-                return;
-            }
-
-            if (targetTime <= DateTimeOffset.UtcNow.AddSeconds(30))
-            {
-                await responder.SendAsync("Only future times are allowed.", ephemeral: true);
-                return;
-            }
-
-            var created = await reminderService.CreateAsync(
-                userId: (long)ctx.Interaction.User.Id,
-                channelId: (long)ctx.Interaction.Channel.Id,
-                reminder: reminder,
-                remindAt: targetTime);
-
-            if (!created)
-            {
-                await responder.SendAsync("Failed to store reminder in database.", ephemeral: true);
-                return;
-            }
-
-            var unixTimeSeconds = targetTime.ToUnixTimeSeconds();
-            await responder.SendAsync($"I'll remind you <t:{unixTimeSeconds}:f> to *{reminder}*");
         }
         catch (Exception ex)
         {

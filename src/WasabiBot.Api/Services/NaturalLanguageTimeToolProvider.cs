@@ -20,8 +20,8 @@ internal sealed class NaturalLanguageTimeToolProvider
         Options = new ChatOptions { Tools = [relative, absolute] };
     }
 
-    [Description("Computes the target UTC time by adding relative offsets to the current UTC time.")]
-    private DateTimeOffset RelativeTime(
+    [Description("Computes the target UTC time by adding relative offsets to the current UTC time. Returns null when invalid or zero-length.")]
+    private DateTimeOffset? RelativeTime(
         [Description("Months from now (>=0)." )] int months = 0,
         [Description("Weeks from now (>=0)."  )] int weeks = 0,
         [Description("Days from now (>=0)."   )] int days = 0,
@@ -29,11 +29,11 @@ internal sealed class NaturalLanguageTimeToolProvider
         [Description("Minutes from now (>=0)." )] int minutes = 0,
         [Description("Seconds from now (>=0)." )] int seconds = 0)
     {
-        return _resolver.ComputeRelativeUtc(months, weeks, days, hours, minutes, seconds) ?? DateTimeOffset.MinValue;
+        return _resolver.ComputeRelativeUtc(months, weeks, days, hours, minutes, seconds);
     }
 
-    [Description("Computes a target UTC time from calendar components; year optional, time optional, rolls forward if in past.")]
-    private DateTimeOffset AbsoluteTime(
+    [Description("Computes a target UTC time from calendar components; year optional, time optional, rolls forward if past. Returns null when invalid.")]
+    private DateTimeOffset? AbsoluteTime(
         [Description("Calendar month 1-12.")] int month,
         [Description("Calendar day 1-31.")] int day,
         [Description("Calendar year (0 = current year)." )] int year = 0,
@@ -41,7 +41,6 @@ internal sealed class NaturalLanguageTimeToolProvider
         [Description("Minute 0-59 (-1 = infer)." )] int minute = -1,
         [Description("Time zone ID (IANA or Windows)." )] string? timeZoneId = null)
     {
-        return _resolver.ComputeAbsoluteUtc(month, day, year, hour, minute, timeZoneId) ?? DateTimeOffset.MinValue;
+        return _resolver.ComputeAbsoluteUtc(month, day, year, hour, minute, timeZoneId);
     }
 }
-
