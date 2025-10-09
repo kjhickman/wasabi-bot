@@ -17,30 +17,31 @@ public sealed class ReminderDispatcher : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("ReminderDispatcher started");
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await DispatchAsync(stoppingToken);
-            }
-            catch (TaskCanceledException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while dispatching reminders");
-            }
+        _logger.LogInformation("ReminderDispatcher started (interval: {IntervalSeconds}s)", Interval.TotalSeconds);
 
-            try
+        // PeriodicTimer provides cleaner cancellation & eliminates manual Task.Delay try/catch
+        using var timer = new PeriodicTimer(Interval);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                await Task.Delay(Interval, stoppingToken);
+                try
+                {
+                    await DispatchAsync(stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break; // Graceful shutdown
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error while dispatching reminders batch");
+                }
             }
-            catch (TaskCanceledException)
-            {
-                break;
-            }
+        }
+        catch (OperationCanceledException)
+        {
+            // expected on shutdown
         }
         _logger.LogInformation("ReminderDispatcher stopping");
     }
@@ -57,12 +58,38 @@ public sealed class ReminderDispatcher : BackgroundService
             return;
         }
 
+        _logger.LogInformation("Dispatching {Count} reminder(s)", dueReminders.Count);
+        var dispatchedIds = new List<long>(dueReminders.Count);
+
         foreach (var reminder in dueReminders)
         {
-            await discordClient.SendMessageAsync((ulong)reminder.ChannelId,
-                $"<@{reminder.UserId}> Reminder: {reminder.ReminderMessage}", cancellationToken: ct);
+            try
+            {
+                await discordClient.SendMessageAsync((ulong)reminder.ChannelId,
+                    $"<@{reminder.UserId}> Reminder: {reminder.ReminderMessage}", cancellationToken: ct);
+                dispatchedIds.Add(reminder.Id);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break; // Stop processing further on cancellation
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send reminder {ReminderId} to channel {ChannelId}", reminder.Id, reminder.ChannelId);
+            }
         }
 
-        await reminderService.MarkSentAsync(dueReminders.Select(r => r.Id), ct);
+        if (dispatchedIds.Count > 0)
+        {
+            try
+            {
+                await reminderService.MarkSentAsync(dispatchedIds, ct);
+                _logger.LogDebug("Marked {Count} reminder(s) as sent", dispatchedIds.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to mark {Count} reminder(s) as sent", dispatchedIds.Count);
+            }
+        }
     }
 }
