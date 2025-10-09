@@ -3,6 +3,7 @@ using NetCord;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Extensions;
 using WasabiBot.Api.Services;
 
 namespace WasabiBot.Api.Modules;
@@ -61,18 +62,16 @@ internal sealed class CaptionThisCommand : ISlashCommand
 
     private static bool IsImageAttachment(Attachment attachment)
     {
-        if (string.IsNullOrEmpty(attachment.ContentType))
-            return false;
-
-        var imageTypes = new[]
-        {
-            "image/jpeg",
-            "image/jpg",
-            "image/png",
-            "image/gif",
-            "image/webp"
-        };
-
-        return imageTypes.Contains(attachment.ContentType.ToLowerInvariant());
+        return !attachment.ContentType.IsNullOrWhiteSpace() &&
+               AllowedImageContentTypes.Contains(attachment.ContentType!);
     }
+
+    private static readonly HashSet<string> AllowedImageContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp"
+    };
 }

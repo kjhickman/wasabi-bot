@@ -38,9 +38,8 @@ internal sealed class NaturalLanguageTimeToolProvider
         [Description("Calendar day 1-31.")] int day,
         [Description("Calendar year (0 = current year)." )] int year = 0,
         [Description("Hour 0-23 (-1 = infer)." )] int hour = -1,
-        [Description("Minute 0-59 (-1 = infer)." )] int minute = -1,
-        [Description("Time zone ID (IANA or Windows)." )] string? timeZoneId = null)
+        [Description("Minute 0-59 (-1 = infer)." )] int minute = -1)
     {
-        return _resolver.ComputeAbsoluteUtc(month, day, year, hour, minute, timeZoneId);
+        return _resolver.ComputeAbsoluteUtc(month, day, year, hour, minute);
     }
 }

@@ -42,8 +42,7 @@ internal sealed class MagicConchCommand : ISlashCommand
     [Description("Randomly chooses a response from the magic conch shell if the answer is unknown.")]
     private static string GetMagicConchResponse()
     {
-        var totalWeight = MagicConchResponses.Sum(r => r.Weight);
-        var randomNumber = Random.Shared.Next(totalWeight);
+        var randomNumber = Random.Shared.Next(TotalWeight);
 
         var currentWeight = 0;
         foreach (var response in MagicConchResponses)
@@ -64,4 +63,6 @@ internal sealed class MagicConchCommand : ISlashCommand
         ("Maybe", 9),
         ("Try asking again", 3),
     ];
+
+    private static readonly int TotalWeight = MagicConchResponses.Sum(static r => r.Weight);
 }

@@ -16,6 +16,5 @@ internal interface INaturalLanguageTimeResolver
     /// Computes a future (or adjusted) UTC timestamp from calendar components.
     /// Returns null for invalid inputs. If year is 0, current year is assumed; if resulting time is past, a 1-year roll forward is applied.
     /// </summary>
-    DateTimeOffset? ComputeAbsoluteUtc(int month, int day, int year = 0, int hour = -1, int minute = -1, string? timeZoneId = null);
+    DateTimeOffset? ComputeAbsoluteUtc(int month, int day, int year = 0, int hour = -1, int minute = -1);
 }
-

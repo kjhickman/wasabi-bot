@@ -2,7 +2,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
     .WithLifetime(ContainerLifetime.Persistent)
-    .WithDataVolume();
+    .WithDataVolume()
+    .WithPgWeb();
 
 var database = postgres.AddDatabase("wasabi-db");
 var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")

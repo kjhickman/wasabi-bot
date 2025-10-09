@@ -32,6 +32,7 @@ public sealed class ReminderService : IReminderService
     public async Task<List<ReminderEntity>> GetDueAsync(DateTimeOffset now, CancellationToken cancellationToken = default)
     {
         return await _ctx.Reminders
+            .AsNoTracking()
             .Where(r => !r.IsReminderSent && r.RemindAt <= now)
             .OrderBy(r => r.RemindAt)
             .ToListAsync(cancellationToken);
