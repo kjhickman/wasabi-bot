@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
-using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
@@ -27,12 +26,7 @@ internal sealed class MagicConchCommand : ISlashCommand
     private async Task ExecuteAsync(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string question)
     {
         using var span = tracer.StartActiveSpan($"{nameof(MagicConchCommand)}.{nameof(ExecuteAsync)}");
-
-        await using var responder = new AutoResponder(
-            threshold: TimeSpan.FromMilliseconds(2300),
-            defer: _ => ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage()),
-            respond: (text, ephemeral) => ctx.Interaction.SendResponseAsync(InteractionCallback.Message(InteractionMessageFactory.Create(text, ephemeral))),
-            followup: (text, ephemeral) => ctx.Interaction.SendFollowupMessageAsync(InteractionMessageFactory.Create(text, ephemeral)));
+        await using var responder = InteractionResponderFactory.Create(ctx);
 
         var prompt = "You are the Magic Conch shell. The user asks a yes/no style question and you reply succinctly. " +
                      "Rules: If the question is NOT yes/no, respond exactly with 'Try asking again'. " +

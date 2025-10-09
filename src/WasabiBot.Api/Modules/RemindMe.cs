@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using Microsoft.Extensions.AI;
-using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
@@ -137,12 +136,7 @@ internal sealed class RemindMeCommand : ISlashCommand
     private async Task ExecuteAsync(IChatClient chat, Tracer tracer, IReminderService reminderService, ApplicationCommandContext ctx, string when, string reminder)
     {
         using var span = tracer.StartActiveSpan($"{nameof(RemindMeCommand)}.{nameof(ExecuteAsync)}");
-
-        await using var responder = new AutoResponder(
-            threshold: TimeSpan.FromMilliseconds(2300),
-            defer: _ => ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage()),
-            respond: (text, ephemeral) => ctx.Interaction.SendResponseAsync(InteractionCallback.Message(InteractionMessageFactory.Create(text, ephemeral))),
-            followup: (text, ephemeral) => ctx.Interaction.SendFollowupMessageAsync(InteractionMessageFactory.Create(text, ephemeral)));
+        await using var responder = InteractionResponderFactory.Create(ctx);
 
         const string systemInstructions = "The user gives a natural language timeframe. Select the best tool: " +
                                           "Use GetTargetUtcTime for relative offsets like 'in 3 hours', " +

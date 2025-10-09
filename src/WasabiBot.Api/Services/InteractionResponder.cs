@@ -17,15 +17,13 @@ namespace WasabiBot.Api.Services;
 /// // Do work...
 /// await responder.SendAsync(resultText);
 /// </code>
-/// If the work completes before <c>threshold</c>, <see cref="SendAsync(string)"/> sends the initial response.
-/// Otherwise, the responder auto-defers first and <see cref="SendAsync(string)"/> posts a follow-up message.
+/// If the work completes before <c>threshold</c>, <see cref="SendAsync(string,bool)"/> sends the initial response.
+/// Otherwise, the responder auto-defers first and <see cref="SendAsync(string,bool)"/> posts a follow-up message.
 /// Thread-safe acknowledgement is enforced via <see cref="Interlocked"/> so the interaction is only
 /// acknowledged once.
 /// </remarks>
-internal sealed class AutoResponder : IAsyncDisposable
+internal sealed class InteractionResponder : IAsyncDisposable
 {
-    private readonly TimeSpan _threshold;
-    private readonly Func<bool, Task> _defer;
     private readonly Func<string, bool, Task> _respond;
     private readonly Func<string, bool, Task> _followup;
     private readonly CancellationTokenSource _cts = new();
@@ -42,14 +40,12 @@ internal sealed class AutoResponder : IAsyncDisposable
     /// <param name="defer">Callback that sends a deferred response for the interaction. Receives <c>ephemeral</c>.</param>
     /// <param name="respond">Callback that sends the initial response. Receives content and <c>ephemeral</c>.</param>
     /// <param name="followup">Callback that sends a follow-up message. Receives content and <c>ephemeral</c>.</param>
-    public AutoResponder(
+    public InteractionResponder(
         TimeSpan threshold,
         Func<bool, Task> defer,
         Func<string, bool, Task> respond,
         Func<string, bool, Task> followup)
     {
-        _threshold = threshold;
-        _defer = defer;
         _respond = respond;
         _followup = followup;
 
@@ -57,11 +53,11 @@ internal sealed class AutoResponder : IAsyncDisposable
         {
             try
             {
-                await Task.Delay(_threshold, _cts.Token);
+                await Task.Delay(threshold, _cts.Token);
                 if (Interlocked.CompareExchange(ref _state, 1, 0) == 0)
                 {
                     // Auto-defer typically does not need to be ephemeral; pass false by default
-                    await _defer(false);
+                    await defer(false);
                 }
             }
             catch (TaskCanceledException)
@@ -86,7 +82,7 @@ internal sealed class AutoResponder : IAsyncDisposable
     public async Task SendAsync(string content, bool ephemeral = false)
     {
         // Cancel pending auto-defer if any
-        _cts.Cancel();
+        await _cts.CancelAsync();
 
         // Try to be the first to acknowledge
         var previous = Interlocked.CompareExchange(ref _state, 2, 0);
@@ -106,7 +102,7 @@ internal sealed class AutoResponder : IAsyncDisposable
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        _cts.Cancel();
+        await _cts.CancelAsync();
         try
         {
             await _timerTask.ConfigureAwait(false);
