@@ -1,4 +1,4 @@
-namespace WasabiBot.Api.Extensions;
+namespace WasabiBot.Api.Core.Extensions;
 
 public static class StringExtensions
 {

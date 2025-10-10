@@ -1,4 +1,4 @@
-﻿using WasabiBot.Api.Services;
+﻿using WasabiBot.Api.Features.RemindMe.Services;
 using Xunit;
 
 namespace WasabiBot.UnitTests.Api.Services;

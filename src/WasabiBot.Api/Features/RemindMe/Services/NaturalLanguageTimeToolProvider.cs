@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using Microsoft.Extensions.AI;
 
-namespace WasabiBot.Api.Services;
+namespace WasabiBot.Api.Features.RemindMe.Services;
 
 /// <summary>
 /// Provides AI function tool definitions that delegate to <see cref="INaturalLanguageTimeResolver"/>.

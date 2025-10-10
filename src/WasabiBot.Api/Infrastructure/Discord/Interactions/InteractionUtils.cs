@@ -1,11 +1,11 @@
 using NetCord;
 using NetCord.Rest;
 
-namespace WasabiBot.Api.Services;
+namespace WasabiBot.Api.Infrastructure.Discord.Interactions;
 
-internal static class InteractionMessageFactory
+internal static class InteractionUtils
 {
-    public static InteractionMessageProperties Create(string content, bool ephemeral = false)
+    public static InteractionMessageProperties CreateMessage(string content, bool ephemeral = false)
     {
         return new InteractionMessageProperties
         {

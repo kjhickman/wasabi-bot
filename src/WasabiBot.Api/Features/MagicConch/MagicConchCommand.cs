@@ -2,31 +2,25 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
 using NetCord.Services.ApplicationCommands;
-using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Services;
+using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
-namespace WasabiBot.Api.Modules;
+namespace WasabiBot.Api.Features.MagicConch;
 
-internal sealed class MagicConchCommand : ISlashCommand
+internal static class MagicConchCommand
 {
-    public string Name => "conch";
-    public string Description => "Ask the magic conch a question.";
+    public const string Name = "conch";
+    public const string Description = "Ask the magic conch a question.";
 
     private static readonly ChatOptions ChatOptions = new()
     {
         Tools = [AIFunctionFactory.Create(GetMagicConchResponse)]
     };
 
-    public void Register(WebApplication app)
-    {
-        app.AddSlashCommand(Name, Description, ExecuteAsync);
-    }
-
-    private async Task ExecuteAsync(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string question)
+    public static async Task ExecuteAsync(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string question)
     {
         using var span = tracer.StartActiveSpan($"{nameof(MagicConchCommand)}.{nameof(ExecuteAsync)}");
-        await using var responder = InteractionResponderFactory.Create(ctx);
+        await using var responder = InteractionResponder.Create(ctx);
 
         var prompt = "You are the Magic Conch shell. The user asks a yes/no style question and you reply succinctly. " +
                      "Rules: If the question is NOT yes/no, respond exactly with 'Try asking again'. " +

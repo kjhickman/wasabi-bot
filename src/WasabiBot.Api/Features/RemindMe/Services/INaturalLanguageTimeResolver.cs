@@ -1,4 +1,4 @@
-﻿namespace WasabiBot.Api.Services;
+﻿namespace WasabiBot.Api.Features.RemindMe.Services;
 
 /// <summary>
 /// Resolves natural-language-derived temporal components into UTC DateTimeOffsets.

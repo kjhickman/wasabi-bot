@@ -1,7 +1,8 @@
 ﻿using NetCord.Rest;
+using OpenTelemetry.Trace;
 using WasabiBot.DataAccess.Interfaces;
 
-namespace WasabiBot.Api.Services;
+namespace WasabiBot.Api.Features.RemindMe.Services;
 
 public sealed class ReminderDispatcher : BackgroundService
 {
@@ -19,7 +20,6 @@ public sealed class ReminderDispatcher : BackgroundService
     {
         _logger.LogInformation("ReminderDispatcher started (interval: {IntervalSeconds}s)", Interval.TotalSeconds);
 
-        // PeriodicTimer provides cleaner cancellation & eliminates manual Task.Delay try/catch
         using var timer = new PeriodicTimer(Interval);
         try
         {
@@ -58,6 +58,8 @@ public sealed class ReminderDispatcher : BackgroundService
             return;
         }
 
+        var tracer = scope.ServiceProvider.GetRequiredService<Tracer>();
+        using var span = tracer.StartActiveSpan($"{nameof(ReminderDispatcher)}.{nameof(DispatchAsync)}");
         _logger.LogInformation("Dispatching {Count} reminder(s)", dueReminders.Count);
         var dispatchedIds = new List<long>(dueReminders.Count);
 

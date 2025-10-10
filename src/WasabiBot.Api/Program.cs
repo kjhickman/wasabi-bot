@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using WasabiBot.Api.Features.RemindMe.Services;
+using WasabiBot.Api.Infrastructure.AI;
+using WasabiBot.Api.Infrastructure.Discord;
 using WasabiBot.DataAccess;
 using WasabiBot.DataAccess.Interfaces;
 using WasabiBot.DataAccess.Services;
-using WasabiBot.Api.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -15,8 +17,8 @@ builder.Host.UseDefaultServiceProvider(options =>
 });
 
 builder.Configuration.AddUserSecrets<Program>(optional: true);
-builder.Services.AddDiscord();
-builder.AddAIServices();
+builder.Services.AddDiscordInfrastructure();
+builder.AddAIInfrastructure();
 builder.AddServiceDefaults();
 
 builder.Services.AddSingleton(TimeProvider.System);

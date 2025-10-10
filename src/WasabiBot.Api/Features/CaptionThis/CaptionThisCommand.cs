@@ -1,27 +1,21 @@
 ﻿using Microsoft.Extensions.AI;
 using NetCord;
 using NetCord.Services.ApplicationCommands;
-using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Extensions;
-using WasabiBot.Api.Services;
+using WasabiBot.Api.Core.Extensions;
+using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
-namespace WasabiBot.Api.Modules;
+namespace WasabiBot.Api.Features.CaptionThis;
 
-internal sealed class CaptionThisCommand : ISlashCommand
+internal static class CaptionThisCommand
 {
-    public string Name => "caption";
-    public string Description => "Generate a funny caption for an image.";
+    public const string Name = "caption";
+    public const string Description = "Generate a funny caption for an image.";
 
-    public void Register(WebApplication app)
-    {
-        app.AddSlashCommand(Name, Description, ExecuteAsync);
-    }
-
-    private async Task ExecuteAsync(IChatClient chat, HttpClient httpClient, Tracer tracer, ApplicationCommandContext ctx, Attachment image)
+    public static async Task ExecuteAsync(IChatClient chat, HttpClient httpClient, Tracer tracer, ApplicationCommandContext ctx, Attachment image)
     {
         using var span = tracer.StartActiveSpan($"{nameof(CaptionThisCommand)}.{nameof(ExecuteAsync)}");
-        await using var responder = InteractionResponderFactory.Create(ctx);
+        await using var responder = InteractionResponder.Create(ctx);
 
         if (!IsImageAttachment(image))
         {

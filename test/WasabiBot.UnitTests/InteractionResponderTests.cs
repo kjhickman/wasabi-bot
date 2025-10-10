@@ -1,4 +1,4 @@
-﻿using WasabiBot.Api.Services;
+﻿using WasabiBot.Api.Infrastructure.Discord.Interactions;
 using Xunit;
 
 namespace WasabiBot.UnitTests.Api.Services;

@@ -1,4 +1,4 @@
-namespace WasabiBot.Api.Constants;
+namespace WasabiBot.Api.Infrastructure.AI;
 
 public static class AIConstants
 {

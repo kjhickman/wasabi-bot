@@ -1,13 +1,12 @@
 ﻿using System.ClientModel;
 using Microsoft.Extensions.AI;
 using OpenAI;
-using WasabiBot.Api.Constants;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace WasabiBot.Api.Infrastructure.AI;
 
-internal static class AI
+internal static class DependencyInjection
 {
-    public static void AddAIServices(this WebApplicationBuilder builder)
+    public static void AddAIInfrastructure(this WebApplicationBuilder builder)
     {
         var apiKey = builder.Configuration.GetValue<string?>("Gemini:ApiKey") ?? throw new Exception("Gemini API key is missing.");
         var clientOptions = new OpenAIClientOptions { Endpoint = new Uri(AIConstants.Endpoints.Gemini) };

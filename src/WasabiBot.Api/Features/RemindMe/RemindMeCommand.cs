@@ -1,34 +1,28 @@
-﻿using System.ComponentModel;
-using Microsoft.Extensions.AI;
+﻿using Microsoft.Extensions.AI;
 using NetCord.Services.ApplicationCommands;
-using NetCord.Hosting.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Features.RemindMe.Services;
+using WasabiBot.Api.Infrastructure.Discord.Interactions;
 using WasabiBot.DataAccess.Interfaces;
-using WasabiBot.Api.Services;
 
-namespace WasabiBot.Api.Modules;
+namespace WasabiBot.Api.Features.RemindMe;
 
-internal sealed class RemindMeCommand : ISlashCommand
+internal static class RemindMeCommand
 {
-    public string Name => "remindme";
-    public string Description => "Set a reminder for yourself.";
+    public const string Name = "remindme";
+    public const string Description = "Set a reminder for yourself.";
 
-    private readonly ChatOptions _chatOptions;
-
-    public RemindMeCommand(NaturalLanguageTimeToolProvider toolProvider)
-    {
-        _chatOptions = toolProvider.Options;
-    }
-
-    public void Register(WebApplication app)
-    {
-        app.AddSlashCommand(Name, Description, ExecuteAsync);
-    }
-
-    private async Task ExecuteAsync(IChatClient chat, Tracer tracer, IReminderService reminderService, ApplicationCommandContext ctx, string when, string reminder)
+    public static async Task ExecuteAsync(
+        IChatClient chat,
+        Tracer tracer,
+        IReminderService reminderService,
+        NaturalLanguageTimeToolProvider toolProvider,
+        ApplicationCommandContext ctx,
+        string when,
+        string reminder)
     {
         using var span = tracer.StartActiveSpan($"{nameof(RemindMeCommand)}.{nameof(ExecuteAsync)}");
-        await using var responder = InteractionResponderFactory.Create(ctx);
+        await using var responder = InteractionResponder.Create(ctx);
 
         const string systemInstructions = "The user gives a natural language timeframe. Select the best tool: " +
                                           "Use RelativeTime (relative offsets) when phrased like 'in 3 hours', 'after 2 days'. " +
@@ -47,7 +41,7 @@ internal sealed class RemindMeCommand : ISlashCommand
                 new(ChatRole.User, userMessage)
             };
 
-            var response = await chat.GetResponseAsync(messages, _chatOptions);
+            var response = await chat.GetResponseAsync(messages, toolProvider.Options);
             var toolMessage = response.Messages.FirstOrDefault(x => x.Role == ChatRole.Tool);
             if (toolMessage is null)
             {

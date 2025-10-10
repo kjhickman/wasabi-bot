@@ -1,9 +1,10 @@
 ﻿using System.Text.Json;
 using NetCord;
 using NetCord.JsonModels;
+using WasabiBot.Api.Core.Serialization;
 using WasabiBot.DataAccess.Entities;
 
-namespace WasabiBot.Api.Extensions;
+namespace WasabiBot.Api.Core.Extensions;
 
 internal static class InteractionExtensions
 {

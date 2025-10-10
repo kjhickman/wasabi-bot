@@ -1,10 +1,10 @@
 ﻿using NetCord;
 using NetCord.Hosting.Gateway;
-using WasabiBot.Api.Extensions;
-using WasabiBot.DataAccess.Interfaces;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Core.Extensions;
+using WasabiBot.DataAccess.Interfaces;
 
-namespace WasabiBot.Api.EventHandlers;
+namespace WasabiBot.Api.Infrastructure.Discord.EventHandlers;
 
 internal sealed class InteractionCreatedEventHandler : IInteractionCreateGatewayHandler
 {

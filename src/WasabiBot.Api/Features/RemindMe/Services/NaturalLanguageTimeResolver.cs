@@ -1,4 +1,4 @@
-﻿namespace WasabiBot.Api.Services;
+﻿namespace WasabiBot.Api.Features.RemindMe.Services;
 
 internal sealed class NaturalLanguageTimeResolver : INaturalLanguageTimeResolver
 {
