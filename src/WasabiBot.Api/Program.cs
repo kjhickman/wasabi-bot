@@ -19,6 +19,7 @@ builder.Services.AddDiscord();
 builder.AddAIServices();
 builder.AddServiceDefaults();
 
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IReminderService, ReminderService>();
 

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using OpenTelemetry.Trace;
 using Respawn;
 using Testcontainers.PostgreSql;
 using WasabiBot.DataAccess;
@@ -28,6 +29,7 @@ public class TestFixture : IAsyncLifetime
 
         services.AddDbContext<WasabiBotContext>(options => options.UseNpgsql(_dbContainer.GetConnectionString()));
         services.AddTransient<InteractionService>();
+        services.AddSingleton(TracerProvider.Default.GetTracer("WasabiBot"));
 
         ServiceProvider = services.BuildServiceProvider();
     }

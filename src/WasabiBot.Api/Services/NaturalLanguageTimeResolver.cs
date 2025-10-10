@@ -3,6 +3,12 @@
 internal sealed class NaturalLanguageTimeResolver : INaturalLanguageTimeResolver
 {
     private static readonly TimeZoneInfo DefaultTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time");
+    private readonly TimeProvider _timeProvider;
+
+    public NaturalLanguageTimeResolver(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+    }
 
     public DateTimeOffset? ComputeRelativeUtc(int months = 0, int weeks = 0, int days = 0, int hours = 0, int minutes = 0, int seconds = 0)
     {
@@ -19,7 +25,7 @@ internal sealed class NaturalLanguageTimeResolver : INaturalLanguageTimeResolver
         try
         {
             var totalDays = checked(weeks * 7 + days);
-            return DateTimeOffset.UtcNow
+            return _timeProvider.GetUtcNow()
                 .AddMonths(months)
                 .AddDays(totalDays)
                 .AddHours(hours)
@@ -47,7 +53,8 @@ internal sealed class NaturalLanguageTimeResolver : INaturalLanguageTimeResolver
         if (month is < 1 or > 12 || day < 1 || hour < -1 || hour > 23 || minute < -1 || minute > 59)
             return null;
 
-        var nowLocal = DateTimeOffset.UtcNow.ToOffset(DefaultTimeZone.BaseUtcOffset);
+        var nowUtc = _timeProvider.GetUtcNow();
+        var nowLocal = nowUtc.ToOffset(DefaultTimeZone.BaseUtcOffset);
 
         if (year == 0)
         {
