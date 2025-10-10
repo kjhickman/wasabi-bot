@@ -12,7 +12,12 @@ internal static class CaptionThisCommand
     public const string Name = "caption";
     public const string Description = "Generate a funny caption for an image.";
 
-    public static async Task ExecuteAsync(IChatClient chat, HttpClient httpClient, Tracer tracer, ApplicationCommandContext ctx, Attachment image)
+    public static async Task ExecuteAsync(
+        IChatClient chat,
+        HttpClient httpClient,
+        Tracer tracer,
+        ApplicationCommandContext ctx,
+        [SlashCommandParameter(Name = "image", Description = "Interesting image")] Attachment image)
     {
         using var span = tracer.StartActiveSpan($"{nameof(CaptionThisCommand)}.{nameof(ExecuteAsync)}");
         await using var responder = InteractionResponder.Create(ctx);

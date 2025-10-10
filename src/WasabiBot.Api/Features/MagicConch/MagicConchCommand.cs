@@ -17,7 +17,11 @@ internal static class MagicConchCommand
         Tools = [AIFunctionFactory.Create(GetMagicConchResponse)]
     };
 
-    public static async Task ExecuteAsync(IChatClient chat, Tracer tracer, ApplicationCommandContext ctx, string question)
+    public static async Task ExecuteAsync(
+        IChatClient chat,
+        Tracer tracer,
+        ApplicationCommandContext ctx,
+        [SlashCommandParameter(Name = "question", Description = "Ask a yes/no style question")] string question)
     {
         using var span = tracer.StartActiveSpan($"{nameof(MagicConchCommand)}.{nameof(ExecuteAsync)}");
         await using var responder = InteractionResponder.Create(ctx);

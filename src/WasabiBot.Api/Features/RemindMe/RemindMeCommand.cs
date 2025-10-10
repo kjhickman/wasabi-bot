@@ -18,8 +18,8 @@ internal static class RemindMeCommand
         IReminderService reminderService,
         ReminderTimeCalculator reminderTimeCalculator,
         ApplicationCommandContext ctx,
-        string when,
-        string reminder)
+        [SlashCommandParameter(Name = "when", Description = "When should I remind you? e.g., 'in 2 hours' or '10/31 5pm'")] string when,
+        [SlashCommandParameter(Name = "reminder", Description = "What should I remind you about?")] string reminder)
     {
         using var span = tracer.StartActiveSpan($"{nameof(RemindMeCommand)}.{nameof(ExecuteAsync)}");
         await using var responder = InteractionResponder.Create(ctx);
