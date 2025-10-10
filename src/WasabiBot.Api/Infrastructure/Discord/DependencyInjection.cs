@@ -16,9 +16,8 @@ internal static class DependencyInjection
         services.AddApplicationCommands();
         services.AddGatewayHandler<InteractionCreatedEventHandler>();
 
-        // Register discord-related services
-        services.AddSingleton<INaturalLanguageTimeResolver, NaturalLanguageTimeResolver>();
-        services.AddSingleton<NaturalLanguageTimeToolProvider>();
+        // Services used for commands
+        services.AddSingleton<ReminderTimeCalculator>();
     }
 
     public static void MapDiscordCommands(this IHost app)

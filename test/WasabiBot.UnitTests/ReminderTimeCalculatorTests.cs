@@ -1,9 +1,9 @@
 ﻿using WasabiBot.Api.Features.RemindMe.Services;
 using Xunit;
 
-namespace WasabiBot.UnitTests.Api.Services;
+namespace WasabiBot.UnitTests;
 
-public class NaturalLanguageTimeResolverTests
+public class ReminderTimeCalculatorTests
 {
     private sealed class FixedTimeProvider : TimeProvider
     {
@@ -12,7 +12,7 @@ public class NaturalLanguageTimeResolverTests
         public override DateTimeOffset GetUtcNow() => _utcNow;
     }
 
-    private static NaturalLanguageTimeResolver Create(DateTimeOffset utcNow) => new(new FixedTimeProvider(utcNow));
+    private static ReminderTimeCalculator Create(DateTimeOffset utcNow) => new(new FixedTimeProvider(utcNow));
 
     [Fact]
     public void ComputeRelativeUtc_AllZeros_ReturnsNull()

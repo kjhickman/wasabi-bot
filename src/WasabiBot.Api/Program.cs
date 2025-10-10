@@ -25,7 +25,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddScoped<IReminderService, ReminderService>();
 
-builder.Services.AddHostedService<ReminderDispatcher>();
+builder.Services.AddHostedService<ReminderProcessor>();
 
 builder.Services.AddDbContext<WasabiBotContext>(options =>
 {

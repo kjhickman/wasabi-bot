@@ -4,13 +4,13 @@ using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.Api.Features.RemindMe.Services;
 
-public sealed class ReminderDispatcher : BackgroundService
+public sealed class ReminderProcessor : BackgroundService
 {
-    private readonly ILogger<ReminderDispatcher> _logger;
+    private readonly ILogger<ReminderProcessor> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(30);
 
-    public ReminderDispatcher(ILogger<ReminderDispatcher> logger, IServiceScopeFactory scopeFactory)
+    public ReminderProcessor(ILogger<ReminderProcessor> logger, IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
@@ -59,7 +59,7 @@ public sealed class ReminderDispatcher : BackgroundService
         }
 
         var tracer = scope.ServiceProvider.GetRequiredService<Tracer>();
-        using var span = tracer.StartActiveSpan($"{nameof(ReminderDispatcher)}.{nameof(DispatchAsync)}");
+        using var span = tracer.StartActiveSpan($"{nameof(ReminderProcessor)}.{nameof(DispatchAsync)}");
         _logger.LogInformation("Dispatching {Count} reminder(s)", dueReminders.Count);
         var dispatchedIds = new List<long>(dueReminders.Count);
 

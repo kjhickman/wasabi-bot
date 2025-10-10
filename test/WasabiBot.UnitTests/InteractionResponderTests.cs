@@ -1,7 +1,7 @@
 ﻿using WasabiBot.Api.Infrastructure.Discord.Interactions;
 using Xunit;
 
-namespace WasabiBot.UnitTests.Api.Services;
+namespace WasabiBot.UnitTests;
 
 public class InteractionResponderTests
 {

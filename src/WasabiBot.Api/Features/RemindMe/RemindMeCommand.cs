@@ -16,7 +16,7 @@ internal static class RemindMeCommand
         IChatClient chat,
         Tracer tracer,
         IReminderService reminderService,
-        NaturalLanguageTimeToolProvider toolProvider,
+        ReminderTimeCalculator reminderTimeCalculator,
         ApplicationCommandContext ctx,
         string when,
         string reminder)
@@ -41,7 +41,12 @@ internal static class RemindMeCommand
                 new(ChatRole.User, userMessage)
             };
 
-            var response = await chat.GetResponseAsync(messages, toolProvider.Options);
+            // TODO: figure out pattern for injecting tools via DI
+            var relative = AIFunctionFactory.Create(reminderTimeCalculator.ComputeRelativeUtc);
+            var absolute = AIFunctionFactory.Create(reminderTimeCalculator.ComputeAbsoluteUtc);
+            var chatOptions = new ChatOptions { Tools = [relative, absolute] };
+
+            var response = await chat.GetResponseAsync(messages, chatOptions);
             var toolMessage = response.Messages.FirstOrDefault(x => x.Role == ChatRole.Tool);
             if (toolMessage is null)
             {
