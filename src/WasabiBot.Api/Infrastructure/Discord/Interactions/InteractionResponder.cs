@@ -11,23 +11,18 @@ namespace WasabiBot.Api.Infrastructure.Discord.Interactions;
 /// <remarks>
 /// Usage pattern:
 /// <code>
-/// await using var responder = new AutoResponder(
-///     threshold: TimeSpan.FromMilliseconds(2300),
-///     defer: ephemeral => interaction.SendResponseAsync(InteractionCallback.DeferredMessage()),
-///     respond: (text, ephemeral) => interaction.SendResponseAsync(InteractionCallback.Message(text)),
-///     followup: (text, ephemeral) => interaction.SendFollowupMessageAsync(text));
+/// await using var responder = InteractionResponder.Create(ctx);
 ///
 /// // Do work...
 /// await responder.SendAsync(resultText);
 /// </code>
-/// If the work completes before <c>threshold</c>, <see cref="SendAsync(string,bool)"/> sends the initial response.
-/// Otherwise, the responder auto-defers first and <see cref="SendAsync(string,bool)"/> posts a follow-up message.
+/// If the work completes before the defer cutoff (2.5 seconds after interaction creation), <see cref="SendAsync(string,bool)"/>
+/// sends the initial response. Otherwise, the responder auto-defers first and <see cref="SendAsync(string,bool)"/> posts a follow-up message.
 /// Thread-safe acknowledgement is enforced via <see cref="Interlocked"/> so the interaction is only
 /// acknowledged once.
 /// </remarks>
 internal sealed class InteractionResponder : IAsyncDisposable
 {
-    private static readonly TimeSpan DefaultThreshold = TimeSpan.FromMilliseconds(2300);
     private readonly Func<string, bool, Task> _respond;
     private readonly Func<string, bool, Task> _followup;
     private readonly CancellationTokenSource _cts = new();
@@ -38,14 +33,14 @@ internal sealed class InteractionResponder : IAsyncDisposable
 
     /// <summary>
     /// Creates a new auto-responder that will defer the interaction if the initial
-    /// response has not been sent within the specified <paramref name="threshold"/>.
+    /// response has not been sent before the specified <paramref name="deferCutoff"/>.
     /// </summary>
-    /// <param name="threshold">The time to wait before sending a deferred acknowledgement.</param>
+    /// <param name="deferCutoff">The absolute point in time when the interaction should be deferred.</param>
     /// <param name="defer">Callback that sends a deferred response for the interaction. Receives <c>ephemeral</c>.</param>
     /// <param name="respond">Callback that sends the initial response. Receives content and <c>ephemeral</c>.</param>
     /// <param name="followup">Callback that sends a follow-up message. Receives content and <c>ephemeral</c>.</param>
     internal InteractionResponder(
-        TimeSpan threshold,
+        DateTimeOffset deferCutoff,
         Func<bool, Task> defer,
         Func<string, bool, Task> respond,
         Func<string, bool, Task> followup)
@@ -57,7 +52,11 @@ internal sealed class InteractionResponder : IAsyncDisposable
         {
             try
             {
-                await Task.Delay(threshold, _cts.Token);
+                var remaining = deferCutoff - DateTimeOffset.UtcNow;
+                if (remaining > TimeSpan.Zero)
+                {
+                    await Task.Delay(remaining, _cts.Token);
+                }
                 if (Interlocked.CompareExchange(ref _state, 1, 0) == 0)
                 {
                     // Auto-defer typically does not need to be ephemeral; pass false by default
@@ -75,12 +74,12 @@ internal sealed class InteractionResponder : IAsyncDisposable
     /// Creates an <see cref="InteractionResponder"/> bound to the provided command context.
     /// </summary>
     /// <param name="ctx">The application command context.</param>
-    /// <param name="threshold">Optional override for defer threshold. Defaults to ~2.3 seconds.</param>
     /// <returns>A new <see cref="InteractionResponder"/> instance (caller is responsible for disposing).</returns>
-    public static InteractionResponder Create(ApplicationCommandContext ctx, TimeSpan? threshold = null)
+    public static InteractionResponder Create(ApplicationCommandContext ctx, int deferMilliseconds = 2500)
     {
+        var deferCutoff = ctx.Interaction.CreatedAt + TimeSpan.FromMilliseconds(deferMilliseconds);
         return new InteractionResponder(
-            threshold: threshold ?? DefaultThreshold,
+            deferCutoff: deferCutoff,
             defer: _ => ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage()),
             respond: (text, ephemeral) => ctx.Interaction.SendResponseAsync(InteractionCallback.Message(InteractionUtils.CreateMessage(text, ephemeral))),
             followup: (text, ephemeral) => ctx.Interaction.SendFollowupMessageAsync(InteractionUtils.CreateMessage(text, ephemeral)));
