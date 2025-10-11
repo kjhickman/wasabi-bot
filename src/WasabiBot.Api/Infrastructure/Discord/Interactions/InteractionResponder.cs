@@ -116,6 +116,11 @@ internal sealed class InteractionResponder : IAsyncDisposable
         await _followup(content, ephemeral);
     }
 
+    public async Task SendEphemeralAsync(string content)
+    {
+        await SendAsync(content, ephemeral: true);
+    }
+
     /// <summary>
     /// Cancels the pending auto-defer (if any) and waits for the internal timer task to complete.
     /// </summary>

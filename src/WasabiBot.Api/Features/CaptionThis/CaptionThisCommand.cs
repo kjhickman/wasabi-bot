@@ -7,7 +7,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.CaptionThis;
 
-internal static class CaptionThisCommand
+internal class CaptionThisCommand
 {
     public const string Name = "caption";
     public const string Description = "Generate a funny caption for an image.";
@@ -16,6 +16,7 @@ internal static class CaptionThisCommand
         IChatClient chat,
         HttpClient httpClient,
         Tracer tracer,
+        ILogger<CaptionThisCommand> logger,
         ApplicationCommandContext ctx,
         [SlashCommandParameter(Name = "image", Description = "Interesting image")] Attachment image)
     {
@@ -24,13 +25,13 @@ internal static class CaptionThisCommand
 
         if (!IsImageAttachment(image))
         {
-            await responder.SendAsync("Please provide a valid image file (jpg, jpeg, png, gif, webp).", ephemeral: true);
+            await responder.SendEphemeralAsync("Please provide a valid image file (jpg, jpeg, png, gif, webp).");
             return;
         }
 
         if (image.Size > 10 * 1024 * 1024) // 10MB limit
         {
-            await responder.SendAsync("Image is too large. Please provide an image smaller than 10MB.", ephemeral: true);
+            await responder.SendEphemeralAsync("Image is too large. Please provide an image smaller than 10MB.");
             return;
         }
 
@@ -55,7 +56,7 @@ internal static class CaptionThisCommand
         catch (Exception ex)
         {
             span.RecordException(ex);
-            await responder.SendAsync("Sorry, I had trouble processing that image. Please try again with a different image.", ephemeral: true);
+            await responder.SendEphemeralAsync("Sorry, I had trouble processing that image. Please try again with a different image.");
         }
     }
 

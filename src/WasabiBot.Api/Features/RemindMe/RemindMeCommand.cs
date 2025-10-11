@@ -48,21 +48,16 @@ internal static class RemindMeCommand
 
             var response = await chat.GetResponseAsync(messages, chatOptions);
             var toolMessage = response.Messages.FirstOrDefault(x => x.Role == ChatRole.Tool);
-            if (toolMessage is null)
+            if (toolMessage?.Contents.FirstOrDefault() is not FunctionResultContent functionResult)
             {
-                await responder.SendAsync("Failed to get a response from the AI tool.", ephemeral: true);
-                return;
-            }
-            if (toolMessage.Contents.FirstOrDefault() is not FunctionResultContent functionResult)
-            {
-                await responder.SendAsync("The AI did not call the expected function.", ephemeral: true);
+                await responder.SendEphemeralAsync("Failed to get a response from the AI tool.");
                 return;
             }
 
             var raw = functionResult.Result?.ToString();
             if (string.IsNullOrWhiteSpace(raw))
             {
-                await responder.SendAsync("I couldn't interpret that timeframe.", ephemeral: true);
+                await responder.SendEphemeralAsync("I couldn't interpret that timeframe.");
                 return;
             }
 
@@ -70,7 +65,7 @@ internal static class RemindMeCommand
             {
                 if (targetTime <= DateTimeOffset.UtcNow.AddSeconds(30))
                 {
-                    await responder.SendAsync("Only future times are allowed.", ephemeral: true);
+                    await responder.SendEphemeralAsync("Only future times are allowed.");
                     return;
                 }
 
@@ -82,7 +77,7 @@ internal static class RemindMeCommand
 
                 if (!created)
                 {
-                    await responder.SendAsync("Failed to store reminder in database.", ephemeral: true);
+                    await responder.SendEphemeralAsync("Reminder failed to save. Please try again later.");
                     return;
                 }
 
@@ -91,13 +86,13 @@ internal static class RemindMeCommand
             }
             else
             {
-                await responder.SendAsync("Could not parse tool result into a date/time.", ephemeral: true);
+                await responder.SendEphemeralAsync("Something went wrong interpreting that timeframe.");
             }
         }
         catch (Exception ex)
         {
             span.RecordException(ex);
-            await responder.SendAsync($"Failed to process timeframe. Error: {ex.Message}\nOriginal timeframe: {when}\nReminder: {reminder}", ephemeral: true);
+            await responder.SendEphemeralAsync($"Failed to process reminder.");
         }
     }
 }
