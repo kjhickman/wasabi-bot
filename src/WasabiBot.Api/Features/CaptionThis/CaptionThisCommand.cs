@@ -23,14 +23,29 @@ internal class CaptionThisCommand
         using var span = tracer.StartActiveSpan($"{nameof(CaptionThisCommand)}.{nameof(ExecuteAsync)}");
         await using var responder = InteractionResponder.Create(ctx);
 
+        logger.LogInformation(
+            "Caption command invoked by user {Username} in channel {ChannelId} with attachment {FileName}",
+            ctx.Interaction.User.Username,
+            ctx.Interaction.Channel.Id,
+            image.FileName);
+
         if (!IsImageAttachment(image))
         {
+            logger.LogWarning(
+                "Unsupported attachment type {ContentType} provided by user {Username} for caption command",
+                image.ContentType,
+                ctx.Interaction.User.Username);
             await responder.SendEphemeralAsync("Please provide a valid image file (jpg, jpeg, png, gif, webp).");
             return;
         }
 
         if (image.Size > 10 * 1024 * 1024) // 10MB limit
         {
+            logger.LogWarning(
+                "Attachment {FileName} rejected due to size {SizeBytes} bytes from user {Username}",
+                image.FileName,
+                image.Size,
+                ctx.Interaction.User.Username);
             await responder.SendEphemeralAsync("Image is too large. Please provide an image smaller than 10MB.");
             return;
         }
@@ -49,13 +64,22 @@ internal class CaptionThisCommand
                 ])
             };
 
-            var caption = await chat.GetResponseAsync(messages);
-            var response = image.Url + "\n" + caption;
+            var captionResponse = await chat.GetResponseAsync(messages);
+            var captionText = captionResponse.Text ?? string.Empty;
+            var response = image.Url + "\n" + captionText;
+            logger.LogInformation(
+                "Caption generated successfully for user {Username}",
+                ctx.Interaction.User.Username);
             await responder.SendAsync(response);
         }
         catch (Exception ex)
         {
             span.RecordException(ex);
+            logger.LogError(
+                ex,
+                "Failed to generate caption for user {Username} with attachment {FileName}",
+                ctx.Interaction.User.Username,
+                image.FileName);
             await responder.SendEphemeralAsync("Sorry, I had trouble processing that image. Please try again with a different image.");
         }
     }

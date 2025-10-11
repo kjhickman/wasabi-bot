@@ -7,7 +7,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.MagicConch;
 
-internal static class MagicConchCommand
+internal class MagicConchCommand
 {
     public const string Name = "conch";
     public const string Description = "Ask the magic conch a question.";
@@ -20,11 +20,18 @@ internal static class MagicConchCommand
     public static async Task ExecuteAsync(
         IChatClient chat,
         Tracer tracer,
+        ILogger<MagicConchCommand> logger,
         ApplicationCommandContext ctx,
         [SlashCommandParameter(Name = "question", Description = "Ask a yes/no style question")] string question)
     {
         using var span = tracer.StartActiveSpan($"{nameof(MagicConchCommand)}.{nameof(ExecuteAsync)}");
         await using var responder = InteractionResponder.Create(ctx);
+
+        var userDisplayName = ctx.Interaction.User.GlobalName ?? ctx.Interaction.User.Username;
+        logger.LogInformation(
+            "Magic conch command invoked by user {User} in channel {ChannelId}",
+            userDisplayName,
+            ctx.Interaction.Channel.Id);
 
         var prompt = "You are the Magic Conch shell. The user asks a yes/no style question and you reply succinctly. " +
                      "Rules: If the question is NOT yes/no, respond exactly with 'Try asking again'. " +
@@ -33,8 +40,24 @@ internal static class MagicConchCommand
                      "Never add extra commentary, punctuation, or markdown.\n" +
                      $"Question: {question}";
 
-        var response = await chat.GetResponseAsync(prompt, ChatOptions);
-        await responder.SendAsync(response.Text);
+        try
+        {
+            var response = await chat.GetResponseAsync(prompt, ChatOptions);
+            logger.LogInformation(
+                "Magic conch responded to user {User} with answer '{Answer}'",
+                userDisplayName,
+                response.Text);
+            await responder.SendAsync(response.Text);
+        }
+        catch (Exception ex)
+        {
+            span.RecordException(ex);
+            logger.LogError(
+                ex,
+                "Magic conch failed to process question for user {User}",
+                userDisplayName);
+            await responder.SendEphemeralAsync("The magic conch is silent right now. Please try again later.");
+        }
     }
 
     [Description("Randomly chooses a response from the magic conch shell if the answer is unknown.")]

@@ -22,6 +22,7 @@ internal static class InteractionExtensions
             GuildId = interaction.GuildId.HasValue ? (long?)interaction.GuildId.Value : null,
             Username = interaction.User.Username,
             GlobalName = interaction.User.GlobalName,
+            Nickname = (interaction.User as GuildUser)?.Nickname,
             Data = JsonSerializer.Serialize(interactionData, JsonContext.Default.JsonInteractionData),
             CreatedAt = interaction.CreatedAt
         };
