@@ -44,6 +44,7 @@ if (!builder.Environment.IsDevelopment())
             Database = "postgres",
             Username = "admin",
             SslMode = SslMode.Require,
+            NoResetOnClose = true
         };
 
         var dsb = new NpgsqlDataSourceBuilder(connectionStringBuilder.ConnectionString);

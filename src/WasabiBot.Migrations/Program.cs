@@ -21,7 +21,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
     var creds = DefaultAWSCredentialsIdentityResolver.GetCredentials();
     var token = DSQLAuthTokenGenerator.GenerateDbConnectAdminAuthToken(creds, RegionEndpoint.USEast1, dsqlEndpoint);
 
-    connectionString = $"Host={dsqlEndpoint};Database={database};Username={username};Password={token};Ssl Mode=Require";
+    connectionString = $"Host={dsqlEndpoint};Database={database};Username={username};Password={token};Ssl Mode=Require;NoResetOnClose=True";
     Console.WriteLine("Using Aurora DSQL token-based connection for migrations.");
 }
 
