@@ -11,6 +11,7 @@ data "terraform_remote_state" "network" {
 locals {
   environment                            = "staging"
   project                                = "wasabi-bot"
+  api_service_name                       = "wasabi-bot-api"
   ecs_cluster_name                       = data.terraform_remote_state.network.outputs.ecs_cluster_name
   vpc_id                                 = data.terraform_remote_state.network.outputs.vpc_id
   public_subnet_ids                      = data.terraform_remote_state.network.outputs.public_subnet_ids
