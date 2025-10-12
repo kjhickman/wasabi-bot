@@ -7,10 +7,6 @@ on:
         description: 'Target environment (e.g. production, staging)'
         required: true
         default: 'staging'
-      force:
-        description: 'Force run even if no code changes in DataAccess/Migrations'
-        required: false
-        default: 'false'
   # push:
   #   branches: [ main ]
   #   paths:
@@ -20,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   migrate:
