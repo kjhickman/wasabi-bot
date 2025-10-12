@@ -2,7 +2,12 @@ data "aws_region" "current" {}
 
 resource "aws_ecr_repository" "wasabi_bot" {
   name                 = "${local.project}/${local.api_service_name}-${local.environment}"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "IMMUTABLE_WITH_EXCLUSION"
+
+  image_tag_mutability_exclusion_filter {
+    filter      = "latest*"
+    filter_type = "WILDCARD"
+  }
 
   image_scanning_configuration {
     scan_on_push = true
