@@ -67,3 +67,47 @@ artifacts/
 
 # MacOS
 .DS_Store
+
+# Terraform files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.terraform.d/
+
+# Local .terraform directories
+**/.terraform/*
+
+# Exclude all .tfvars files, which might contain sensitive data
+**/*.tfvars
+**/*.tfvars.json
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+# Ignore any generated files
+**/plan-output
+
+# IDE & OS specific files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Ignore any local environment files
+.env
+.envrc
