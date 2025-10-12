@@ -35,6 +35,46 @@ resource "aws_cloudwatch_log_group" "wasabi_bot_api" {
   retention_in_days = 14
 }
 
+resource "aws_security_group" "wasabi_bot_api" {
+  name        = "${local.api_container_name}-sg"
+  description = "Security group for the Wasabi Bot API service."
+  vpc_id      = local.vpc_id
+
+  ingress {
+    description     = "Allow API Gateway VPC Link traffic"
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [local.vpc_link_security_group_id]
+  }
+
+  egress {
+    description = "Allow outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${local.api_container_name}-sg"
+  }
+}
+
+resource "aws_service_discovery_service" "wasabi_bot_api" {
+  name = local.api_container_name
+
+  dns_config {
+    namespace_id = local.service_discovery_namespace_id
+    routing_policy = "MULTIVALUE"
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+  }
+}
+
 resource "aws_ecs_task_definition" "wasabi_bot_api" {
   family                   = local.api_container_name
   requires_compatibilities = ["FARGATE"]
@@ -91,4 +131,30 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
   tags = {
     Name = local.api_container_name
   }
+}
+
+resource "aws_ecs_service" "wasabi_bot_api" {
+  name            = local.api_container_name
+  cluster         = local.ecs_cluster_name
+  task_definition = aws_ecs_task_definition.wasabi_bot_api.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+  enable_execute_command             = true
+
+  network_configuration {
+    subnets         = local.public_subnet_ids
+    security_groups = [aws_security_group.wasabi_bot_api.id]
+    assign_public_ip = false
+  }
+
+  service_registries {
+    registry_arn   = aws_service_discovery_service.wasabi_bot_api.arn
+  }
+
+  depends_on = [
+    aws_cloudwatch_log_group.wasabi_bot_api
+  ]
 }
