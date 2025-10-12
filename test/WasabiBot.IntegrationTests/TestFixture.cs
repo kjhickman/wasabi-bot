@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using OpenTelemetry.Trace;
 using Respawn;
+using System.Data;
 using Testcontainers.PostgreSql;
 using WasabiBot.DataAccess;
 using WasabiBot.DataAccess.Services;
@@ -49,7 +50,7 @@ public class TestFixture : IAsyncLifetime
         _respawner = await Respawner.CreateAsync(_connection, new RespawnerOptions
         {
             DbAdapter = DbAdapter.Postgres,
-            SchemasToInclude = ["public"]
+            SchemasToInclude = ["wasabi_bot"]
         });
     }
 
