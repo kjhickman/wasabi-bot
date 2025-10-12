@@ -12,14 +12,15 @@ using WasabiBot.DataAccess;
 namespace WasabiBot.DataAccess.Migrations
 {
     [DbContext(typeof(WasabiBotContext))]
-    [Migration("20251008025850_AddReminders")]
-    partial class AddReminders
+    [Migration("20251012221814_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("wasabi_bot")
                 .HasAnnotation("ProductVersion", "9.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -65,7 +66,7 @@ namespace WasabiBot.DataAccess.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Interactions");
+                    b.ToTable("Interactions", "wasabi_bot");
                 });
 
             modelBuilder.Entity("WasabiBot.DataAccess.Entities.ReminderEntity", b =>
@@ -100,7 +101,7 @@ namespace WasabiBot.DataAccess.Migrations
                     b.HasIndex("RemindAt")
                         .HasFilter("\"IsReminderSent\" = FALSE");
 
-                    b.ToTable("Reminders");
+                    b.ToTable("Reminders", "wasabi_bot");
                 });
 #pragma warning restore 612, 618
         }

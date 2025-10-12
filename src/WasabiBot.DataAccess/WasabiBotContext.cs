@@ -10,6 +10,8 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema("wasabi_bot");
+
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<InteractionEntity>(builder =>
         {
