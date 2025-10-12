@@ -14,7 +14,7 @@ internal static class DependencyInjection
     {
         services.AddDiscordGateway();
         services.AddApplicationCommands();
-        services.AddGatewayHandler<InteractionCreatedEventHandler>();
+        // services.AddGatewayHandler<InteractionCreatedEventHandler>();
 
         // Services used for commands
         services.AddSingleton<ReminderTimeCalculator>();

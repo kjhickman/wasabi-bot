@@ -88,21 +88,21 @@ internal class RemindMeCommand
                     return;
                 }
 
-                var created = await reminderService.CreateAsync(
-                    userId: (long)ctx.Interaction.User.Id,
-                    channelId: (long)ctx.Interaction.Channel.Id,
-                    reminder: reminder,
-                    remindAt: targetTime);
-
-                if (!created)
-                {
-                    logger.LogError(
-                        "Failed to persist reminder for user {User} targeting {TargetTime}",
-                        userDisplayName,
-                        targetTime.ToString("O"));
-                    await responder.SendEphemeralAsync("Reminder failed to save. Please try again later.");
-                    return;
-                }
+                // var created = await reminderService.CreateAsync(
+                //     userId: (long)ctx.Interaction.User.Id,
+                //     channelId: (long)ctx.Interaction.Channel.Id,
+                //     reminder: reminder,
+                //     remindAt: targetTime);
+                //
+                // if (!created)
+                // {
+                //     logger.LogError(
+                //         "Failed to persist reminder for user {User} targeting {TargetTime}",
+                //         userDisplayName,
+                //         targetTime.ToString("O"));
+                //     await responder.SendEphemeralAsync("Reminder failed to save. Please try again later.");
+                //     return;
+                // }
 
                 var unixTimeSeconds = targetTime.ToUnixTimeSeconds();
                 logger.LogInformation(

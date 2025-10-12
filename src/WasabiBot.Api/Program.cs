@@ -22,15 +22,15 @@ builder.AddAIInfrastructure();
 builder.AddServiceDefaults();
 
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddScoped<IInteractionService, InteractionService>();
-builder.Services.AddScoped<IReminderService, ReminderService>();
+// builder.Services.AddScoped<IInteractionService, InteractionService>();
+// builder.Services.AddScoped<IReminderService, ReminderService>();
 
-builder.Services.AddHostedService<ReminderProcessor>();
-
-builder.Services.AddDbContext<WasabiBotContext>(options =>
-{
-    options.UseNpgsql(builder.Configuration.GetConnectionString("wasabi-db"));
-});
+// builder.Services.AddHostedService<ReminderProcessor>();
+//
+// builder.Services.AddDbContext<WasabiBotContext>(options =>
+// {
+//     options.UseNpgsql(builder.Configuration.GetConnectionString("wasabi-db"));
+// });
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
