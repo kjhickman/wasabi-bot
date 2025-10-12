@@ -147,7 +147,7 @@ resource "aws_ecs_service" "wasabi_bot_api" {
   network_configuration {
     subnets         = local.public_subnet_ids
     security_groups = [aws_security_group.wasabi_bot_api.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   service_registries {
