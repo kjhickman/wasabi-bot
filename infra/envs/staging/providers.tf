@@ -6,6 +6,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+
+    neon = {
+      source  = "kislerdm/neon"
+      version = ">= 0.10.0"
+    }
   }
 
   backend "s3" {
@@ -28,3 +33,6 @@ provider "aws" {
     }
   }
 }
+
+# API key is read from the environment variable `NEON_API_KEY`
+provider "neon" {}

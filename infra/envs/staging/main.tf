@@ -163,3 +163,16 @@ resource "aws_ecs_service" "wasabi_bot_api" {
     aws_cloudwatch_log_group.wasabi_bot_api
   ]
 }
+
+resource "neon_role" "main" {
+  project_id = local.neon_project_id
+  branch_id  = local.neon_project_default_branch_id
+  name       = "${local.project}_admin"
+}
+
+resource "neon_database" "main" {
+  project_id = local.neon_project_id
+  branch_id  = local.neon_project_default_branch_id
+  name       = "${local.project}"
+  owner_name = neon_role.main.name
+}
