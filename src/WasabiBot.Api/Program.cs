@@ -26,9 +26,9 @@ builder.AddServiceDefaults();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IInteractionService, InteractionService>();
-builder.Services.AddScoped<IReminderService, ReminderService>();
+// builder.Services.AddScoped<IReminderService, ReminderService>();
 
-builder.Services.AddHostedService<ReminderProcessor>();
+// builder.Services.AddHostedService<ReminderProcessor>();
 
 if (!builder.Environment.IsDevelopment())
 {
@@ -44,7 +44,7 @@ if (!builder.Environment.IsDevelopment())
             Database = "postgres",
             Username = "admin",
             SslMode = SslMode.Require,
-            NoResetOnClose = true
+            NoResetOnClose = true,
         };
 
         var dsb = new NpgsqlDataSourceBuilder(connectionStringBuilder.ConnectionString);

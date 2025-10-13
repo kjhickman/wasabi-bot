@@ -17,13 +17,13 @@ internal static class DependencyInjection
         services.AddGatewayHandler<InteractionCreatedEventHandler>();
 
         // Services used for commands
-        services.AddSingleton<ReminderTimeCalculator>();
+        // services.AddSingleton<ReminderTimeCalculator>();
     }
 
     public static void MapDiscordCommands(this IHost app)
     {
         app.AddSlashCommand(MagicConchCommand.Name, MagicConchCommand.Description, MagicConchCommand.ExecuteAsync);
         app.AddSlashCommand(CaptionThisCommand.Name, CaptionThisCommand.Description, CaptionThisCommand.ExecuteAsync);
-        app.AddSlashCommand(RemindMeCommand.Name, RemindMeCommand.Description, RemindMeCommand.ExecuteAsync);
+        // app.AddSlashCommand(RemindMeCommand.Name, RemindMeCommand.Description, RemindMeCommand.ExecuteAsync);
     }
 }
