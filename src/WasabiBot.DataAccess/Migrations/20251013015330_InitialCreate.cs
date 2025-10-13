@@ -12,12 +12,8 @@ namespace WasabiBot.DataAccess.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.EnsureSchema(
-                name: "wasabi_bot");
-
             migrationBuilder.CreateTable(
                 name: "Interactions",
-                schema: "wasabi_bot",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
@@ -38,7 +34,6 @@ namespace WasabiBot.DataAccess.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Reminders",
-                schema: "wasabi_bot",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -57,20 +52,17 @@ namespace WasabiBot.DataAccess.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_Interactions_GuildId",
-                schema: "wasabi_bot",
                 table: "Interactions",
                 column: "GuildId",
                 filter: "\"GuildId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Interactions_UserId",
-                schema: "wasabi_bot",
                 table: "Interactions",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Reminders_RemindAt",
-                schema: "wasabi_bot",
                 table: "Reminders",
                 column: "RemindAt",
                 filter: "\"IsReminderSent\" = FALSE");
@@ -80,12 +72,10 @@ namespace WasabiBot.DataAccess.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Interactions",
-                schema: "wasabi_bot");
+                name: "Interactions");
 
             migrationBuilder.DropTable(
-                name: "Reminders",
-                schema: "wasabi_bot");
+                name: "Reminders");
         }
     }
 }

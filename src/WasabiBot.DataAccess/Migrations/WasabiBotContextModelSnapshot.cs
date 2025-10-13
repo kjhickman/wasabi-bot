@@ -17,7 +17,6 @@ namespace WasabiBot.DataAccess.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("wasabi_bot")
                 .HasAnnotation("ProductVersion", "9.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -63,7 +62,7 @@ namespace WasabiBot.DataAccess.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Interactions", "wasabi_bot");
+                    b.ToTable("Interactions");
                 });
 
             modelBuilder.Entity("WasabiBot.DataAccess.Entities.ReminderEntity", b =>
@@ -98,7 +97,7 @@ namespace WasabiBot.DataAccess.Migrations
                     b.HasIndex("RemindAt")
                         .HasFilter("\"IsReminderSent\" = FALSE");
 
-                    b.ToTable("Reminders", "wasabi_bot");
+                    b.ToTable("Reminders");
                 });
 #pragma warning restore 612, 618
         }
