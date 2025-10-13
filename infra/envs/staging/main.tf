@@ -123,6 +123,10 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
         {
           name      = "Discord__Token"
           valueFrom = "/wasabi-bot/staging/DiscordToken"
+        },
+        {
+          name      = "ConnectionStrings__wasabi-db"
+          valueFrom = "/wasabi-bot/staging/NeonDbConnectionString"
         }
       ]
     }
