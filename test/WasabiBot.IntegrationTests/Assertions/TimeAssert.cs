@@ -1,7 +1,4 @@
-﻿using System;
-using Xunit;
-
-namespace WasabiBot.IntegrationTests.Assertions;
+﻿namespace WasabiBot.IntegrationTests.Assertions;
 
 /// <summary>
 /// Provides helper assertions for comparing DateTimeOffset values where the data store truncates

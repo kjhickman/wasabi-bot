@@ -36,8 +36,5 @@
     <PackageVersion Include="Serilog" Version="4.3.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
-    <!-- AWS Aurora DSQL connectivity (token generation + default credential chain) -->
-    <PackageVersion Include="AWSSDK.DSQL" Version="4.0.4.11" />
-    <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.3.6" />
   </ItemGroup>
 </Project>

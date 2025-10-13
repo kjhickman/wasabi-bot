@@ -2,8 +2,6 @@
 using NetCord.Hosting.Services.ApplicationCommands;
 using WasabiBot.Api.Features.CaptionThis;
 using WasabiBot.Api.Features.MagicConch;
-using WasabiBot.Api.Features.RemindMe;
-using WasabiBot.Api.Features.RemindMe.Services;
 using WasabiBot.Api.Infrastructure.Discord.EventHandlers;
 
 namespace WasabiBot.Api.Infrastructure.Discord;

@@ -22,6 +22,6 @@ locals {
   vpc_link_id                            = data.terraform_remote_state.network.outputs.vpc_link_id
   vpc_link_security_group_id             = data.terraform_remote_state.network.outputs.vpc_link_security_group_id
   service_discovery_namespace_id         = data.terraform_remote_state.network.outputs.service_discovery_namespace_id
-  dsql_cluster_arn                       = data.terraform_remote_state.network.outputs.dsql_cluster_arn
-  dsql_cluster_vpc_endpoint_service_name = data.terraform_remote_state.network.outputs.dsql_cluster_vpc_endpoint_service_name
+  neon_project_id                        = data.terraform_remote_state.network.outputs.neon_project_id
+  neon_project_default_branch_id         = data.terraform_remote_state.network.outputs.neon_project_default_branch_id
 }

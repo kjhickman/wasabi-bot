@@ -22,8 +22,6 @@
       <PackageReference Include="Microsoft.Extensions.Configuration" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
       <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
-      <PackageReference Include="AWSSDK.DSQL" />
-      <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" />
     </ItemGroup>
 
 </Project>
