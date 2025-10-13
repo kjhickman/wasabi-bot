@@ -54,4 +54,6 @@ jobs:
           aws-region: us-east-1
 
       - name: Run migrations
+        env:
+          ConnectionStrings__wasabi-db: ${{ secrets.PG_CONNECTION_STRING }}
         run: dotnet run --project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj --configuration Release --no-build
