@@ -29,7 +29,6 @@ public class TestFixture : IAsyncLifetime
 
         services.AddDbContext<WasabiBotContext>(options => options.UseNpgsql(_dbContainer.GetConnectionString()));
         services.AddTransient<InteractionService>();
-        services.AddTransient<ReminderService>();
         services.AddSingleton(TracerProvider.Default.GetTracer("WasabiBot"));
 
         ServiceProvider = services.BuildServiceProvider();

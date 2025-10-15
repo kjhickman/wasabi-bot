@@ -12,6 +12,7 @@
       <PackageReference Include="Microsoft.Extensions.AI" />
       <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
       <PackageReference Include="NetCord.Hosting.Services" />
+      <PackageReference Include="TickerQ" />
     </ItemGroup>
 
     <ItemGroup>

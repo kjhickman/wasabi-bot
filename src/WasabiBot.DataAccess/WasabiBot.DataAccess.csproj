@@ -12,6 +12,11 @@
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" PrivateAssets="all" />
       <PackageReference Include="OpenTelemetry.Api" />
+      <PackageReference Include="TickerQ.EntityFrameworkCore" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Migrations\" />
     </ItemGroup>
 
 </Project>

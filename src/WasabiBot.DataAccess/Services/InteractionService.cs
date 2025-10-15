@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Trace;
+using WasabiBot.DataAccess.Abstractions;
 using WasabiBot.DataAccess.Entities;
-using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.DataAccess.Services;
 

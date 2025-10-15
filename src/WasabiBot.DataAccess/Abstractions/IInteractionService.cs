@@ -1,6 +1,6 @@
 ﻿using WasabiBot.DataAccess.Entities;
 
-namespace WasabiBot.DataAccess.Interfaces;
+namespace WasabiBot.DataAccess.Abstractions;
 
 public interface IInteractionService
 {

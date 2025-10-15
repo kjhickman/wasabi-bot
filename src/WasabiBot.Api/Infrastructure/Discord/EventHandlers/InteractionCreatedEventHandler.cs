@@ -2,7 +2,7 @@
 using NetCord.Hosting.Gateway;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Core.Extensions;
-using WasabiBot.DataAccess.Interfaces;
+using WasabiBot.DataAccess.Abstractions;
 
 namespace WasabiBot.Api.Infrastructure.Discord.EventHandlers;
 

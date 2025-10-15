@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.AI;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Features.RemindMe.Abstractions;
+using WasabiBot.Api.Features.RemindMe.Contracts;
 using WasabiBot.Api.Features.RemindMe.Services;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
-using WasabiBot.DataAccess.Interfaces;
 
 namespace WasabiBot.Api.Features.RemindMe;
 
@@ -88,13 +89,16 @@ internal class RemindMeCommand
                     return;
                 }
 
-                var created = await reminderService.CreateAsync(
-                    userId: (long)ctx.Interaction.User.Id,
-                    channelId: (long)ctx.Interaction.Channel.Id,
-                    reminder: reminder,
-                    remindAt: targetTime);
+                var reminderRequest = new CreateReminderRequest
+                {
+                    UserId = (long)ctx.Interaction.User.Id,
+                    ChannelId = (long)ctx.Interaction.Channel.Id,
+                    ReminderMessage = reminder,
+                    RemindAt = targetTime
+                };
 
-                if (!created)
+                var scheduled = await reminderService.ScheduleAsync(reminderRequest);
+                if (!scheduled)
                 {
                     logger.LogError(
                         "Failed to persist reminder for user {User} targeting {TargetTime}",

@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TickerQ.EntityFrameworkCore.Configurations;
+using TickerQ.EntityFrameworkCore.Entities;
 using WasabiBot.DataAccess.Entities;
 
 namespace WasabiBot.DataAccess;
@@ -6,7 +8,9 @@ namespace WasabiBot.DataAccess;
 public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options) : DbContext(options)
 {
     public DbSet<InteractionEntity> Interactions => Set<InteractionEntity>();
-    public DbSet<ReminderEntity> Reminders => Set<ReminderEntity>();
+
+    // TickerQ entities
+    public DbSet<TimeTickerEntity> TimeTickers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -16,10 +20,12 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
             builder.HasIndex(e => e.UserId);
             builder.HasIndex(e => e.GuildId).HasFilter("\"GuildId\" IS NOT NULL");
         });
-        modelBuilder.Entity<ReminderEntity>(builder =>
-        {
-            builder.HasIndex(r => r.RemindAt).HasFilter("\"IsReminderSent\" = FALSE");
-        });
+
+        // Apply TickerQ entity configurations explicitly (needed for migrations)
+        // Default schema is "ticker"
+        modelBuilder.ApplyConfiguration(new TimeTickerConfigurations());
+        modelBuilder.ApplyConfiguration(new CronTickerConfigurations());
+        modelBuilder.ApplyConfiguration(new CronTickerOccurrenceConfigurations());
     }
 }
 
