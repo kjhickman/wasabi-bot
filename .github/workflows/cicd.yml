@@ -7,6 +7,10 @@ on:
         description: "Target environment"
         default: "staging"
         required: true
+        type: choice
+        options:
+          - staging
+          - prod
   push:
     branches: [ main ]
     paths:
@@ -95,14 +99,9 @@ jobs:
 
       - name: Set image metadata
         id: meta
-        env:
-          ECR_REPOSITORY_STAGING: wasabi-bot/wasabi-bot-api-staging
         run: |
           target_env="${{ github.event.inputs.environment || 'staging' }}"
-          case "$target_env" in
-            staging) repo="${ECR_REPOSITORY_STAGING}" ;;
-            *) echo "Unsupported environment: $target_env" >&2; exit 1 ;;
-          esac
+          repo="wasabi-bot/wasabi-bot-api-$target_env"
           image_tag="${GITHUB_SHA::12}"
           image_uri="${{ steps.login-ecr.outputs.registry }}/$repo"
           echo "repo=$repo" >> "$GITHUB_OUTPUT"
