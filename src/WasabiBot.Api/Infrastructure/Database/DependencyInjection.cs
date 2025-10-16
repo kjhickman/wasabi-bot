@@ -14,13 +14,13 @@ public static class DependencyInjection
             options.UseNpgsql(builder.Configuration.GetConnectionString("wasabi-db"));
         });
 
-        builder.Services.AddTickerQ(o =>
-        {
-            o.SetMaxConcurrency(0); // Will use Environment.ProcessorCount
-            o.AddOperationalStore<WasabiBotContext>(ef =>
-            {
-                ef.UseModelCustomizerForMigrations();
-            });
-        });
+        // builder.Services.AddTickerQ(o =>
+        // {
+        //     o.SetMaxConcurrency(0); // Will use Environment.ProcessorCount
+        //     o.AddOperationalStore<WasabiBotContext>(ef =>
+        //     {
+        //         ef.UseModelCustomizerForMigrations();
+        //     });
+        // });
     }
 }

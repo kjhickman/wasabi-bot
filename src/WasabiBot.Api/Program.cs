@@ -26,7 +26,7 @@ builder.Services.AddScoped<IInteractionService, InteractionService>();
 var app = builder.Build();
 app.MapDefaultEndpoints();
 app.MapDiscordCommands();
-app.UseTickerQ();
+// app.UseTickerQ();
 
 app.MapGet("/", () => "Hello, world!");
 

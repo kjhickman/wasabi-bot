@@ -10,7 +10,7 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
     public DbSet<InteractionEntity> Interactions => Set<InteractionEntity>();
 
     // TickerQ entities
-    public DbSet<TimeTickerEntity> TimeTickers { get; set; }
+    // public DbSet<TimeTickerEntity> TimeTickers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -23,9 +23,9 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
 
         // Apply TickerQ entity configurations explicitly (needed for migrations)
         // Default schema is "ticker"
-        modelBuilder.ApplyConfiguration(new TimeTickerConfigurations());
-        modelBuilder.ApplyConfiguration(new CronTickerConfigurations());
-        modelBuilder.ApplyConfiguration(new CronTickerOccurrenceConfigurations());
+        // modelBuilder.ApplyConfiguration(new TimeTickerConfigurations());
+        // modelBuilder.ApplyConfiguration(new CronTickerConfigurations());
+        // modelBuilder.ApplyConfiguration(new CronTickerOccurrenceConfigurations());
     }
 }
 
