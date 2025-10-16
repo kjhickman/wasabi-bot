@@ -1,0 +1,262 @@
+name: CI + Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        default: "staging"
+        required: true
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'infra/**'
+      - '.github/workflows/deploy.yml'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'infra/envs/staging/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  DOTNET_VERSION: 9.0.x
+  AWS_REGION: us-east-1
+
+jobs:
+  test:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            **/*.props
+
+      - name: Restore
+        run: dotnet restore WasabiBot.slnx
+
+      - name: Build
+        run: dotnet build WasabiBot.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity minimal
+
+  build_image:
+    name: Build & push image
+    runs-on: ubuntu-latest
+    needs: test
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    outputs:
+      image_repo: ${{ steps.meta.outputs.repo }}
+      image_tag: ${{ steps.meta.outputs.tag }}
+      image_uri: ${{ steps.meta.outputs.uri }}
+      image_full_tag: ${{ steps.meta.outputs.full_tag }}
+      image_digest: ${{ steps.describe-image.outputs.digest }}
+      image_ref: ${{ steps.describe-image.outputs.image }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image metadata
+        id: meta
+        env:
+          ECR_REPOSITORY_STAGING: wasabi-bot/wasabi-bot-api-staging
+        run: |
+          target_env="${{ github.event.inputs.environment || 'staging' }}"
+          case "$target_env" in
+            staging) repo="${ECR_REPOSITORY_STAGING}" ;;
+            *) echo "Unsupported environment: $target_env" >&2; exit 1 ;;
+          esac
+          image_tag="${GITHUB_SHA::12}"
+          image_uri="${{ steps.login-ecr.outputs.registry }}/$repo"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "tag=$image_tag" >> "$GITHUB_OUTPUT"
+          echo "uri=$image_uri" >> "$GITHUB_OUTPUT"
+          echo "full_tag=$image_uri:$image_tag" >> "$GITHUB_OUTPUT"
+      - name: Build image
+        run: |
+          docker build \
+            --file src/WasabiBot.Api/Dockerfile \
+            --tag "${{ steps.meta.outputs.full_tag }}" \
+            --tag "${{ steps.meta.outputs.uri }}:latest" \
+            .
+      - name: Push image tags
+        run: |
+          docker push "${{ steps.meta.outputs.full_tag }}"
+          docker push "${{ steps.meta.outputs.uri }}:latest"
+      - name: Capture digest
+        id: describe-image
+        run: |
+          digest=$(aws ecr describe-images \
+            --repository-name "${{ steps.meta.outputs.repo }}" \
+            --image-ids imageTag="${{ steps.meta.outputs.tag }}" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "image=${{ steps.meta.outputs.uri }}@$digest" >> "$GITHUB_OUTPUT"
+      - name: Share image metadata
+        run: |
+          echo "Pushed image: ${{ steps.describe-image.outputs.image }}"
+          echo "Tag: ${{ steps.meta.outputs.tag }}"
+          echo "Digest: ${{ steps.describe-image.outputs.digest }}"
+
+  tf_plan:
+    name: Terraform plan
+    runs-on: ubuntu-latest
+    needs: build_image
+    if: always() && needs.build_image.result == 'success'
+    env:
+      TF_VAR_image_digest: ${{ needs.build_image.outputs.image_digest }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+    defaults:
+      run:
+        working-directory: infra/envs/staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.3
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Save plan artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: infra/envs/staging/tfplan
+
+      - name: Show plan (summary)
+        if: github.event_name != 'pull_request'
+        run: terraform show -no-color tfplan | head -n 200
+
+  tf_apply:
+    name: Terraform apply
+    runs-on: ubuntu-latest
+    needs: tf_plan
+    if: github.event_name != 'pull_request' && needs.tf_plan.result == 'success'
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    env:
+      TF_VAR_image_digest: ${{ needs.build_image.outputs.image_digest }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+    defaults:
+      run:
+        working-directory: infra/envs/staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.3
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform apply
+        run: terraform apply -input=false -auto-approve
+
+  migrate:
+    name: Run EF Core migrations
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request' && needs.test.result == 'success'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fetch connection string (SSM)
+        id: db-conn
+        run: |
+          target_env="${{ github.event.inputs.environment || 'staging' }}"
+          param_name="/wasabi-bot/${target_env}/NeonDbConnectionString"
+          conn=$(aws ssm get-parameter \
+            --name "$param_name" \
+            --with-decryption \
+            --query 'Parameter.Value' \
+            --output text)
+          echo "Connection string length: ${#conn}" || true
+          echo "ConnectionStrings__wasabi-db=$conn" >> "$GITHUB_ENV"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+            dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore (migrations project)
+        run: dotnet restore WasabiBot.slnx
+
+      - name: Build migrations project
+        run: dotnet build src/WasabiBot.Migrations/WasabiBot.Migrations.csproj --configuration Release --no-restore
+
+      - name: Apply migrations
+        run: dotnet run --project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj --configuration Release
