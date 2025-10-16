@@ -39,7 +39,7 @@ env:
 
 jobs:
   test:
-    name: Run unit tests
+    name: Run tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -187,7 +187,7 @@ jobs:
   tf_apply:
     name: Terraform apply
     runs-on: ubuntu-latest
-    needs: tf_plan
+    needs: [tf_plan, build_image]
     if: github.event_name != 'pull_request' && needs.tf_plan.result == 'success'
     environment: ${{ github.event.inputs.environment || 'staging' }}
     env:
@@ -220,7 +220,7 @@ jobs:
         run: terraform apply -input=false -auto-approve
 
   migrate:
-    name: Run EF Core migrations
+    name: Run migrations
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name != 'pull_request' && needs.test.result == 'success'
