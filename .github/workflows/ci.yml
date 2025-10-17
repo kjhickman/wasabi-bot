@@ -42,9 +42,6 @@ jobs:
       - name: Restore
         run: dotnet restore WasabiBot.slnx
 
-      - name: Build
-        run: dotnet build WasabiBot.slnx --configuration Release --no-restore
-
       - name: Test
         run: dotnet test --configuration Release --no-build --verbosity minimal
 
