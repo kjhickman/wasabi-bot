@@ -74,7 +74,7 @@ jobs:
     name: Build & push image
     runs-on: ubuntu-latest
     needs: test
-    environment: ${{ env.TARGET_ENV }}
+    environment: ${{ github.event.inputs.environment || 'staging' }}
     outputs:
       image_repo: ${{ steps.meta.outputs.repo }}
       image_tag: ${{ steps.meta.outputs.tag }}
@@ -189,7 +189,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [tf_plan, build_image]
     if: github.event_name != 'pull_request' && needs.tf_plan.result == 'success'
-    environment: ${{ env.TARGET_ENV }}
+    environment: ${{ github.event.inputs.environment || 'staging' }}
     env:
       TF_VAR_image_digest: ${{ needs.build_image.outputs.image_digest }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
