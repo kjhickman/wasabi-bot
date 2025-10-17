@@ -1,0 +1,60 @@
+name: workflow-setup
+description: Optional workflow setup steps for checkout, AWS, ECR, and Terraform.
+
+inputs:
+  checkout:
+    description: Set to 'true' to checkout the repository.
+    required: false
+    default: 'false'
+  configure-aws:
+    description: Set to 'true' to configure AWS credentials.
+    required: false
+    default: 'false'
+  role-to-assume:
+    description: AWS IAM role to assume when configuring credentials.
+    required: false
+  aws-region:
+    description: AWS region to target when configuring credentials.
+    required: false
+  login-ecr:
+    description: Set to 'true' to login to Amazon ECR (requires AWS credentials).
+    required: false
+    default: 'false'
+  configure-terraform:
+    description: Set to 'true' to install Terraform.
+    required: false
+    default: 'false'
+  terraform_version:
+    description: Terraform version to install when enabled.
+    required: false
+    default: 1.13.3
+
+outputs:
+  ecr-registry:
+    description: ECR registry URI retrieved during login (empty when login disabled).
+    value: ${{ steps.ecr_login.outputs.registry }}
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      if: ${{ inputs.checkout == 'true' }}
+      uses: actions/checkout@v5
+
+    - name: Configure AWS credentials
+      if: ${{ inputs.configure-aws == 'true' }}
+      uses: aws-actions/configure-aws-credentials@v5
+      with:
+        role-to-assume: ${{ inputs.role-to-assume }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Login to Amazon ECR
+      if: ${{ inputs.login-ecr == 'true' }}
+      id: ecr_login
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Setup Terraform
+      if: ${{ inputs.configure-terraform == 'true' }}
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ inputs.terraform_version }}
