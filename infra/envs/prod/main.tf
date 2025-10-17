@@ -65,7 +65,7 @@ resource "aws_service_discovery_service" "wasabi_bot_api" {
   name = local.api_container_name
 
   dns_config {
-    namespace_id = local.service_discovery_namespace_id
+    namespace_id   = local.service_discovery_namespace_id
     routing_policy = "MULTIVALUE"
 
     dns_records {
@@ -149,13 +149,13 @@ resource "aws_ecs_service" "wasabi_bot_api" {
   enable_execute_command             = true
 
   network_configuration {
-    subnets         = local.public_subnet_ids
-    security_groups = [aws_security_group.wasabi_bot_api.id]
+    subnets          = local.public_subnet_ids
+    security_groups  = [aws_security_group.wasabi_bot_api.id]
     assign_public_ip = true
   }
 
   service_registries {
-    registry_arn   = aws_service_discovery_service.wasabi_bot_api.arn
+    registry_arn = aws_service_discovery_service.wasabi_bot_api.arn
   }
 
   depends_on = [
@@ -172,6 +172,6 @@ resource "neon_role" "main" {
 resource "neon_database" "main" {
   project_id = local.neon_project_id
   branch_id  = local.neon_project_default_branch_id
-  name       = "${local.project}"
+  name       = local.project
   owner_name = neon_role.main.name
 }
