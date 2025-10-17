@@ -20,7 +20,7 @@ internal class CaptionThisCommand
         ApplicationCommandContext ctx,
         [SlashCommandParameter(Name = "image", Description = "Interesting image")] Attachment image)
     {
-        using var span = tracer.StartActiveSpan($"{nameof(CaptionThisCommand)}.{nameof(ExecuteAsync)}");
+        using var span = tracer.StartActiveSpan("caption.generate");
         await using var responder = InteractionResponder.Create(ctx);
 
         logger.LogInformation(

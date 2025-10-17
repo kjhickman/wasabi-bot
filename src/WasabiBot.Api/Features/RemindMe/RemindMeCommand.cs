@@ -22,7 +22,7 @@ internal class RemindMeCommand
         [SlashCommandParameter(Name = "when", Description = "When should I remind you? e.g., 'in 2 hours' or '10/31 5pm'")] string when,
         [SlashCommandParameter(Name = "reminder", Description = "What should I remind you about?")] string reminder)
     {
-        using var span = tracer.StartActiveSpan($"{nameof(RemindMeCommand)}.{nameof(ExecuteAsync)}");
+        using var span = tracer.StartActiveSpan("remindme.schedule.request");
         await using var responder = InteractionResponder.Create(ctx);
 
         var userDisplayName = ctx.Interaction.User.GlobalName ?? ctx.Interaction.User.Username;

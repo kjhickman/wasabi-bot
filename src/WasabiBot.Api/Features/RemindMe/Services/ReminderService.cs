@@ -28,7 +28,7 @@ public sealed class ReminderService : IReminderService
 
     public async Task<bool> ScheduleAsync(ulong userId, ulong channelId, string reminder, DateTimeOffset remindAt)
     {
-        using var span = _tracer.StartActiveSpan($"{nameof(ReminderService)}.{nameof(ScheduleAsync)}");
+        using var span = _tracer.StartActiveSpan("reminder.schedule");
         var entity = new ReminderEntity
         {
             UserId = (long)userId,
@@ -49,7 +49,7 @@ public sealed class ReminderService : IReminderService
 
     public async Task<List<ReminderEntity>> GetAllUnsent(CancellationToken ct = default)
     {
-        using var span = _tracer.StartActiveSpan($"{nameof(ReminderService)}.{nameof(GetAllUnsent)}");
+        using var span = _tracer.StartActiveSpan("reminder.list.unsent");
         return await _ctx.Reminders
             .AsNoTracking()
             .Where(r => !r.IsReminderSent)
@@ -59,7 +59,7 @@ public sealed class ReminderService : IReminderService
 
     public async Task<IReadOnlyCollection<long>> SendRemindersAsync(IEnumerable<ReminderEntity> reminders, CancellationToken ct = default)
     {
-        using var span = _tracer.StartActiveSpan($"{nameof(ReminderService)}.{nameof(SendRemindersAsync)}");
+        using var span = _tracer.StartActiveSpan("reminder.send");
         ConcurrentBag<long> sentReminderIds = new();
         await Parallel.ForEachAsync(reminders, ct, async (reminder, token) =>
         {
@@ -76,7 +76,7 @@ public sealed class ReminderService : IReminderService
             }
         });
 
-        using var updateSpan = _tracer.StartActiveSpan($"{nameof(ReminderService)}.{nameof(SendRemindersAsync)}.UpdateDatabase");
+        using var updateSpan = _tracer.StartActiveSpan("reminder.send.update_db");
         await _ctx.Reminders
             .Where(r => sentReminderIds.Contains(r.Id))
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsReminderSent, r => true), ct);
