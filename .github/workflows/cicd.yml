@@ -48,12 +48,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
           cache: true
@@ -84,12 +84,12 @@ jobs:
       image_ref: ${{ steps.describe-image.outputs.image }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -149,12 +149,12 @@ jobs:
         working-directory: infra/envs/${{ env.TARGET_ENV }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -198,12 +198,12 @@ jobs:
         working-directory: infra/envs/${{ env.TARGET_ENV }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -226,12 +226,12 @@ jobs:
     if: github.event_name != 'pull_request' && needs.test.result == 'success'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
@@ -250,7 +250,7 @@ jobs:
           echo "ConnectionStrings__wasabi-db=$conn" >> "$GITHUB_ENV"
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
             dotnet-version: ${{ env.DOTNET_VERSION }}
 
