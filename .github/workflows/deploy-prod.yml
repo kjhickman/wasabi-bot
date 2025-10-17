@@ -1,0 +1,14 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: prod
+    secrets: inherit

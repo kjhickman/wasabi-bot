@@ -1,33 +1,17 @@
-name: CI + Deploy
+name: Deploy
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       environment:
-        description: "Target environment"
-        default: "staging"
+        description: Environment name (e.g., staging, prod).
         required: true
-        type: choice
-        options:
-          - staging
-          - prod
-  push:
-    branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'infra/**'
-      - '.github/workflows/cicd.yml'
-      - 'Directory.Build.props'
-      - 'Directory.Packages.props'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'infra/**'
-      - 'test/**'
-      - '.github/workflows/cicd.yml'
-      - 'Directory.Build.props'
-      - 'Directory.Packages.props'
+        type: string
+    secrets:
+      GH_ACTIONS_AWS_ROLE:
+        required: true
+      NEON_API_KEY:
+        required: false
 
 permissions:
   contents: read
@@ -36,21 +20,17 @@ permissions:
 env:
   DOTNET_VERSION: 9.0.x
   AWS_REGION: us-east-1
-  TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'staging' }}
-
-concurrency:
-  group: deploy-${{ github.event.inputs.environment || 'staging' }}
-  cancel-in-progress: false
+  TARGET_ENV: ${{ inputs.environment }}
 
 jobs:
   test:
     name: Run tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - name: Setup workspace
+        uses: ./.github/actions/workflow-setup
         with:
-          fetch-depth: 1
+          checkout: 'true'
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -74,7 +54,6 @@ jobs:
     name: Build & push image
     runs-on: ubuntu-latest
     needs: test
-    environment: ${{ github.event.inputs.environment || 'staging' }}
     outputs:
       image_repo: ${{ steps.meta.outputs.repo }}
       image_tag: ${{ steps.meta.outputs.tag }}
@@ -83,20 +62,15 @@ jobs:
       image_digest: ${{ steps.describe-image.outputs.digest }}
       image_ref: ${{ steps.describe-image.outputs.image }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - name: Setup build environment
+        id: env_setup
+        uses: ./.github/actions/workflow-setup
         with:
-          fetch-depth: 1
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
+          checkout: 'true'
+          configure-aws: 'true'
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+          login-ecr: 'true'
 
       - name: Set image metadata
         id: meta
@@ -104,11 +78,12 @@ jobs:
           target_env="${{ env.TARGET_ENV }}"
           repo="wasabi-bot/wasabi-bot-api-$target_env"
           image_tag="${GITHUB_SHA::12}"
-          image_uri="${{ steps.login-ecr.outputs.registry }}/$repo"
+          image_uri="${{ steps.env_setup.outputs.ecr-registry }}/$repo"
           echo "repo=$repo" >> "$GITHUB_OUTPUT"
           echo "tag=$image_tag" >> "$GITHUB_OUTPUT"
           echo "uri=$image_uri" >> "$GITHUB_OUTPUT"
           echo "full_tag=$image_uri:$image_tag" >> "$GITHUB_OUTPUT"
+
       - name: Build image
         run: |
           docker build \
@@ -116,10 +91,12 @@ jobs:
             --tag "${{ steps.meta.outputs.full_tag }}" \
             --tag "${{ steps.meta.outputs.uri }}:latest" \
             .
+
       - name: Push image tags
         run: |
           docker push "${{ steps.meta.outputs.full_tag }}"
           docker push "${{ steps.meta.outputs.uri }}:latest"
+
       - name: Capture digest
         id: describe-image
         run: |
@@ -130,6 +107,7 @@ jobs:
             --output text)
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           echo "image=${{ steps.meta.outputs.uri }}@$digest" >> "$GITHUB_OUTPUT"
+
       - name: Share image metadata
         run: |
           echo "Pushed image: ${{ steps.describe-image.outputs.image }}"
@@ -140,7 +118,6 @@ jobs:
     name: Terraform plan
     runs-on: ubuntu-latest
     needs: build_image
-    if: always() && needs.build_image.result == 'success'
     env:
       TF_VAR_image_digest: ${{ needs.build_image.outputs.image_digest }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
@@ -148,21 +125,14 @@ jobs:
       run:
         working-directory: infra/envs/${{ env.TARGET_ENV }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - name: Setup workspace
+        uses: ./.github/actions/workflow-setup
         with:
-          fetch-depth: 1
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
+          checkout: 'true'
+          configure-aws: 'true'
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.13.3
+          configure-terraform: 'true'
 
       - name: Terraform init
         run: terraform init -input=false
@@ -173,23 +143,14 @@ jobs:
       - name: Terraform plan
         run: terraform plan -input=false -out=tfplan
 
-      - name: Save plan artifact
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan
-          path: infra/envs/${{ env.TARGET_ENV }}/tfplan
-
       - name: Show plan (summary)
-        if: github.event_name != 'pull_request'
         run: terraform show -no-color tfplan | head -n 200
 
   tf_apply:
     name: Terraform apply
     runs-on: ubuntu-latest
     needs: [tf_plan, build_image]
-    if: github.event_name != 'pull_request' && needs.tf_plan.result == 'success'
-    environment: ${{ github.event.inputs.environment || 'staging' }}
+    environment: ${{ inputs.environment }}
     env:
       TF_VAR_image_digest: ${{ needs.build_image.outputs.image_digest }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
@@ -197,21 +158,14 @@ jobs:
       run:
         working-directory: infra/envs/${{ env.TARGET_ENV }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - name: Setup workspace
+        uses: ./.github/actions/workflow-setup
         with:
-          fetch-depth: 1
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
+          checkout: 'true'
+          configure-aws: 'true'
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.13.3
+          configure-terraform: 'true'
 
       - name: Terraform init
         run: terraform init -input=false
@@ -222,37 +176,35 @@ jobs:
   migrate:
     name: Run migrations
     runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name != 'pull_request' && needs.test.result == 'success'
+    needs: [test, build_image]
+    environment: ${{ inputs.environment }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - name: Setup workspace
+        uses: ./.github/actions/workflow-setup
         with:
-          fetch-depth: 1
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
+          checkout: 'true'
+          configure-aws: 'true'
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Fetch connection string (SSM)
-        id: db-conn
+      
+      - name: Resolve connection string
         run: |
-          target_env="${{ env.TARGET_ENV }}"
-          param_name="/wasabi-bot/${target_env}/NeonDbConnectionString"
+          param_name="/wasabi-bot/${{ env.TARGET_ENV }}/NeonDbConnectionString"
           conn=$(aws ssm get-parameter \
             --name "$param_name" \
             --with-decryption \
             --query 'Parameter.Value' \
             --output text)
-          echo "Connection string length: ${#conn}" || true
+          if [ -z "$conn" ]; then
+            echo "Failed to resolve connection string from SSM parameter $param_name" >&2
+            exit 1
+          fi
           echo "ConnectionStrings__wasabi-db=$conn" >> "$GITHUB_ENV"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-            dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore (migrations project)
         run: dotnet restore WasabiBot.slnx

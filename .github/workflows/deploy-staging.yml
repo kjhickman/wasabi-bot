@@ -1,0 +1,22 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "src/**"
+      - "infra/**"
+      - ".github/workflows/**"
+      - "Directory.Build.props"
+      - "Directory.Packages.props"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+    secrets: inherit

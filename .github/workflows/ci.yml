@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "src/**"
+      - "infra/**"
+      - "test/**"
+      - ".github/workflows/**"
+      - "Directory.Build.props"
+      - "Directory.Packages.props"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  DOTNET_VERSION: 9.0.x
+  AWS_REGION: us-east-1
+  TARGET_ENV: staging
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup workspace
+        uses: ./.github/actions/workflow-setup
+        with:
+          checkout: 'true'
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            **/*.props
+
+      - name: Restore
+        run: dotnet restore WasabiBot.slnx
+
+      - name: Build
+        run: dotnet build WasabiBot.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity minimal
+
+  terraform-plan:
+    name: Terraform plan (latest image)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    defaults:
+      run:
+        working-directory: infra/envs/${{ env.TARGET_ENV }}
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+    steps:
+      - name: Setup workspace
+        uses: ./.github/actions/workflow-setup
+        with:
+          checkout: 'true'
+          configure-aws: 'true'
+          role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+          configure-terraform: 'true'
+
+      - name: Resolve deployed image digest
+        id: resolve-image
+        run: |
+          repo="wasabi-bot/wasabi-bot-api-${{ env.TARGET_ENV }}"
+          digest=$(aws ecr describe-images \
+            --repository-name "$repo" \
+            --image-ids imageTag=latest \
+            --query 'imageDetails[0].imageDigest' \
+            --output text 2>/tmp/ecr-describe.log || true)
+
+          if [ -z "$digest" ] || [ "$digest" = "None" ]; then
+            echo "Unable to resolve latest image digest for $repo" >&2
+            cat /tmp/ecr-describe.log >&2 || true
+            exit 1
+          fi
+
+          echo "TF_VAR_image_digest=$digest" >> "$GITHUB_ENV"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Save plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ env.TARGET_ENV }}
+          path: infra/envs/${{ env.TARGET_ENV }}/tfplan
