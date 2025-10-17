@@ -6,7 +6,6 @@ using WasabiBot.Api.Features.RemindMe;
 using WasabiBot.Api.Features.RemindMe.Abstractions;
 using WasabiBot.Api.Features.RemindMe.Services;
 using WasabiBot.Api.Infrastructure.Discord.EventHandlers;
-using WasabiBot.DataAccess.Services;
 
 namespace WasabiBot.Api.Infrastructure.Discord;
 
@@ -20,7 +19,9 @@ internal static class DependencyInjection
 
         // Services used for commands
         services.AddSingleton<ReminderTimeCalculator>();
+        services.AddSingleton(new InMemoryReminderWindow(1000)); // register window
         services.AddTransient<IReminderService, ReminderService>();
+        services.AddHostedService<ReminderProcessor>(); // register background processor
     }
 
     public static void MapDiscordCommands(this IHost app)

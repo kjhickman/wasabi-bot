@@ -2,7 +2,6 @@
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.RemindMe.Abstractions;
-using WasabiBot.Api.Features.RemindMe.Contracts;
 using WasabiBot.Api.Features.RemindMe.Services;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
@@ -89,15 +88,9 @@ internal class RemindMeCommand
                     return;
                 }
 
-                var reminderRequest = new CreateReminderRequest
-                {
-                    UserId = (long)ctx.Interaction.User.Id,
-                    ChannelId = (long)ctx.Interaction.Channel.Id,
-                    ReminderMessage = reminder,
-                    RemindAt = targetTime
-                };
+                var scheduled = await reminderService.ScheduleAsync(ctx.Interaction.User.Id, ctx.Interaction.Channel.Id,
+                    reminder, targetTime);
 
-                var scheduled = await reminderService.ScheduleAsync(reminderRequest);
                 if (!scheduled)
                 {
                     logger.LogError(

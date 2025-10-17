@@ -22,6 +22,7 @@ builder.AddDatabase();
 builder.AddServiceDefaults();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IInteractionService, InteractionService>();
+builder.Services.AddTickerQ();
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
