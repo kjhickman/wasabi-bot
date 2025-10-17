@@ -79,6 +79,7 @@ jobs:
       - name: Set image metadata
         id: meta
         run: |
+          echo "::group::Compute image metadata"
           target_env="${{ env.TARGET_ENV }}"
           repo="wasabi-bot/wasabi-bot-api-$target_env"
           image_tag="${GITHUB_SHA::12}"
@@ -87,6 +88,10 @@ jobs:
           echo "tag=$image_tag" >> "$GITHUB_OUTPUT"
           echo "uri=$image_uri" >> "$GITHUB_OUTPUT"
           echo "full_tag=$image_uri:$image_tag" >> "$GITHUB_OUTPUT"
+          echo "::notice title=Image Repository::$repo"
+          echo "::notice title=Image Tag::$image_tag"
+          echo "::notice title=Image URI::$image_uri"
+          echo "::endgroup::"
 
       - name: Build image
         run: |
@@ -104,6 +109,7 @@ jobs:
       - name: Capture digest
         id: describe-image
         run: |
+          echo "::group::Capture image digest"
           digest=$(aws ecr describe-images \
             --repository-name "${{ steps.meta.outputs.repo }}" \
             --image-ids imageTag="${{ steps.meta.outputs.tag }}" \
@@ -111,6 +117,8 @@ jobs:
             --output text)
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           echo "image=${{ steps.meta.outputs.uri }}@$digest" >> "$GITHUB_OUTPUT"
+          echo "::notice title=Image Digest::$digest"
+          echo "::endgroup::"
 
       - name: Share image metadata
         run: |
@@ -151,6 +159,10 @@ jobs:
       - name: Terraform plan
         run: terraform plan -input=false -out=tfplan
 
+      - name: Summarize plan
+        run: |
+          echo "::notice title=Terraform Plan::Terraform plan for ${{ env.TARGET_ENV }} created"
+
       - name: Show plan (summary)
         run: terraform show -no-color tfplan | head -n 200
 
@@ -184,6 +196,9 @@ jobs:
 
       - name: Terraform apply
         run: terraform apply -input=false -auto-approve
+
+      - name: Summarize apply
+        run: echo "::notice title=Terraform Apply::Infrastructure applied for ${{ env.TARGET_ENV }}"
 
   migrate:
     name: Run migrations

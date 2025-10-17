@@ -48,6 +48,9 @@ jobs:
       - name: Test
         run: dotnet test --configuration Release --no-build --verbosity minimal
 
+      - name: Summarize tests
+        run: echo "::notice title=CI Tests::Unit test suite completed"
+
   terraform-plan:
     name: Terraform plan
     runs-on: ubuntu-latest
@@ -74,6 +77,7 @@ jobs:
       - name: Resolve deployed image digest
         id: resolve-image
         run: |
+          echo "::group::Resolve current deployment image"
           repo="wasabi-bot/wasabi-bot-api-${{ env.TARGET_ENV }}"
           digest=$(aws ecr describe-images \
             --repository-name "$repo" \
@@ -89,6 +93,9 @@ jobs:
 
           echo "TF_VAR_image_digest=$digest" >> "$GITHUB_ENV"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "::notice title=Deployed Image Digest::$digest"
+          echo "::notice title=Deployed Image Repository::$repo"
+          echo "::endgroup::"
 
       - name: Terraform init
         run: terraform init -input=false
@@ -98,6 +105,9 @@ jobs:
 
       - name: Terraform plan
         run: terraform plan -input=false -out=tfplan
+
+      - name: Summarize plan
+        run: echo "::notice title=Terraform Plan::Plan generated for ${{ env.TARGET_ENV }} (CI)"
 
       - name: Save plan artifact
         uses: actions/upload-artifact@v4
