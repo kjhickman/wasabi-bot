@@ -145,7 +145,7 @@ jobs:
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
     defaults:
       run:
-        working-directory: infra/envs/staging
+        working-directory: infra/envs/${{ github.event.inputs.environment || 'staging' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -194,7 +194,7 @@ jobs:
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
     defaults:
       run:
-        working-directory: infra/envs/staging
+        working-directory: infra/envs/${{ github.event.inputs.environment || 'staging' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
