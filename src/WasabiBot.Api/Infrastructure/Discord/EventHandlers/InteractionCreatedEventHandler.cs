@@ -19,7 +19,7 @@ internal sealed class InteractionCreatedEventHandler : IInteractionCreateGateway
 
     public async ValueTask HandleAsync(Interaction interaction)
     {
-        using var span = _tracer.StartActiveSpan($"{nameof(InteractionCreatedEventHandler)}.{nameof(HandleAsync)}");
+        using var span = _tracer.StartActiveSpan("interaction.create.persist");
         await using var scope = _sp.CreateAsyncScope();
         var interactionService = scope.ServiceProvider.GetRequiredService<IInteractionService>();
         var entity = interaction.ToEntity();

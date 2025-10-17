@@ -74,8 +74,7 @@ public sealed class ReminderProcessor : BackgroundService
     private async Task LoadAllAsync(CancellationToken ct)
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
-        using var span = scope.ServiceProvider.GetRequiredService<Tracer>()
-            .StartActiveSpan($"{nameof(ReminderProcessor)}.{nameof(LoadAllAsync)}");
+        using var span = scope.ServiceProvider.GetRequiredService<Tracer>().StartActiveSpan("reminder.processor.load");
         var reminderService = scope.ServiceProvider.GetRequiredService<IReminderService>();
         var reminders = await reminderService.GetAllUnsent(ct);
         _store.InsertMany(reminders);
@@ -85,8 +84,7 @@ public sealed class ReminderProcessor : BackgroundService
     private async Task ProcessDueAsync(CancellationToken ct)
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
-        using var span = scope.ServiceProvider.GetRequiredService<Tracer>()
-            .StartActiveSpan($"{nameof(ReminderProcessor)}.{nameof(ProcessDueAsync)}");
+        using var span = scope.ServiceProvider.GetRequiredService<Tracer>().StartActiveSpan("reminder.processor.process_due");
 
         var now = _timeProvider.GetUtcNow();
         var due = _store.GetAllDueReminders(now);

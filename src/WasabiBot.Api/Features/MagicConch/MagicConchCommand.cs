@@ -24,7 +24,7 @@ internal class MagicConchCommand
         ApplicationCommandContext ctx,
         [SlashCommandParameter(Name = "question", Description = "Ask a yes/no style question")] string question)
     {
-        using var span = tracer.StartActiveSpan($"{nameof(MagicConchCommand)}.{nameof(ExecuteAsync)}");
+        using var span = tracer.StartActiveSpan("conch.answer.generate");
         await using var responder = InteractionResponder.Create(ctx);
 
         var userDisplayName = ctx.Interaction.User.GlobalName ?? ctx.Interaction.User.Username;
