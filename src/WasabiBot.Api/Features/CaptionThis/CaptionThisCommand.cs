@@ -52,7 +52,7 @@ internal class CaptionThisCommand
 
         try
         {
-            const string prompt = "Look at this image and create a funny, witty caption for it: " +
+            const string prompt = "Look at this image and create a memey caption for it: " +
                                   "Keep it concise but entertaining. Don't describe what you see, just provide the caption.";
 
             var imageBytes = await httpClient.GetByteArrayAsync(image.Url);

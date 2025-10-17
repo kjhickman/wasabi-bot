@@ -42,12 +42,18 @@ internal class MagicConchCommand
 
         try
         {
-            var response = await chat.GetResponseAsync(prompt, ChatOptions);
+            var chatResponse = await chat.GetResponseAsync(prompt, ChatOptions);
             logger.LogInformation(
                 "Magic conch responded to user {User} with answer '{Answer}'",
                 userDisplayName,
-                response.Text);
-            await responder.SendAsync(response.Text);
+                chatResponse.Text);
+
+            var response = $"""
+                             {userDisplayName} asked: *{question}*
+                             The Magic Conch says... {chatResponse.Text}
+                             """;
+
+            await responder.SendAsync(response);
         }
         catch (Exception ex)
         {
