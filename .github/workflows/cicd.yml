@@ -39,7 +39,7 @@ env:
   TARGET_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'staging' }}
 
 concurrency:
-  group: deploy-${{ env.TARGET_ENV }}
+  group: deploy-${{ github.event.inputs.environment || 'staging' }}
   cancel-in-progress: false
 
 jobs:
