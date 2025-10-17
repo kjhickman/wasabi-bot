@@ -43,7 +43,7 @@ jobs:
         run: dotnet restore WasabiBot.slnx
 
       - name: Test
-        run: dotnet test --configuration Release --no-build --verbosity minimal
+        run: dotnet test --configuration Release --verbosity minimal
 
       - name: Summarize tests
         run: echo "::notice title=CI Tests::Unit test suite completed"

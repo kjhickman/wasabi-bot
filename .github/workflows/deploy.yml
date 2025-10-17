@@ -45,7 +45,7 @@ jobs:
         run: dotnet restore WasabiBot.slnx
 
       - name: Test
-        run: dotnet test --configuration Release --no-build --verbosity minimal
+        run: dotnet test --configuration Release --verbosity minimal
 
   build_image:
     name: Build & push image
