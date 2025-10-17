@@ -25,10 +25,10 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
     steps:
-      - name: Setup workspace
-        uses: ./.github/actions/workflow-setup
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
-          checkout: 'true'
+          fetch-depth: 1
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -58,10 +58,14 @@ jobs:
     env:
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
     steps:
-      - name: Setup workspace
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup environment
         uses: ./.github/actions/workflow-setup
         with:
-          checkout: 'true'
           configure-aws: 'true'
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}

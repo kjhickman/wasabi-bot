@@ -1,11 +1,7 @@
 name: workflow-setup
-description: Optional workflow setup steps for checkout, AWS, ECR, and Terraform.
+description: Optional workflow setup steps for AWS credentials, ECR login, and Terraform.
 
 inputs:
-  checkout:
-    description: Set to 'true' to checkout the repository.
-    required: false
-    default: 'false'
   configure-aws:
     description: Set to 'true' to configure AWS credentials.
     required: false
@@ -37,10 +33,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Checkout
-      if: ${{ inputs.checkout == 'true' }}
-      uses: actions/checkout@v5
-
     - name: Configure AWS credentials
       if: ${{ inputs.configure-aws == 'true' }}
       uses: aws-actions/configure-aws-credentials@v5
