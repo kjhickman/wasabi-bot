@@ -84,47 +84,41 @@ jobs:
           repo="wasabi-bot/wasabi-bot-api-$target_env"
           image_tag="${GITHUB_SHA::12}"
           image_uri="${{ steps.env_setup.outputs.ecr-registry }}/$repo"
+          cache_ref="$image_uri:buildcache"
           echo "repo=$repo" >> "$GITHUB_OUTPUT"
           echo "tag=$image_tag" >> "$GITHUB_OUTPUT"
           echo "uri=$image_uri" >> "$GITHUB_OUTPUT"
           echo "full_tag=$image_uri:$image_tag" >> "$GITHUB_OUTPUT"
+          echo "cache_ref=$cache_ref" >> "$GITHUB_OUTPUT"
           echo "::notice title=Image Repository::$repo"
           echo "::notice title=Image Tag::$image_tag"
-          echo "::notice title=Image URI::$image_uri"
           echo "::endgroup::"
 
-      - name: Build image
-        run: |
-          docker build \
-            --file src/WasabiBot.Api/Dockerfile \
-            --tag "${{ steps.meta.outputs.full_tag }}" \
-            --tag "${{ steps.meta.outputs.uri }}:latest" \
-            .
-
-      - name: Push image tags
-        run: |
-          docker push "${{ steps.meta.outputs.full_tag }}"
-          docker push "${{ steps.meta.outputs.uri }}:latest"
+      - name: Build & push image
+        id: build-image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/WasabiBot.Api/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.full_tag }}
+            ${{ steps.meta.outputs.uri }}:latest
+          cache-from: |
+            type=registry,ref=${{ steps.meta.outputs.cache_ref }}
+          cache-to: |
+            type=registry,ref=${{ steps.meta.outputs.cache_ref }},mode=max
 
       - name: Capture digest
         id: describe-image
         run: |
-          echo "::group::Capture image digest"
-          digest=$(aws ecr describe-images \
-            --repository-name "${{ steps.meta.outputs.repo }}" \
-            --image-ids imageTag="${{ steps.meta.outputs.tag }}" \
-            --query 'imageDetails[0].imageDigest' \
-            --output text)
+          digest="${{ steps.build-image.outputs.digest }}"
+          if [ -z "$digest" ]; then
+            echo "Image digest not available from build step" >&2
+            exit 1
+          fi
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           echo "image=${{ steps.meta.outputs.uri }}@$digest" >> "$GITHUB_OUTPUT"
-          echo "::notice title=Image Digest::$digest"
-          echo "::endgroup::"
-
-      - name: Share image metadata
-        run: |
-          echo "Pushed image: ${{ steps.describe-image.outputs.image }}"
-          echo "Tag: ${{ steps.meta.outputs.tag }}"
-          echo "Digest: ${{ steps.describe-image.outputs.digest }}"
 
   tf_plan:
     name: Terraform plan
@@ -133,6 +127,7 @@ jobs:
     env:
       TF_VAR_image_digest: ${{ needs.build_image.outputs.image_digest }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
     defaults:
       run:
         working-directory: infra/envs/${{ env.TARGET_ENV }}
@@ -149,6 +144,27 @@ jobs:
           role-to-assume: ${{ secrets.GH_ACTIONS_AWS_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
           configure-terraform: 'true'
+
+      - name: Prepare Terraform plugin cache
+        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+
+      - name: Restore Terraform plugin cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: terraform-plugin-${{ runner.os }}-${{ env.TARGET_ENV }}-${{ hashFiles('infra/envs/**/*.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-plugin-${{ runner.os }}-${{ env.TARGET_ENV }}-
+            terraform-plugin-${{ runner.os }}-
+
+      - name: Restore Terraform modules
+        uses: actions/cache@v4
+        with:
+          path: infra/envs/${{ env.TARGET_ENV }}/.terraform
+          key: terraform-modules-${{ runner.os }}-${{ env.TARGET_ENV }}-${{ hashFiles('infra/envs/**/*.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-modules-${{ runner.os }}-${{ env.TARGET_ENV }}-
+            terraform-modules-${{ runner.os }}-
 
       - name: Terraform init
         run: terraform init -input=false
@@ -166,6 +182,13 @@ jobs:
       - name: Show plan (summary)
         run: terraform show -no-color tfplan | head -n 200
 
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ env.TARGET_ENV }}
+          path: infra/envs/${{ env.TARGET_ENV }}/tfplan
+          retention-days: 1
+
   tf_apply:
     name: Terraform apply
     runs-on: ubuntu-latest
@@ -174,6 +197,7 @@ jobs:
     env:
       TF_VAR_image_digest: ${{ needs.build_image.outputs.image_digest }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
     defaults:
       run:
         working-directory: infra/envs/${{ env.TARGET_ENV }}
@@ -191,11 +215,38 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           configure-terraform: 'true'
 
+      - name: Prepare Terraform plugin cache
+        run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+
+      - name: Restore Terraform plugin cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+          key: terraform-plugin-${{ runner.os }}-${{ env.TARGET_ENV }}-${{ hashFiles('infra/envs/**/*.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-plugin-${{ runner.os }}-${{ env.TARGET_ENV }}-
+            terraform-plugin-${{ runner.os }}-
+
+      - name: Restore Terraform modules
+        uses: actions/cache@v4
+        with:
+          path: infra/envs/${{ env.TARGET_ENV }}/.terraform
+          key: terraform-modules-${{ runner.os }}-${{ env.TARGET_ENV }}-${{ hashFiles('infra/envs/**/*.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-modules-${{ runner.os }}-${{ env.TARGET_ENV }}-
+            terraform-modules-${{ runner.os }}-
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-${{ env.TARGET_ENV }}
+          path: infra/envs/${{ env.TARGET_ENV }}
+
       - name: Terraform init
         run: terraform init -input=false
 
       - name: Terraform apply
-        run: terraform apply -input=false -auto-approve
+        run: terraform apply -input=false -auto-approve tfplan
 
       - name: Summarize apply
         run: echo "::notice title=Terraform Apply::Infrastructure applied for ${{ env.TARGET_ENV }}"
