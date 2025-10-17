@@ -13,15 +13,16 @@ internal sealed class ReminderTimeCalculator
     /// <summary>
     /// Computes a future UTC timestamp by applying relative offsets to the current time.
     /// Returns null when the combination is invalid (negative values or all zero).
+    /// The returned timestamp is truncated to the minute (seconds and smaller units set to zero).
     /// </summary>
-    public DateTimeOffset? ComputeRelativeUtc(int months = 0, int weeks = 0, int days = 0, int hours = 0, int minutes = 0, int seconds = 0)
+    public DateTimeOffset? ComputeRelativeUtc(int months = 0, int weeks = 0, int days = 0, int hours = 0, int minutes = 0)
     {
-        if (ContainsNegative(months, weeks, days, hours, minutes, seconds))
+        if (ContainsNegative(months, weeks, days, hours, minutes))
         {
             return null;
         }
 
-        if (AreAllZero(months, weeks, days, hours, minutes, seconds))
+        if (AreAllZero(months, weeks, days, hours, minutes))
         {
             return null;
         }
@@ -29,12 +30,14 @@ internal sealed class ReminderTimeCalculator
         try
         {
             var totalDays = checked(weeks * 7 + days);
-            return _timeProvider.GetUtcNow()
+            var now = _timeProvider.GetUtcNow();
+            var truncatedNow = new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, TimeSpan.Zero);
+
+            return truncatedNow
                 .AddMonths(months)
                 .AddDays(totalDays)
                 .AddHours(hours)
-                .AddMinutes(minutes)
-                .AddSeconds(seconds);
+                .AddMinutes(minutes);
         }
         catch
         {

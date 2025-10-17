@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 using NetCord.Rest;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.RemindMe.Abstractions;
 using WasabiBot.DataAccess;
 using WasabiBot.DataAccess.Entities;
@@ -9,19 +11,24 @@ namespace WasabiBot.Api.Features.RemindMe.Services;
 public sealed class ReminderService : IReminderService
 {
     private readonly WasabiBotContext _ctx;
-    private readonly InMemoryReminderWindow _window;
+    private readonly PendingReminderStore _store;
     private readonly RestClient _discordClient;
+    private readonly ILogger<ReminderService> _logger;
+    private readonly Tracer _tracer;
 
-
-    public ReminderService(WasabiBotContext ctx, InMemoryReminderWindow window, RestClient discordClient)
+    public ReminderService(WasabiBotContext ctx, PendingReminderStore store, RestClient discordClient,
+        ILogger<ReminderService> logger, Tracer tracer)
     {
         _ctx = ctx;
-        _window = window;
+        _store = store;
         _discordClient = discordClient;
+        _logger = logger;
+        _tracer = tracer;
     }
 
     public async Task<bool> ScheduleAsync(ulong userId, ulong channelId, string reminder, DateTimeOffset remindAt)
     {
+        using var span = _tracer.StartActiveSpan($"{nameof(ReminderService)}.{nameof(ScheduleAsync)}");
         var entity = new ReminderEntity
         {
             UserId = (long)userId,
@@ -35,34 +42,45 @@ public sealed class ReminderService : IReminderService
         var saved = await _ctx.SaveChangesAsync() > 0;
         if (saved)
         {
-            // Insert into in-memory window so it can be processed without waiting for refresh.
-            _window.Insert(entity);
+            _store.Insert(entity);
         }
         return saved;
     }
 
-    public async Task<List<ReminderEntity>> GetDueAsync(int take = 1000, CancellationToken cancellationToken = default)
+    public async Task<List<ReminderEntity>> GetAllUnsent(CancellationToken ct = default)
     {
+        using var span = _tracer.StartActiveSpan($"{nameof(ReminderService)}.{nameof(GetAllUnsent)}");
         return await _ctx.Reminders
             .AsNoTracking()
             .Where(r => !r.IsReminderSent)
             .OrderBy(r => r.RemindAt)
-            .Take(take)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(ct);
     }
 
-    public async Task SendReminderAsync(ReminderEntity reminder)
+    public async Task<IReadOnlyCollection<long>> SendRemindersAsync(IEnumerable<ReminderEntity> reminders, CancellationToken ct = default)
     {
-        await _discordClient.SendMessageAsync((ulong)reminder.ChannelId,
-            $"<@{reminder.UserId}> Reminder: {reminder.ReminderMessage}");
+        using var span = _tracer.StartActiveSpan($"{nameof(ReminderService)}.{nameof(SendRemindersAsync)}");
+        ConcurrentBag<long> sentReminderIds = new();
+        await Parallel.ForEachAsync(reminders, ct, async (reminder, token) =>
+        {
+            try
+            {
+                await _discordClient.SendMessageAsync((ulong)reminder.ChannelId,
+                    $"<@{reminder.UserId}> Reminder: {reminder.ReminderMessage}", cancellationToken: token);
+                sentReminderIds.Add(reminder.Id);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Failed to send reminder {ReminderId} to user {UserId} in channel {ChannelId}: {Error}",
+                    reminder.Id, reminder.UserId, reminder.ChannelId, e.Message);
+            }
+        });
 
-        await MarkSentAsync(reminder.Id);
-    }
-
-    private async Task MarkSentAsync(long reminderId)
-    {
+        using var updateSpan = _tracer.StartActiveSpan($"{nameof(ReminderService)}.{nameof(SendRemindersAsync)}.UpdateDatabase");
         await _ctx.Reminders
-            .Where(r => r.Id == reminderId)
-            .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsReminderSent, r => true));
+            .Where(r => sentReminderIds.Contains(r.Id))
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsReminderSent, r => true), ct);
+
+        return sentReminderIds;
     }
 }

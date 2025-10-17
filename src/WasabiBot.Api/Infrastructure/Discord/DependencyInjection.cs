@@ -19,7 +19,7 @@ internal static class DependencyInjection
 
         // Services used for commands
         services.AddSingleton<ReminderTimeCalculator>();
-        services.AddSingleton(new InMemoryReminderWindow(1000)); // register window
+        services.AddSingleton<PendingReminderStore>(); // register window without capacity limit
         services.AddTransient<IReminderService, ReminderService>();
         services.AddHostedService<ReminderProcessor>(); // register background processor
     }

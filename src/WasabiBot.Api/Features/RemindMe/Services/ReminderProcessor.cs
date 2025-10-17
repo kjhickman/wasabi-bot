@@ -1,4 +1,5 @@
-﻿using WasabiBot.Api.Features.RemindMe.Abstractions;
+﻿using OpenTelemetry.Trace;
+using WasabiBot.Api.Features.RemindMe.Abstractions;
 
 namespace WasabiBot.Api.Features.RemindMe.Services;
 
@@ -6,43 +7,61 @@ public sealed class ReminderProcessor : BackgroundService
 {
     private readonly ILogger<ReminderProcessor> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly InMemoryReminderWindow _window;
+    private readonly PendingReminderStore _store;
+    private readonly TimeProvider _timeProvider;
 
-    public ReminderProcessor(ILogger<ReminderProcessor> logger, IServiceScopeFactory scopeFactory, InMemoryReminderWindow window)
+    public ReminderProcessor(ILogger<ReminderProcessor> logger, IServiceScopeFactory scopeFactory,
+        PendingReminderStore store, TimeProvider timeProvider)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
-        _window = window;
+        _store = store;
+        _timeProvider = timeProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("ReminderProcessor starting (batch size: {BatchSize})", _window.Capacity);
-
         try
         {
-            await LoadBatchAsync(stoppingToken);
-            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+            await LoadAllAsync(stoppingToken);
 
-            while (await timer.WaitForNextTickAsync(stoppingToken))
+            while (!stoppingToken.IsCancellationRequested)
             {
-                try
+                var nextDue = _store.NextDueTime;
+                if (nextDue == null)
+                {
+                    _logger.LogDebug("No reminders queued; awaiting first reminder.");
+                    await _store.WaitForEarlierAsync(stoppingToken);
+                    continue; // re-evaluate next due time
+                }
+
+                var now = _timeProvider.GetUtcNow();
+                if (nextDue <= now)
                 {
                     await ProcessDueAsync(stoppingToken);
+                    continue; // re-evaluate next due time
                 }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+
+                var delay = nextDue.Value - now;
+                _logger.LogDebug("Waiting {Delay} until next due reminder at {NextDue}", delay, nextDue.Value.ToString("O"));
+
+                // Wait either for delay to elapse OR an earlier reminder to be inserted.
+                var delayTask = Task.Delay(delay, stoppingToken);
+                var signalTask = _store.WaitForEarlierAsync(stoppingToken);
+                var completed = await Task.WhenAny(delayTask, signalTask);
+                if (completed == signalTask)
                 {
-                    break; // graceful shutdown
+                    _logger.LogDebug("Earlier reminder scheduled; reevaluating next due time.");
+                    continue; // re-evaluate next due time
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error while processing due reminders");
-                }
+
+                // Delay elapsed; process due reminders.
+                await ProcessDueAsync(stoppingToken);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            // expected on shutdown
+            // graceful shutdown
         }
         catch (Exception ex)
         {
@@ -52,43 +71,37 @@ public sealed class ReminderProcessor : BackgroundService
         _logger.LogInformation("ReminderProcessor stopping");
     }
 
-    private async Task LoadBatchAsync(CancellationToken ct)
+    private async Task LoadAllAsync(CancellationToken ct)
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
+        using var span = scope.ServiceProvider.GetRequiredService<Tracer>()
+            .StartActiveSpan($"{nameof(ReminderProcessor)}.{nameof(LoadAllAsync)}");
         var reminderService = scope.ServiceProvider.GetRequiredService<IReminderService>();
-        var reminders = await reminderService.GetDueAsync(_window.Capacity, ct);
-        _window.LoadInitial(reminders);
-        _logger.LogInformation("Loaded {Count} reminder(s) into memory. Last due time: {LastDue}", _window.Count, _window.LastDueTime?.ToString("O") ?? "<none>");
+        var reminders = await reminderService.GetAllUnsent(ct);
+        _store.InsertMany(reminders);
+        _logger.LogInformation("Loaded {Count} reminder(s). Next due: {NextDue}", reminders.Count, _store.NextDueTime?.ToString("O") ?? "<none>");
     }
 
     private async Task ProcessDueAsync(CancellationToken ct)
     {
-        var now = DateTimeOffset.UtcNow;
-        var due = _window.GetDue(now);
-        if (due.Count > 0)
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        using var span = scope.ServiceProvider.GetRequiredService<Tracer>()
+            .StartActiveSpan($"{nameof(ReminderProcessor)}.{nameof(ProcessDueAsync)}");
+
+        var now = _timeProvider.GetUtcNow();
+        var due = _store.GetAllDueReminders(now);
+        if (due.Count == 0)
         {
-            _logger.LogInformation("Marking {Count} reminder(s) due at or before {Now}", due.Count, now.ToString("O"));
-            await using var scope = _scopeFactory.CreateAsyncScope();
-            var reminderService = scope.ServiceProvider.GetRequiredService<IReminderService>();
-            try
-            {
-                foreach (var reminder in due)
-                {
-                    await reminderService.SendReminderAsync(reminder);
-                    _window.RemoveById(reminder.Id);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to mark {Count} reminder(s) as sent", due.Count);
-                // Do not remove from window; retry next minute
-            }
+            _logger.LogInformation("No due reminders at {Now}", now.ToString("O"));
+            return;
         }
 
-        if (_window.NeedsRefresh(now))
+        _logger.LogInformation("Processing {Count} due reminder(s) at {Now}", due.Count, now.ToString("O"));
+        var reminderService = scope.ServiceProvider.GetRequiredService<IReminderService>();
+        var sentIds = await reminderService.SendRemindersAsync(due, ct);
+        foreach (var id in sentIds)
         {
-            _logger.LogDebug("Refreshing reminder batch (current count: {Count}, lastDue: {LastDue}, now: {Now})", _window.Count, _window.LastDueTime?.ToString("O") ?? "<none>", now.ToString("O"));
-            await LoadBatchAsync(ct);
+            _store.RemoveById(id);
         }
     }
 }

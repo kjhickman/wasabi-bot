@@ -30,14 +30,26 @@ public class ReminderTimeCalculatorTests
     }
 
     [Fact]
-    public void ComputeRelativeUtc_ValidComponents_AddsCorrectly()
+    public void ComputeRelativeUtc_ValidComponents_AddsCorrectly_AndSecondsZero()
     {
-        var baseTime = new DateTimeOffset(2025, 01, 15, 08, 00, 00, TimeSpan.Zero);
+        var baseTime = new DateTimeOffset(2025, 01, 15, 08, 00, 42, TimeSpan.Zero); // include non-zero seconds to ensure truncation
         var resolver = Create(baseTime);
-        var result = resolver.ComputeRelativeUtc(months: 1, weeks: 2, days: 3, hours: 4, minutes: 5, seconds: 6);
+        var result = resolver.ComputeRelativeUtc(months: 1, weeks: 2, days: 3, hours: 4, minutes: 5);
         Assert.NotNull(result);
-        var expected = baseTime.AddMonths(1).AddDays(2 * 7 + 3).AddHours(4).AddMinutes(5).AddSeconds(6);
+        var truncatedBase = new DateTimeOffset(baseTime.Year, baseTime.Month, baseTime.Day, baseTime.Hour, baseTime.Minute, 0, TimeSpan.Zero);
+        var expected = truncatedBase.AddMonths(1).AddDays(2 * 7 + 3).AddHours(4).AddMinutes(5);
         Assert.Equal(expected, result.Value);
+        Assert.Equal(0, result.Value.Second);
+    }
+
+    [Fact]
+    public void ComputeRelativeUtc_TruncatesSecondsRegardlessOfOffsets()
+    {
+        var baseTime = new DateTimeOffset(2025, 02, 01, 10, 59, 59, TimeSpan.Zero);
+        var resolver = Create(baseTime);
+        var result = resolver.ComputeRelativeUtc(minutes: 1); // rolls into next hour/minute but should have zero seconds
+        Assert.NotNull(result);
+        Assert.Equal(0, result.Value.Second);
     }
 
     [Fact]
@@ -81,4 +93,3 @@ public class ReminderTimeCalculatorTests
         Assert.Null(resolver.ComputeAbsoluteUtc(month: 1, day: 1, year: 2500)); // > 2200
     }
 }
-
