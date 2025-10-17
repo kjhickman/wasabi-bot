@@ -259,7 +259,7 @@ jobs:
   migrate:
     name: Run migrations
     runs-on: ubuntu-latest
-    needs: [test, build_image]
+    needs: test
     environment: ${{ inputs.environment }}
     steps:
       - name: Checkout
