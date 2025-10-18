@@ -67,6 +67,7 @@ resource "aws_security_group" "wasabi_bot_api" {
 
 resource "aws_service_discovery_service" "wasabi_bot_api" {
   name = "${local.api_container_name}-http"
+  force_destroy = true
 
   dns_config {
     namespace_id   = local.service_discovery_namespace_id
