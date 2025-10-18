@@ -1,4 +1,3 @@
-using TickerQ.DependencyInjection;
 using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Infrastructure.Discord;
@@ -22,12 +21,18 @@ builder.AddDatabase();
 builder.AddServiceDefaults();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IInteractionService, InteractionService>();
-builder.Services.AddTickerQ();
 
 var app = builder.Build();
+
+var configuredPathBase = app.Configuration["ASPNETCORE_PATHBASE"];
+if (!string.IsNullOrWhiteSpace(configuredPathBase))
+{
+    app.Logger.LogInformation("Applying path base {PathBase}", configuredPathBase);
+    app.UsePathBase(configuredPathBase);
+}
+
 app.MapDefaultEndpoints();
 app.MapDiscordCommands();
-app.UseTickerQ();
 
 app.MapGet("/", () => "Hello, world!");
 
