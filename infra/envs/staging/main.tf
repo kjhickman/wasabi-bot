@@ -1,5 +1,9 @@
 data "aws_region" "current" {}
 
+data "aws_apigatewayv2_api" "shared_http_api" {
+  api_id = local.http_api_id
+}
+
 resource "aws_ecr_repository" "wasabi_bot" {
   name                 = "${local.project}/${local.api_service_name}-${local.environment}"
   image_tag_mutability = "MUTABLE"
@@ -16,11 +20,11 @@ resource "aws_ecr_lifecycle_policy" "wasabi_bot" {
     rules = [
       {
         rulePriority = 1
-        description  = "Keep the 20 most recent images"
+        description  = "Keep the 100 most recent images"
         selection = {
           tagStatus   = "any"
           countType   = "imageCountMoreThan"
-          countNumber = 20
+          countNumber = 100
         }
         action = {
           type = "expire"
@@ -62,7 +66,7 @@ resource "aws_security_group" "wasabi_bot_api" {
 }
 
 resource "aws_service_discovery_service" "wasabi_bot_api" {
-  name = local.api_container_name
+  name = "${local.api_container_name}-http"
 
   dns_config {
     namespace_id   = local.service_discovery_namespace_id
@@ -70,9 +74,11 @@ resource "aws_service_discovery_service" "wasabi_bot_api" {
 
     dns_records {
       ttl  = 10
-      type = "A"
+      type = "SRV"
     }
   }
+
+  # No custom health check; ECS handles container status.
 }
 
 resource "aws_ecs_task_definition" "wasabi_bot_api" {
@@ -108,6 +114,10 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
         {
           name  = "ASPNETCORE_ENVIRONMENT"
           value = title(local.environment)
+        },
+        {
+          name  = "ASPNETCORE_PATHBASE"
+          value = local.http_api_path_base
         }
       ]
       secrets = [
@@ -138,11 +148,12 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
 }
 
 resource "aws_ecs_service" "wasabi_bot_api" {
-  name            = local.api_container_name
-  cluster         = local.ecs_cluster_name
-  task_definition = aws_ecs_task_definition.wasabi_bot_api.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+  name                              = local.api_container_name
+  cluster                           = local.ecs_cluster_name
+  task_definition                   = aws_ecs_task_definition.wasabi_bot_api.arn
+  desired_count                     = 1
+  launch_type                       = "FARGATE"
+  health_check_grace_period_seconds = 60
 
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
@@ -156,11 +167,36 @@ resource "aws_ecs_service" "wasabi_bot_api" {
 
   service_registries {
     registry_arn = aws_service_discovery_service.wasabi_bot_api.arn
+    port         = 8080
   }
 
   depends_on = [
     aws_cloudwatch_log_group.wasabi_bot_api
   ]
+}
+
+resource "aws_apigatewayv2_integration" "wasabi_bot_api" {
+  api_id                 = data.aws_apigatewayv2_api.shared_http_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_method     = "ANY"
+  integration_uri        = aws_service_discovery_service.wasabi_bot_api.arn
+  connection_type        = "VPC_LINK"
+  connection_id          = local.http_api_vpc_link_id
+  payload_format_version = "1.0"
+  timeout_milliseconds   = 29000
+  description            = "Routes Wasabi Bot API traffic through the shared gateway."
+}
+
+resource "aws_apigatewayv2_route" "wasabi_bot_api_root" {
+  api_id    = data.aws_apigatewayv2_api.shared_http_api.id
+  route_key = "ANY /wasabi"
+  target    = "integrations/${aws_apigatewayv2_integration.wasabi_bot_api.id}"
+}
+
+resource "aws_apigatewayv2_route" "wasabi_bot_api_proxy" {
+  api_id    = data.aws_apigatewayv2_api.shared_http_api.id
+  route_key = "ANY /wasabi/{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.wasabi_bot_api.id}"
 }
 
 resource "neon_role" "main" {
