@@ -25,6 +25,14 @@ builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddTickerQ();
 
 var app = builder.Build();
+
+var configuredPathBase = app.Configuration["ASPNETCORE_PATHBASE"];
+if (!string.IsNullOrWhiteSpace(configuredPathBase))
+{
+    app.Logger.LogInformation("Applying path base {PathBase}", configuredPathBase);
+    app.UsePathBase(configuredPathBase);
+}
+
 app.Use(async (context, next) =>
 {
     app.Logger.LogInformation("Incoming request {Method} {PathBase}{Path}",
