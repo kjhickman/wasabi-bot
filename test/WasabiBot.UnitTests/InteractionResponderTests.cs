@@ -1,8 +1,6 @@
 ﻿using WasabiBot.Api.Infrastructure.Discord.Interactions;
-using Xunit;
 
 namespace WasabiBot.UnitTests;
-
 public class InteractionResponderTests
 {
     private sealed class CallTracker
@@ -17,42 +15,51 @@ public class InteractionResponderTests
     private static InteractionResponder CreateResponder(TimeSpan threshold, CallTracker tracker)
     {
         var deferCutoff = DateTimeOffset.UtcNow + threshold;
-        return new InteractionResponder(
-            deferCutoff,
-            defer: _ => { tracker.DeferCalls++; return Task.CompletedTask; },
-            respond: (content, ephemeral) => { tracker.RespondCalls++; tracker.RespondMessages.Add((content, ephemeral)); return Task.CompletedTask; },
-            followup: (content, ephemeral) => { tracker.FollowupCalls++; tracker.FollowupMessages.Add((content, ephemeral)); return Task.CompletedTask; }
-        );
+        return new InteractionResponder(deferCutoff, defer: _ =>
+        {
+            tracker.DeferCalls++;
+            return Task.CompletedTask;
+        }, respond: (content, ephemeral) =>
+        {
+            tracker.RespondCalls++;
+            tracker.RespondMessages.Add((content, ephemeral));
+            return Task.CompletedTask;
+        }, followup: (content, ephemeral) =>
+        {
+            tracker.FollowupCalls++;
+            tracker.FollowupMessages.Add((content, ephemeral));
+            return Task.CompletedTask;
+        });
     }
 
-    [Fact]
+    [Test]
     public async Task FastSend_BeforeThreshold_UsesRespond()
     {
         var tracker = new CallTracker();
         await using var responder = CreateResponder(TimeSpan.FromSeconds(5), tracker);
         await responder.SendAsync("hello", ephemeral: true);
-        Assert.Equal(0, tracker.DeferCalls);
-        Assert.Equal(1, tracker.RespondCalls);
-        Assert.Equal(0, tracker.FollowupCalls);
-        Assert.Single(tracker.RespondMessages);
-        Assert.True(tracker.RespondMessages.First().Ephemeral);
+        await Assert.That(tracker.DeferCalls).IsEqualTo(0);
+        await Assert.That(tracker.RespondCalls).IsEqualTo(1);
+        await Assert.That(tracker.FollowupCalls).IsEqualTo(0);
+        await Assert.That(tracker.RespondMessages.Count).IsEqualTo(1);
+        await Assert.That(tracker.RespondMessages.First().Ephemeral).IsTrue();
     }
 
-    [Fact]
+    [Test]
     public async Task SlowSend_AfterAutoDefer_UsesFollowup()
     {
         var tracker = new CallTracker();
         var threshold = TimeSpan.FromMilliseconds(50);
         await using var responder = CreateResponder(threshold, tracker);
-        await Task.Delay(threshold + TimeSpan.FromMilliseconds(60), TestContext.Current.CancellationToken); // allow auto-defer to trigger
+        await Task.Delay(threshold + TimeSpan.FromMilliseconds(60)); // allow auto-defer to trigger
         await responder.SendAsync("work done");
-        Assert.Equal(1, tracker.DeferCalls); // auto defer
-        Assert.Equal(0, tracker.RespondCalls); // initial respond skipped
-        Assert.Equal(1, tracker.FollowupCalls); // followup after defer
-        Assert.Single(tracker.FollowupMessages);
+        await Assert.That(tracker.DeferCalls).IsEqualTo(1); // auto defer
+        await Assert.That(tracker.RespondCalls).IsEqualTo(0); // initial respond skipped
+        await Assert.That(tracker.FollowupCalls).IsEqualTo(1); // followup after defer
+        await Assert.That(tracker.FollowupMessages.Count).IsEqualTo(1);
     }
 
-    [Fact]
+    [Test]
     public async Task MultipleSends_FirstResponds_OthersFollowup()
     {
         var tracker = new CallTracker();
@@ -60,34 +67,32 @@ public class InteractionResponderTests
         await responder.SendAsync("first");
         await responder.SendAsync("second");
         await responder.SendAsync("third");
-        Assert.Equal(0, tracker.DeferCalls);
-        Assert.Equal(1, tracker.RespondCalls);
-        Assert.Equal(2, tracker.FollowupCalls);
-        Assert.Equal(["first"], tracker.RespondMessages.Select(m => m.Content));
-        Assert.Equal(["second", "third"], tracker.FollowupMessages.Select(m => m.Content));
+        await Assert.That(tracker.DeferCalls).IsEqualTo(0);
+        await Assert.That(tracker.RespondCalls).IsEqualTo(1);
+        await Assert.That(tracker.FollowupCalls).IsEqualTo(2);
+        await Assert.That(tracker.RespondMessages.Select(m => m.Content).ToArray()).IsEquivalentTo(["first"]);
+        await Assert.That(tracker.FollowupMessages.Select(m => m.Content).ToArray()).IsEquivalentTo(["second", "third"]);
     }
 
-    [Fact]
+    [Test]
     public async Task ParallelSends_OnlyOneResponds_RestFollowup()
     {
         var tracker = new CallTracker();
         await using var responder = CreateResponder(TimeSpan.FromSeconds(5), tracker);
-        var sendTasks = Enumerable.Range(0, 10)
-            .Select(i => responder.SendAsync($"msg-{i}"))
-            .ToArray();
+        var sendTasks = Enumerable.Range(0, 10).Select(i => responder.SendAsync($"msg-{i}")).ToArray();
         await Task.WhenAll(sendTasks);
-        Assert.Equal(1, tracker.RespondCalls);
-        Assert.Equal(0, tracker.DeferCalls); // threshold not reached
-        Assert.Equal(9, tracker.FollowupCalls);
+        await Assert.That(tracker.RespondCalls).IsEqualTo(1);
+        await Assert.That(tracker.DeferCalls).IsEqualTo(0); // threshold not reached
+        await Assert.That(tracker.FollowupCalls).IsEqualTo(9);
     }
 
-    [Fact]
+    [Test]
     public async Task DisposeBeforeThreshold_CancelsTimer_NoDefer()
     {
         var tracker = new CallTracker();
         var responder = CreateResponder(TimeSpan.FromMilliseconds(200), tracker);
         await responder.DisposeAsync();
-        await Task.Delay(250, TestContext.Current.CancellationToken);
-        Assert.Equal(0, tracker.DeferCalls);
+        await Task.Delay(250);
+        await Assert.That(tracker.DeferCalls).IsEqualTo(0);
     }
 }

@@ -1,8 +1,6 @@
 ﻿using WasabiBot.Api.Features.RemindMe.Services;
-using Xunit;
 
 namespace WasabiBot.UnitTests;
-
 public class ReminderTimeCalculatorTests
 {
     private sealed class FixedTimeProvider : TimeProvider
@@ -14,82 +12,82 @@ public class ReminderTimeCalculatorTests
 
     private static ReminderTimeCalculator Create(DateTimeOffset utcNow) => new(new FixedTimeProvider(utcNow));
 
-    [Fact]
-    public void ComputeRelativeUtc_AllZeros_ReturnsNull()
+    [Test]
+    public async Task ComputeRelativeUtc_AllZeros_ReturnsNull()
     {
         var baseTime = new DateTimeOffset(2025, 10, 10, 12, 30, 0, TimeSpan.Zero);
         var resolver = Create(baseTime);
-        Assert.Null(resolver.ComputeRelativeUtc());
+        await Assert.That(resolver.ComputeRelativeUtc()).IsNull();
     }
 
-    [Fact]
-    public void ComputeRelativeUtc_AnyNegative_ReturnsNull()
+    [Test]
+    public async Task ComputeRelativeUtc_AnyNegative_ReturnsNull()
     {
         var resolver = Create(DateTimeOffset.UtcNow);
-        Assert.Null(resolver.ComputeRelativeUtc(days: -1));
+        await Assert.That(resolver.ComputeRelativeUtc(days: -1)).IsNull();
     }
 
-    [Fact]
-    public void ComputeRelativeUtc_ValidComponents_AddsCorrectly_AndSecondsZero()
+    [Test]
+    public async Task ComputeRelativeUtc_ValidComponents_AddsCorrectly_AndSecondsZero()
     {
         var baseTime = new DateTimeOffset(2025, 01, 15, 08, 00, 42, TimeSpan.Zero); // include non-zero seconds to ensure truncation
         var resolver = Create(baseTime);
         var result = resolver.ComputeRelativeUtc(months: 1, weeks: 2, days: 3, hours: 4, minutes: 5);
-        Assert.NotNull(result);
+        await Assert.That(result).IsNotNull();
         var truncatedBase = new DateTimeOffset(baseTime.Year, baseTime.Month, baseTime.Day, baseTime.Hour, baseTime.Minute, 0, TimeSpan.Zero);
         var expected = truncatedBase.AddMonths(1).AddDays(2 * 7 + 3).AddHours(4).AddMinutes(5);
-        Assert.Equal(expected, result.Value);
-        Assert.Equal(0, result.Value.Second);
+        await Assert.That(result!.Value).IsEqualTo(expected);
+        await Assert.That(result.Value.Second).IsEqualTo(0);
     }
 
-    [Fact]
-    public void ComputeRelativeUtc_TruncatesSecondsRegardlessOfOffsets()
+    [Test]
+    public async Task ComputeRelativeUtc_TruncatesSecondsRegardlessOfOffsets()
     {
         var baseTime = new DateTimeOffset(2025, 02, 01, 10, 59, 59, TimeSpan.Zero);
         var resolver = Create(baseTime);
         var result = resolver.ComputeRelativeUtc(minutes: 1); // rolls into next hour/minute but should have zero seconds
-        Assert.NotNull(result);
-        Assert.Equal(0, result.Value.Second);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Value.Second).IsEqualTo(0);
     }
 
-    [Fact]
-    public void ComputeAbsoluteUtc_InvalidBounds_ReturnsNull()
+    [Test]
+    public async Task ComputeAbsoluteUtc_InvalidBounds_ReturnsNull()
     {
         var resolver = Create(DateTimeOffset.UtcNow);
-        Assert.Null(resolver.ComputeAbsoluteUtc(13, 1));
-        Assert.Null(resolver.ComputeAbsoluteUtc(0, 1));
-        Assert.Null(resolver.ComputeAbsoluteUtc(1, 0));
-        Assert.Null(resolver.ComputeAbsoluteUtc(1, 1, hour: 24));
-        Assert.Null(resolver.ComputeAbsoluteUtc(1, 1, minute: 60));
+        await Assert.That(resolver.ComputeAbsoluteUtc(13, 1)).IsNull();
+        await Assert.That(resolver.ComputeAbsoluteUtc(0, 1)).IsNull();
+        await Assert.That(resolver.ComputeAbsoluteUtc(1, 0)).IsNull();
+        await Assert.That(resolver.ComputeAbsoluteUtc(1, 1, hour: 24)).IsNull();
+        await Assert.That(resolver.ComputeAbsoluteUtc(1, 1, minute: 60)).IsNull();
     }
 
-    [Fact]
-    public void ComputeAbsoluteUtc_InferYear_AndTime()
+    [Test]
+    public async Task ComputeAbsoluteUtc_InferYear_AndTime()
     {
         var baseTime = new DateTimeOffset(2025, 10, 10, 12, 34, 56, TimeSpan.Zero);
         var resolver = Create(baseTime);
         var result = resolver.ComputeAbsoluteUtc(month: 12, day: 25); // year=0 hour=-1 minute=-1 -> infer
-        Assert.NotNull(result);
-        var r = result.Value;
-        Assert.True(r.Year is 2025 or 2026);
+        await Assert.That(result).IsNotNull();
+        var r = result!.Value;
+        await Assert.That(r.Year is 2025 or 2026).IsTrue();
     }
 
-    [Fact]
-    public void ComputeAbsoluteUtc_RollForwardYearWhenPast()
+    [Test]
+    public async Task ComputeAbsoluteUtc_RollForwardYearWhenPast()
     {
         var baseTime = new DateTimeOffset(2025, 10, 10, 12, 00, 00, TimeSpan.Zero);
         var resolver = Create(baseTime);
         var result = resolver.ComputeAbsoluteUtc(month: 1, day: 5); // January 5 already passed => roll forward
-        Assert.NotNull(result);
-        Assert.Equal(2026, result.Value.Year);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Value.Year).IsEqualTo(2026);
     }
 
-    [Fact]
-    public void ComputeAbsoluteUtc_InvalidYear_ReturnsNull()
+    [Test]
+    public async Task ComputeAbsoluteUtc_InvalidYear_ReturnsNull()
     {
         var baseTime = new DateTimeOffset(2025, 10, 10, 0, 0, 0, TimeSpan.Zero);
         var resolver = Create(baseTime);
-        Assert.Null(resolver.ComputeAbsoluteUtc(month: 1, day: 1, year: 2024)); // past year
-        Assert.Null(resolver.ComputeAbsoluteUtc(month: 1, day: 1, year: 2500)); // > 2200
+        await Assert.That(resolver.ComputeAbsoluteUtc(month: 1, day: 1, year: 2024)).IsNull(); // past year
+        await Assert.That(resolver.ComputeAbsoluteUtc(month: 1, day: 1, year: 2500)).IsNull(); // > 2200
     }
 }
