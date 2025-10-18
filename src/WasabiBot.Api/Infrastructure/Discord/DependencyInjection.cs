@@ -19,9 +19,9 @@ internal static class DependencyInjection
 
         // Services used for commands
         services.AddSingleton<ReminderTimeCalculator>();
-        services.AddSingleton<PendingReminderStore>(); // register window without capacity limit
+        services.AddSingleton<IReminderStore, InMemoryReminderStore>();
         services.AddTransient<IReminderService, ReminderService>();
-        services.AddHostedService<ReminderProcessor>(); // register background processor
+        services.AddHostedService<ReminderProcessor>();
     }
 
     public static void MapDiscordCommands(this IHost app)

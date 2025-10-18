@@ -7,11 +7,11 @@ public sealed class ReminderProcessor : BackgroundService
 {
     private readonly ILogger<ReminderProcessor> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly PendingReminderStore _store;
+    private readonly IReminderStore _store;
     private readonly TimeProvider _timeProvider;
 
-    public ReminderProcessor(ILogger<ReminderProcessor> logger, IServiceScopeFactory scopeFactory,
-        PendingReminderStore store, TimeProvider timeProvider)
+    public ReminderProcessor(ILogger<ReminderProcessor> logger, IServiceScopeFactory scopeFactory, IReminderStore store,
+        TimeProvider timeProvider)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
@@ -27,7 +27,7 @@ public sealed class ReminderProcessor : BackgroundService
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                var nextDue = _store.NextDueTime;
+                var nextDue = _store.GetNextDueTime();
                 if (nextDue == null)
                 {
                     _logger.LogDebug("No reminders queued; awaiting first reminder.");
@@ -78,7 +78,7 @@ public sealed class ReminderProcessor : BackgroundService
         var reminderService = scope.ServiceProvider.GetRequiredService<IReminderService>();
         var reminders = await reminderService.GetAllUnsent(ct);
         _store.InsertMany(reminders);
-        _logger.LogInformation("Loaded {Count} reminder(s). Next due: {NextDue}", reminders.Count, _store.NextDueTime?.ToString("O") ?? "<none>");
+        _logger.LogInformation("Loaded {Count} reminder(s). Next due: {NextDue}", reminders.Count, _store.GetNextDueTime()?.ToString("O") ?? "<none>");
     }
 
     private async Task ProcessDueAsync(CancellationToken ct)
@@ -86,15 +86,14 @@ public sealed class ReminderProcessor : BackgroundService
         await using var scope = _scopeFactory.CreateAsyncScope();
         using var span = scope.ServiceProvider.GetRequiredService<Tracer>().StartActiveSpan("reminder.processor.process_due");
 
-        var now = _timeProvider.GetUtcNow();
-        var due = _store.GetAllDueReminders(now);
+        var due = _store.GetAllDueReminders();
         if (due.Count == 0)
         {
-            _logger.LogInformation("No due reminders at {Now}", now.ToString("O"));
+            _logger.LogInformation("No due reminders found.");
             return;
         }
 
-        _logger.LogInformation("Processing {Count} due reminder(s) at {Now}", due.Count, now.ToString("O"));
+        _logger.LogInformation("Processing {Count} due reminder(s)", due.Count);
         var reminderService = scope.ServiceProvider.GetRequiredService<IReminderService>();
         var sentIds = await reminderService.SendRemindersAsync(due, ct);
         foreach (var id in sentIds)

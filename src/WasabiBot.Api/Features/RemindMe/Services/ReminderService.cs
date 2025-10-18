@@ -11,12 +11,12 @@ namespace WasabiBot.Api.Features.RemindMe.Services;
 public sealed class ReminderService : IReminderService
 {
     private readonly WasabiBotContext _ctx;
-    private readonly PendingReminderStore _store;
+    private readonly IReminderStore _store;
     private readonly RestClient _discordClient;
     private readonly ILogger<ReminderService> _logger;
     private readonly Tracer _tracer;
 
-    public ReminderService(WasabiBotContext ctx, PendingReminderStore store, RestClient discordClient,
+    public ReminderService(WasabiBotContext ctx, IReminderStore store, RestClient discordClient,
         ILogger<ReminderService> logger, Tracer tracer)
     {
         _ctx = ctx;
@@ -60,7 +60,7 @@ public sealed class ReminderService : IReminderService
     public async Task<IReadOnlyCollection<long>> SendRemindersAsync(IEnumerable<ReminderEntity> reminders, CancellationToken ct = default)
     {
         using var span = _tracer.StartActiveSpan("reminder.send");
-        ConcurrentBag<long> sentReminderIds = new();
+        ConcurrentBag<long> sentReminderIds = [];
         await Parallel.ForEachAsync(reminders, ct, async (reminder, token) =>
         {
             try

@@ -1,15 +1,28 @@
-﻿using WasabiBot.DataAccess.Entities;
+﻿using WasabiBot.Api.Features.RemindMe.Abstractions;
+using WasabiBot.DataAccess.Entities;
 
 namespace WasabiBot.Api.Features.RemindMe.Services;
 
-public sealed class PendingReminderStore
+public sealed class InMemoryReminderStore : IReminderStore
 {
     private readonly Lock _lock = new();
     private readonly SortedSet<ReminderEntity> _sorted = new(ReminderComparer.Instance);
     private readonly Dictionary<long, ReminderEntity> _byId = new();
     private readonly SemaphoreSlim _earlierSignal = new(0, 1);
+    private readonly TimeProvider _timeProvider;
 
-    public DateTimeOffset? NextDueTime { get { lock (_lock) return _sorted.Min?.RemindAt; } }
+    public InMemoryReminderStore(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+    }
+
+    public DateTimeOffset? GetNextDueTime()
+    {
+        lock (_lock)
+        {
+            return _sorted.Min?.RemindAt;
+        }
+    }
 
     public void InsertMany(IEnumerable<ReminderEntity> reminders)
     {
@@ -23,7 +36,7 @@ public sealed class PendingReminderStore
 
                 _byId[r.Id] = r;
                 var newEarliest = _sorted.Min?.RemindAt;
-                earliestChanged = previousEarliest == null || (newEarliest != null && newEarliest < previousEarliest);
+                earliestChanged = previousEarliest == null || newEarliest < previousEarliest;
             }
         }
 
@@ -46,7 +59,7 @@ public sealed class PendingReminderStore
                 _byId[entity.Id] = entity;
             }
             var newEarliest = _sorted.Min?.RemindAt;
-            earliestChanged = previousEarliest == null || (newEarliest != null && newEarliest < previousEarliest);
+            earliestChanged = previousEarliest == null || newEarliest < previousEarliest;
         }
 
         if (earliestChanged)
@@ -55,7 +68,7 @@ public sealed class PendingReminderStore
         }
     }
 
-    public List<ReminderEntity> GetAllDueReminders(DateTimeOffset now)
+    public List<ReminderEntity> GetAllDueReminders()
     {
         lock (_lock)
         {
@@ -63,7 +76,7 @@ public sealed class PendingReminderStore
             var list = new List<ReminderEntity>();
             foreach (var r in _sorted)
             {
-                if (r.RemindAt <= now) list.Add(r); else break;
+                if (r.RemindAt <= _timeProvider.GetUtcNow()) list.Add(r); else break;
             }
             return list;
         }
