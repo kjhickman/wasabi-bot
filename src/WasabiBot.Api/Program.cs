@@ -25,6 +25,14 @@ builder.Services.AddScoped<IInteractionService, InteractionService>();
 builder.Services.AddTickerQ();
 
 var app = builder.Build();
+app.Use(async (context, next) =>
+{
+    app.Logger.LogInformation("Incoming request {Method} {PathBase}{Path}",
+        context.Request.Method,
+        context.Request.PathBase.Value ?? string.Empty,
+        context.Request.Path.Value ?? string.Empty);
+    await next();
+});
 app.MapDefaultEndpoints();
 app.MapDiscordCommands();
 app.UseTickerQ();

@@ -42,3 +42,13 @@ output "service_discovery_service_arn" {
   description = "Cloud Map service ARN for the Wasabi Bot API."
   value       = aws_service_discovery_service.wasabi_bot_api.arn
 }
+
+output "http_api_integration_id" {
+  description = "Identifier of the shared HTTP API integration that fronts the Wasabi Bot service."
+  value       = aws_apigatewayv2_integration.wasabi_bot_api.id
+}
+
+output "http_api_wasabi_base_url" {
+  description = "Invoke URL for the Wasabi Bot service when accessed through the shared HTTP API."
+  value       = "${trimsuffix(local.http_api_invoke_url, "/")}/wasabi"
+}
