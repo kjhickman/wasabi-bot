@@ -16,7 +16,7 @@ internal class RemindMeCommand
         IChatClient chat,
         Tracer tracer,
         IReminderService reminderService,
-        ReminderTimeCalculator reminderTimeCalculator,
+        IReminderTimeCalculator reminderTimeCalculator,
         ILogger<RemindMeCommand> logger,
         ApplicationCommandContext ctx,
         [SlashCommandParameter(Name = "when", Description = "When should I remind you? e.g., 'in 2 hours' or '10/31 5pm'")] string when,

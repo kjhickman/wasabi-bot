@@ -18,7 +18,7 @@ internal static class DependencyInjection
         services.AddGatewayHandler<InteractionCreatedEventHandler>();
 
         // Services used for commands
-        services.AddSingleton<ReminderTimeCalculator>();
+        services.AddSingleton<IReminderTimeCalculator, ReminderTimeCalculator>();
         services.AddSingleton<IReminderStore, InMemoryReminderStore>();
         services.AddTransient<IReminderService, ReminderService>();
         services.AddHostedService<ReminderProcessor>();

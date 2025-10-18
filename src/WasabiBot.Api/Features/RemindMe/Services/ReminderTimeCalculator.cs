@@ -1,6 +1,8 @@
-﻿namespace WasabiBot.Api.Features.RemindMe.Services;
+﻿using WasabiBot.Api.Features.RemindMe.Abstractions;
 
-internal sealed class ReminderTimeCalculator
+namespace WasabiBot.Api.Features.RemindMe.Services;
+
+internal sealed class ReminderTimeCalculator : IReminderTimeCalculator
 {
     private static readonly TimeZoneInfo DefaultTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time");
     private readonly TimeProvider _timeProvider;
