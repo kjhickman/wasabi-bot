@@ -107,10 +107,8 @@ jobs:
           tags: |
             ${{ steps.meta.outputs.full_tag }}
             ${{ steps.meta.outputs.uri }}:latest
-          cache-from: |
-            type=registry,ref=${{ steps.meta.outputs.cache_ref }}
-          cache-to: |
-            type=registry,ref=${{ steps.meta.outputs.cache_ref }},mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Capture digest
         id: describe-image
