@@ -6,6 +6,7 @@ using WasabiBot.Api.Features.RemindMe;
 using WasabiBot.Api.Features.RemindMe.Abstractions;
 using WasabiBot.Api.Features.RemindMe.Services;
 using WasabiBot.Api.Infrastructure.Discord.EventHandlers;
+using WasabiBot.Api.Features.Spin;
 
 namespace WasabiBot.Api.Infrastructure.Discord;
 
@@ -29,5 +30,6 @@ internal static class DependencyInjection
         app.AddSlashCommand(MagicConchCommand.Name, MagicConchCommand.Description, MagicConchCommand.ExecuteAsync);
         app.AddSlashCommand(CaptionThisCommand.Name, CaptionThisCommand.Description, CaptionThisCommand.ExecuteAsync);
         app.AddSlashCommand(RemindMeCommand.Name, RemindMeCommand.Description, RemindMeCommand.ExecuteAsync);
+        app.AddSlashCommand(SpinCommand.Name, SpinCommand.Description, SpinCommand.ExecuteAsync);
     }
 }
