@@ -20,3 +20,13 @@ TestResults/
 packages/
 artifacts/
 AGENTS.md
+
+# Exclude test sources (not needed for API publish image)
+test/
+
+# Exclude infrastructure / Terraform configs
+infra/
+
+# Exclude projects not copied by Dockerfile for API image
+src/WasabiBot.Migrations/
+src/WasabiBot.ReminderProcessor/
