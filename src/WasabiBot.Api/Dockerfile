@@ -5,7 +5,7 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0-noble AS build
 ARG BUILD_CONFIGURATION=Release
-ARG TARGET_RUNTIME=linux-x64
+ARG TARGET_RUNTIME=linux-arm64
 WORKDIR /src
 COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
