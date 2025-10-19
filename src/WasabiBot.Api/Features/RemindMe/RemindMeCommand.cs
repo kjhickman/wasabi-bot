@@ -4,6 +4,9 @@ using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.RemindMe.Abstractions;
 using WasabiBot.Api.Features.RemindMe.Services;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
+using System.Diagnostics;
+using WasabiBot.Api.Infrastructure.AI;
+using WasabiBot.ServiceDefaults;
 
 namespace WasabiBot.Api.Features.RemindMe;
 
@@ -55,7 +58,14 @@ internal class RemindMeCommand
             var absolute = AIFunctionFactory.Create(reminderTimeCalculator.ComputeAbsoluteUtc);
             var chatOptions = new ChatOptions { Tools = [relative, absolute] };
 
+            var llmStart = Stopwatch.GetTimestamp();
             var response = await chat.GetResponseAsync(messages, chatOptions);
+            var elapsed = Stopwatch.GetElapsedTime(llmStart).TotalSeconds;
+            LlmMetrics.LlmResponseLatency.Record(elapsed, new TagList
+            {
+                {"command", Name},
+                {"status", "ok"}
+            });
             var toolMessage = response.Messages.FirstOrDefault(x => x.Role == ChatRole.Tool);
             if (toolMessage?.Contents.FirstOrDefault() is not FunctionResultContent functionResult)
             {

@@ -3,7 +3,9 @@ using System.Diagnostics;
 using Microsoft.Extensions.AI;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
+using WasabiBot.ServiceDefaults;
 
 namespace WasabiBot.Api.Features.MagicConch;
 
@@ -42,7 +44,14 @@ internal class MagicConchCommand
 
         try
         {
+            var llmStart = Stopwatch.GetTimestamp();
             var chatResponse = await chat.GetResponseAsync(prompt, ChatOptions);
+            var elapsed = Stopwatch.GetElapsedTime(llmStart).TotalSeconds;
+            LlmMetrics.LlmResponseLatency.Record(elapsed, new TagList
+            {
+                {"command", Name},
+                {"status", "ok"}
+            });
             logger.LogInformation(
                 "Magic conch responded to user {User} with answer '{Answer}'",
                 userDisplayName,

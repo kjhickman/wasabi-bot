@@ -4,6 +4,9 @@ using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
+using System.Diagnostics;
+using WasabiBot.Api.Infrastructure.AI;
+using WasabiBot.ServiceDefaults;
 
 namespace WasabiBot.Api.Features.CaptionThis;
 
@@ -64,8 +67,16 @@ internal class CaptionThisCommand
                 ])
             };
 
+            var llmStart = Stopwatch.GetTimestamp();
             var captionResponse = await chat.GetResponseAsync(messages);
-            var captionText = captionResponse.Text ?? string.Empty;
+            var elapsed = Stopwatch.GetElapsedTime(llmStart).TotalSeconds;
+            LlmMetrics.LlmResponseLatency.Record(elapsed, new TagList
+            {
+                {"command", Name},
+                {"status", "ok"}
+            });
+
+            var captionText = captionResponse.Text;
             var response = image.Url + "\n" + captionText;
             logger.LogInformation(
                 "Caption generated successfully for user {Username}",
