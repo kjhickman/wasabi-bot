@@ -153,7 +153,6 @@ resource "aws_ecs_service" "wasabi_bot_api" {
   cluster                           = local.ecs_cluster_name
   task_definition                   = aws_ecs_task_definition.wasabi_bot_api.arn
   desired_count                     = 1
-  launch_type                       = "FARGATE"
   health_check_grace_period_seconds = 60
 
   deployment_minimum_healthy_percent = 50
