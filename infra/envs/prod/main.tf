@@ -159,6 +159,11 @@ resource "aws_ecs_service" "wasabi_bot_api" {
   deployment_maximum_percent         = 200
   enable_execute_command             = true
 
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
+
   network_configuration {
     subnets          = local.public_subnet_ids
     security_groups  = [aws_security_group.wasabi_bot_api.id]
