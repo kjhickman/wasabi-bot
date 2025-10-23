@@ -1,6 +1,7 @@
 ﻿using WasabiBot.Api.Features.RemindMe.Services;
 
-namespace WasabiBot.UnitTests;
+namespace WasabiBot.UnitTests.Features.RemindMe;
+
 public class ReminderTimeCalculatorTests
 {
     private sealed class FixedTimeProvider : TimeProvider

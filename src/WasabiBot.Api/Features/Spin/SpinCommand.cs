@@ -57,9 +57,8 @@ internal sealed class SpinCommand : CommandBase
     {
         using var span = _tracer.StartActiveSpan("spin.choose");
 
-        var user = ctx.Interaction.User;
-        var userDisplayName = user.GlobalName ?? user.Username;
-        var channelId = ctx.Interaction.Channel.Id;
+        var userDisplayName = ctx.UserDisplayName;
+        var channelId = ctx.ChannelId;
 
         _logger.LogInformation(
             "Spin command invoked by user {User} in channel {ChannelId}",

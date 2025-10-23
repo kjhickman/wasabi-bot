@@ -1,6 +1,6 @@
 using WasabiBot.Api.Features.Spin;
 
-namespace WasabiBot.UnitTests;
+namespace WasabiBot.UnitTests.Features.Spin;
 
 public class SpinCommandTests
 {

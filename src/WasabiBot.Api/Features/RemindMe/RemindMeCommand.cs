@@ -52,10 +52,9 @@ internal sealed class RemindMeCommand : CommandBase
     {
         using var span = _tracer.StartActiveSpan("remindme.schedule.request");
 
-        var user = ctx.Interaction.User;
-        var userDisplayName = user.GlobalName ?? user.Username;
-        var userId = user.Id;
-        var channelId = ctx.Interaction.Channel.Id;
+        var userDisplayName = ctx.UserDisplayName;
+        var userId = ctx.UserId;
+        var channelId = ctx.ChannelId;
 
         _logger.LogInformation(
             "Reminder command invoked by user {User} in channel {ChannelId} with when='{When}' and reminder='{Reminder}'",

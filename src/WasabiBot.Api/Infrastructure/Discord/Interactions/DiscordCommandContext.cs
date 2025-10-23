@@ -7,14 +7,19 @@ namespace WasabiBot.Api.Infrastructure.Discord.Interactions;
 public sealed class DiscordCommandContext : ICommandContext
 {
     private readonly InteractionResponder _responder;
+    private readonly Interaction _interaction;
 
     public DiscordCommandContext(ApplicationCommandContext inner)
     {
         _responder = InteractionResponder.Create(inner);
-        Interaction = inner.Interaction;
+        _interaction = inner.Interaction;
     }
 
-    public Interaction Interaction { get; }
+    public ulong ChannelId => _interaction.Channel.Id;
+    public ulong UserId => _interaction.User.Id;
+    public string Username => _interaction.User.Username;
+    public string? GlobalName => _interaction.User.GlobalName;
+    public string UserDisplayName =>  GlobalName ?? Username;
 
     public Task RespondAsync(string message, bool ephemeral = false)
     {

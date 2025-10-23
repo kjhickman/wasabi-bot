@@ -1,6 +1,7 @@
 ﻿using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
-namespace WasabiBot.UnitTests;
+namespace WasabiBot.UnitTests.Infrastructure.Discord;
+
 public class InteractionResponderTests
 {
     private sealed class CallTracker

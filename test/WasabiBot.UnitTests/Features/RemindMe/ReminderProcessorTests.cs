@@ -6,7 +6,7 @@ using WasabiBot.Api.Features.RemindMe.Abstractions;
 using WasabiBot.Api.Features.RemindMe.Services;
 using WasabiBot.DataAccess.Entities;
 
-namespace WasabiBot.UnitTests;
+namespace WasabiBot.UnitTests.Features.RemindMe;
 
 public class ReminderProcessorTests
 {
