@@ -7,6 +7,9 @@ using WasabiBot.Api.Features.RemindMe.Abstractions;
 using WasabiBot.Api.Features.RemindMe.Services;
 using WasabiBot.Api.Infrastructure.Discord.EventHandlers;
 using WasabiBot.Api.Features.Spin;
+using WasabiBot.Api.Infrastructure.Discord.Abstractions;
+using WasabiBot.DataAccess.Abstractions;
+using WasabiBot.DataAccess.Services;
 
 namespace WasabiBot.Api.Infrastructure.Discord;
 
@@ -21,15 +24,27 @@ internal static class DependencyInjection
         // Services used for commands
         services.AddSingleton<IReminderTimeCalculator, ReminderTimeCalculator>();
         services.AddSingleton<IReminderStore, InMemoryReminderStore>();
-        services.AddTransient<IReminderService, ReminderService>();
         services.AddHostedService<ReminderProcessor>();
+        services.AddScoped<IInteractionService, InteractionService>();
+        services.AddScoped<IReminderService, ReminderService>();
+        services.AddScoped<CaptionThisCommand>();
+        services.AddScoped<RemindMeCommand>();
+        services.AddScoped<SpinCommand>();
+        services.AddScoped<MagicConchCommand>();
     }
 
     public static void MapDiscordCommands(this IHost app)
     {
-        app.AddSlashCommand(MagicConchCommand.Name, MagicConchCommand.Description, MagicConchCommand.ExecuteAsync);
-        app.AddSlashCommand(CaptionThisCommand.Name, CaptionThisCommand.Description, CaptionThisCommand.ExecuteAsync);
-        app.AddSlashCommand(RemindMeCommand.Name, RemindMeCommand.Description, RemindMeCommand.ExecuteAsync);
-        app.AddSlashCommand(SpinCommand.Name, SpinCommand.Description, SpinCommand.ExecuteAsync);
+        app.MapCommandHandler<MagicConchCommand>();
+        app.MapCommandHandler<CaptionThisCommand>();
+        app.MapCommandHandler<RemindMeCommand>();
+        app.MapCommandHandler<SpinCommand>();
+    }
+
+    private static void MapCommandHandler<T>(this IHost app) where T : CommandBase
+    {
+        var scope = app.Services.CreateScope();
+        var command = scope.ServiceProvider.GetRequiredService<T>();
+        app.AddSlashCommand(command.Command, command.Description, command.Handler);
     }
 }

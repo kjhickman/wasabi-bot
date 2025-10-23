@@ -21,7 +21,7 @@ namespace WasabiBot.Api.Infrastructure.Discord.Interactions;
 /// Thread-safe acknowledgement is enforced via <see cref="Interlocked"/> so the interaction is only
 /// acknowledged once.
 /// </remarks>
-internal sealed class InteractionResponder : IAsyncDisposable
+public sealed class InteractionResponder : IAsyncDisposable
 {
     private readonly Func<string, bool, Task> _respond;
     private readonly Func<string, bool, Task> _followup;

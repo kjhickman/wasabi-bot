@@ -19,8 +19,6 @@ builder.Services.AddDiscordInfrastructure();
 builder.AddAIInfrastructure();
 builder.AddDatabase();
 builder.AddServiceDefaults();
-builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddScoped<IInteractionService, InteractionService>();
 
 var app = builder.Build();
 
@@ -33,7 +31,6 @@ if (!string.IsNullOrWhiteSpace(configuredPathBase))
 
 app.MapDefaultEndpoints();
 app.MapDiscordCommands();
-
 app.MapGet("/", () => "Hello, world!");
 
 app.Run();

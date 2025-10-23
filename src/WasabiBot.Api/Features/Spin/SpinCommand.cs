@@ -1,14 +1,23 @@
-using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Spin;
 
-internal class SpinCommand
+internal sealed class SpinCommand : CommandBase
 {
-    public const string Name = "spin";
-    public const string Description = "Spin a wheel with 2-7 options and pick one at random.";
+    private readonly Tracer _tracer;
+    private readonly ILogger<SpinCommand> _logger;
+
+    public SpinCommand(Tracer tracer, ILogger<SpinCommand> logger)
+    {
+        _tracer = tracer;
+        _logger = logger;
+    }
+
+    public override string Command => "spin";
+    public override string Description => "Spin a wheel with 2-7 options and pick one at random.";
 
     internal static string ChooseOption(IReadOnlyList<string> options, Random? random = null)
     {
@@ -21,7 +30,9 @@ internal class SpinCommand
         return options[index];
     }
 
-    public static async Task ExecuteAsync(Tracer tracer, ILogger<SpinCommand> logger, ApplicationCommandContext ctx,
+    [CommandEntry]
+    public Task HandleAsync(
+        ApplicationCommandContext ctx,
         [SlashCommandParameter(Name = "option1", Description = "First option")] string option1,
         [SlashCommandParameter(Name = "option2", Description = "Second option")] string option2,
         [SlashCommandParameter(Name = "option3", Description = "Third option")] string? option3 = null,
@@ -30,11 +41,30 @@ internal class SpinCommand
         [SlashCommandParameter(Name = "option6", Description = "Sixth option")] string? option6 = null,
         [SlashCommandParameter(Name = "option7", Description = "Seventh option")] string? option7 = null)
     {
-        using var span = tracer.StartActiveSpan("spin.choose");
+        var commandContext = new DiscordCommandContext(ctx);
+        return ExecuteAsync(commandContext, option1, option2, option3, option4, option5, option6, option7);
+    }
 
-        var userDisplayName = ctx.Interaction.User.GlobalName ?? ctx.Interaction.User.Username;
-        logger.LogInformation("Spin command invoked by user {User} in channel {ChannelId}", userDisplayName,
-            ctx.Interaction.Channel.Id);
+    public async Task ExecuteAsync(
+        ICommandContext ctx,
+        string option1,
+        string option2,
+        string? option3 = null,
+        string? option4 = null,
+        string? option5 = null,
+        string? option6 = null,
+        string? option7 = null)
+    {
+        using var span = _tracer.StartActiveSpan("spin.choose");
+
+        var user = ctx.Interaction.User;
+        var userDisplayName = user.GlobalName ?? user.Username;
+        var channelId = ctx.Interaction.Channel.Id;
+
+        _logger.LogInformation(
+            "Spin command invoked by user {User} in channel {ChannelId}",
+            userDisplayName,
+            channelId);
 
         var options = new[] { option1, option2, option3, option4, option5, option6, option7 }
             .Where(o => !string.IsNullOrWhiteSpace(o))
@@ -45,16 +75,18 @@ internal class SpinCommand
         switch (options.Count)
         {
             case < 2:
-                logger.LogWarning("Spin command received insufficient options ({Count}) from user {User}",
-                    options.Count, userDisplayName);
-                await ctx.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    InteractionUtils.CreateMessage("Please provide at least 3 distinct options.", ephemeral: true)));
+                _logger.LogWarning(
+                    "Spin command received insufficient options ({Count}) from user {User}",
+                    options.Count,
+                    userDisplayName);
+                await ctx.SendEphemeralAsync("Please provide at least 3 distinct options.");
                 return;
             case > 7:
-                logger.LogWarning("Spin command received too many options ({Count}) from user {User}", options.Count,
+                _logger.LogWarning(
+                    "Spin command received too many options ({Count}) from user {User}",
+                    options.Count,
                     userDisplayName);
-                await ctx.Interaction.SendResponseAsync(InteractionCallback.Message(
-                    InteractionUtils.CreateMessage("Please limit to at most 7 options.", ephemeral: true)));
+                await ctx.SendEphemeralAsync("Please limit to at most 7 options.");
                 return;
         }
 
@@ -62,7 +94,10 @@ internal class SpinCommand
         var displayOptions = string.Join(", ", options);
         var response = $"Spinning the wheel! Options: {displayOptions}\nThe wheel lands on... **{chosen}**";
 
-        logger.LogInformation("Spin command selected '{Chosen}' for user {User}", chosen, userDisplayName);
-        await ctx.Interaction.SendResponseAsync(InteractionCallback.Message(InteractionUtils.CreateMessage(response)));
+        _logger.LogInformation(
+            "Spin command selected '{Chosen}' for user {User}",
+            chosen,
+            userDisplayName);
+        await ctx.RespondAsync(response);
     }
 }

@@ -3,37 +3,54 @@ using System.Diagnostics;
 using Microsoft.Extensions.AI;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Infrastructure.AI;
+using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 using WasabiBot.ServiceDefaults;
 
 namespace WasabiBot.Api.Features.MagicConch;
 
-internal class MagicConchCommand
+internal sealed class MagicConchCommand : CommandBase
 {
-    public const string Name = "conch";
-    public const string Description = "Ask the magic conch a question.";
+    private readonly IChatClient _chatClient;
+    private readonly Tracer _tracer;
+    private readonly ILogger<MagicConchCommand> _logger;
 
     private static readonly ChatOptions ChatOptions = new()
     {
         Tools = [AIFunctionFactory.Create(GetMagicConchResponse)]
     };
 
-    public static async Task ExecuteAsync(
-        IChatClient chat,
-        Tracer tracer,
-        ILogger<MagicConchCommand> logger,
+    public MagicConchCommand(IChatClient chatClient, Tracer tracer, ILogger<MagicConchCommand> logger)
+    {
+        _chatClient = chatClient;
+        _tracer = tracer;
+        _logger = logger;
+    }
+
+    public override string Command => "conch";
+    public override string Description => "Ask the magic conch a question.";
+
+    [CommandEntry]
+    public Task HandleAsync(
         ApplicationCommandContext ctx,
         [SlashCommandParameter(Name = "question", Description = "Ask a yes/no style question")] string question)
     {
-        using var span = tracer.StartActiveSpan("conch.answer.generate");
-        await using var responder = InteractionResponder.Create(ctx);
+        var commandContext = new DiscordCommandContext(ctx);
+        return ExecuteAsync(commandContext, question);
+    }
 
-        var userDisplayName = ctx.Interaction.User.GlobalName ?? ctx.Interaction.User.Username;
-        logger.LogInformation(
+    public async Task ExecuteAsync(ICommandContext ctx, string question)
+    {
+        var user = ctx.Interaction.User;
+        var userDisplayName = user.GlobalName ?? user.Username;
+        var channelId = ctx.Interaction.Channel.Id;
+
+        _logger.LogInformation(
             "Magic conch command invoked by user {User} in channel {ChannelId}",
             userDisplayName,
-            ctx.Interaction.Channel.Id);
+            channelId);
+
+        using var span = _tracer.StartActiveSpan("conch.answer.generate");
 
         var prompt = "You are the Magic Conch shell. The user asks a yes/no style question and you reply succinctly. " +
                      "Rules: If the question is NOT yes/no, respond exactly with 'Try asking again'. " +
@@ -45,14 +62,14 @@ internal class MagicConchCommand
         try
         {
             var llmStart = Stopwatch.GetTimestamp();
-            var chatResponse = await chat.GetResponseAsync(prompt, ChatOptions);
+            var chatResponse = await _chatClient.GetResponseAsync(prompt, ChatOptions);
             var elapsed = Stopwatch.GetElapsedTime(llmStart).TotalSeconds;
             LlmMetrics.LlmResponseLatency.Record(elapsed, new TagList
             {
-                {"command", Name},
+                {"command", Command},
                 {"status", "ok"}
             });
-            logger.LogInformation(
+            _logger.LogInformation(
                 "Magic conch responded to user {User} with answer '{Answer}'",
                 userDisplayName,
                 chatResponse.Text);
@@ -62,16 +79,16 @@ internal class MagicConchCommand
                              The Magic Conch says... {chatResponse.Text}
                              """;
 
-            await responder.SendAsync(response);
+            await ctx.RespondAsync(response);
         }
         catch (Exception ex)
         {
             span.RecordException(ex);
-            logger.LogError(
+            _logger.LogError(
                 ex,
                 "Magic conch failed to process question for user {User}",
                 userDisplayName);
-            await responder.SendEphemeralAsync("The magic conch is silent right now. Please try again later.");
+            await ctx.SendEphemeralAsync("The magic conch is silent right now. Please try again later.");
         }
     }
 
