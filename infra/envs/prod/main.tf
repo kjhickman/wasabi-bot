@@ -66,7 +66,7 @@ resource "aws_security_group" "wasabi_bot_api" {
 }
 
 resource "aws_service_discovery_service" "wasabi_bot_api" {
-  name = "${local.api_container_name}-http"
+  name          = "${local.api_container_name}-http"
   force_destroy = true
 
   dns_config {
@@ -149,12 +149,12 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
 }
 
 resource "aws_ecs_service" "wasabi_bot_api" {
-  name                              = local.api_container_name
-  cluster                           = local.ecs_cluster_name
-  task_definition                   = aws_ecs_task_definition.wasabi_bot_api.arn
-  desired_count                     = 1
-  health_check_grace_period_seconds = 60
-
+  name                               = local.api_container_name
+  cluster                            = local.ecs_cluster_name
+  task_definition                    = aws_ecs_task_definition.wasabi_bot_api.arn
+  desired_count                      = 1
+  health_check_grace_period_seconds  = 60
+  force_new_deployment               = true
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
   enable_execute_command             = true
