@@ -116,7 +116,10 @@ internal sealed class RemindMeCommand : CommandBase
 
             if (DateTimeOffset.TryParse(raw, out var targetTime))
             {
-                if (targetTime <= DateTimeOffset.UtcNow.AddSeconds(30))
+                var nowUtc = DateTimeOffset.UtcNow;
+                var currentMinute = new DateTimeOffset(nowUtc.Year, nowUtc.Month, nowUtc.Day, nowUtc.Hour, nowUtc.Minute, 0, TimeSpan.Zero);
+
+                if (targetTime <= currentMinute)
                 {
                     _logger.LogWarning(
                         "Reminder time {TargetTime} rejected because it is not far enough in the future (user {User})",
