@@ -28,7 +28,6 @@ internal sealed class FakeCommandContext : ICommandContext
     public ulong UserId { get; }
     public string UserDisplayName { get; }
 
-
     public Task RespondAsync(string message, bool ephemeral = false)
     {
         _messages.Add((message, ephemeral));
