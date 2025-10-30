@@ -4,14 +4,14 @@ using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 
 namespace WasabiBot.Api.Infrastructure.Discord.Interactions;
 
-public sealed class DiscordCommandContext : ICommandContext
+public sealed class WasabiCommandContext : ICommandContext
 {
     private readonly InteractionResponder _responder;
     private readonly Interaction _interaction;
 
-    public DiscordCommandContext(ApplicationCommandContext inner)
+    public WasabiCommandContext(ApplicationCommandContext inner)
     {
-        _responder = InteractionResponder.Create(inner);
+        _responder = InteractionResponder.Create(inner, TimeProvider.System);
         _interaction = inner.Interaction;
     }
 

@@ -1,48 +1,35 @@
-using System.Diagnostics;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
-using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.RemindMe.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
-using WasabiBot.ServiceDefaults;
 
 namespace WasabiBot.Api.Features.RemindMe;
 
-internal sealed class RemindMeCommand : CommandBase
+[CommandHandler("remindme", "Set a reminder for the channel.", nameof(ExecuteAsync))]
+internal sealed class RemindMeCommand
 {
     private readonly IChatClient _chatClient;
     private readonly Tracer _tracer;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IReminderTimeCalculator _reminderTimeCalculator;
     private readonly ILogger<RemindMeCommand> _logger;
+    private readonly TimeProvider _timeProvider;
 
     public RemindMeCommand(
         IChatClient chatClient,
         Tracer tracer,
         IServiceScopeFactory scopeFactory,
         IReminderTimeCalculator reminderTimeCalculator,
-        ILogger<RemindMeCommand> logger)
+        ILogger<RemindMeCommand> logger,
+        TimeProvider timeProvider)
     {
         _chatClient = chatClient;
         _tracer = tracer;
         _scopeFactory = scopeFactory;
         _reminderTimeCalculator = reminderTimeCalculator;
         _logger = logger;
-    }
-
-    public override string Command => "remindme";
-    public override string Description => "Set a reminder for yourself.";
-
-    [CommandEntry]
-    public Task HandleAsync(
-        ApplicationCommandContext ctx,
-        [SlashCommandParameter(Name = "when", Description = "When should I remind you? e.g., 'in 2 hours' or '10/31 5pm'")] string when,
-        [SlashCommandParameter(Name = "reminder", Description = "What should I remind you about?")] string reminder)
-    {
-        var commandContext = new DiscordCommandContext(ctx);
-        return ExecuteAsync(commandContext, when, reminder);
+        _timeProvider = timeProvider;
     }
 
     public async Task ExecuteAsync(
@@ -85,14 +72,7 @@ internal sealed class RemindMeCommand : CommandBase
             var absolute = AIFunctionFactory.Create(_reminderTimeCalculator.ComputeAbsoluteUtc);
             var chatOptions = new ChatOptions { Tools = [relative, absolute] };
 
-            var llmStart = Stopwatch.GetTimestamp();
             var response = await _chatClient.GetResponseAsync(messages, chatOptions);
-            var elapsed = Stopwatch.GetElapsedTime(llmStart).TotalSeconds;
-            LlmMetrics.LlmResponseLatency.Record(elapsed, new TagList
-            {
-                {"command", Command},
-                {"status", "ok"}
-            });
             var toolMessage = response.Messages.FirstOrDefault(x => x.Role == ChatRole.Tool);
             if (toolMessage?.Contents.FirstOrDefault() is not FunctionResultContent functionResult)
             {
@@ -115,7 +95,7 @@ internal sealed class RemindMeCommand : CommandBase
 
             if (DateTimeOffset.TryParse(raw, out var targetTime))
             {
-                var nowUtc = DateTimeOffset.UtcNow;
+                var nowUtc = _timeProvider.GetUtcNow();
                 var currentMinute = new DateTimeOffset(nowUtc.Year, nowUtc.Month, nowUtc.Day, nowUtc.Hour, nowUtc.Minute, 0, TimeSpan.Zero);
 
                 if (targetTime <= currentMinute)

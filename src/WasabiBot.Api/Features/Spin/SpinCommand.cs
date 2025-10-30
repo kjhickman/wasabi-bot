@@ -1,11 +1,11 @@
-using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Spin;
 
-internal sealed class SpinCommand : CommandBase
+[CommandHandler("spin", "Spin a wheel with 2-7 options and pick one at random.", nameof(ExecuteAsync))]
+internal sealed class SpinCommand
 {
     private readonly Tracer _tracer;
     private readonly ILogger<SpinCommand> _logger;
@@ -14,35 +14,6 @@ internal sealed class SpinCommand : CommandBase
     {
         _tracer = tracer;
         _logger = logger;
-    }
-
-    public override string Command => "spin";
-    public override string Description => "Spin a wheel with 2-7 options and pick one at random.";
-
-    internal static string ChooseOption(IReadOnlyList<string> options, Random? random = null)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.Count, 7, nameof(options));
-        ArgumentOutOfRangeException.ThrowIfLessThan(options.Count, 2, nameof(options));
-
-        var rng = random ?? Random.Shared;
-        var index = rng.Next(options.Count);
-        return options[index];
-    }
-
-    [CommandEntry]
-    public Task HandleAsync(
-        ApplicationCommandContext ctx,
-        [SlashCommandParameter(Name = "option1", Description = "First option")] string option1,
-        [SlashCommandParameter(Name = "option2", Description = "Second option")] string option2,
-        [SlashCommandParameter(Name = "option3", Description = "Third option")] string? option3 = null,
-        [SlashCommandParameter(Name = "option4", Description = "Fourth option")] string? option4 = null,
-        [SlashCommandParameter(Name = "option5", Description = "Fifth option")] string? option5 = null,
-        [SlashCommandParameter(Name = "option6", Description = "Sixth option")] string? option6 = null,
-        [SlashCommandParameter(Name = "option7", Description = "Seventh option")] string? option7 = null)
-    {
-        var commandContext = new DiscordCommandContext(ctx);
-        return ExecuteAsync(commandContext, option1, option2, option3, option4, option5, option6, option7);
     }
 
     public async Task ExecuteAsync(
@@ -98,5 +69,16 @@ internal sealed class SpinCommand : CommandBase
             chosen,
             userDisplayName);
         await ctx.RespondAsync(response);
+    }
+
+    internal static string ChooseOption(IReadOnlyList<string> options, Random? random = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.Count, 7, nameof(options));
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.Count, 2, nameof(options));
+
+        var rng = random ?? Random.Shared;
+        var index = rng.Next(options.Count);
+        return options[index];
     }
 }

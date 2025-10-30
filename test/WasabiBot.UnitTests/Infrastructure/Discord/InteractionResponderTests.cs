@@ -15,8 +15,7 @@ public class InteractionResponderTests
 
     private static InteractionResponder CreateResponder(TimeSpan threshold, CallTracker tracker)
     {
-        var deferCutoff = DateTimeOffset.UtcNow + threshold;
-        return new InteractionResponder(deferCutoff, defer: _ =>
+        return new InteractionResponder(threshold, defer: _ =>
         {
             tracker.DeferCalls++;
             return Task.CompletedTask;

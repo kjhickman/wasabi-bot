@@ -33,14 +33,14 @@ public sealed class InteractionResponder : IAsyncDisposable
 
     /// <summary>
     /// Creates a new auto-responder that will defer the interaction if the initial
-    /// response has not been sent before the specified <paramref name="deferCutoff"/>.
+    /// response has not been sent before the specified <paramref name="remaining"/>.
     /// </summary>
-    /// <param name="deferCutoff">The absolute point in time when the interaction should be deferred.</param>
+    /// <param name="remaining"></param>
     /// <param name="defer">Callback that sends a deferred response for the interaction. Receives <c>ephemeral</c>.</param>
     /// <param name="respond">Callback that sends the initial response. Receives content and <c>ephemeral</c>.</param>
     /// <param name="followup">Callback that sends a follow-up message. Receives content and <c>ephemeral</c>.</param>
     internal InteractionResponder(
-        DateTimeOffset deferCutoff,
+        TimeSpan remaining,
         Func<bool, Task> defer,
         Func<string, bool, Task> respond,
         Func<string, bool, Task> followup)
@@ -52,7 +52,6 @@ public sealed class InteractionResponder : IAsyncDisposable
         {
             try
             {
-                var remaining = deferCutoff - DateTimeOffset.UtcNow;
                 if (remaining > TimeSpan.Zero)
                 {
                     await Task.Delay(remaining, _cts.Token);
@@ -74,12 +73,14 @@ public sealed class InteractionResponder : IAsyncDisposable
     /// Creates an <see cref="InteractionResponder"/> bound to the provided command context.
     /// </summary>
     /// <param name="ctx">The application command context.</param>
+    /// <param name="timeProvider"></param>
     /// <returns>A new <see cref="InteractionResponder"/> instance (caller is responsible for disposing).</returns>
-    public static InteractionResponder Create(ApplicationCommandContext ctx, int deferMilliseconds = 2500)
+    public static InteractionResponder Create(ApplicationCommandContext ctx, TimeProvider timeProvider, int deferMilliseconds = 2500)
     {
         var deferCutoff = ctx.Interaction.CreatedAt + TimeSpan.FromMilliseconds(deferMilliseconds);
+        var remaining = deferCutoff - timeProvider.GetUtcNow();
         return new InteractionResponder(
-            deferCutoff: deferCutoff,
+            remaining: remaining,
             defer: _ => ctx.Interaction.SendResponseAsync(InteractionCallback.DeferredMessage()),
             respond: (text, ephemeral) => ctx.Interaction.SendResponseAsync(InteractionCallback.Message(InteractionUtils.CreateMessage(text, ephemeral))),
             followup: (text, ephemeral) => ctx.Interaction.SendFollowupMessageAsync(InteractionUtils.CreateMessage(text, ephemeral)));

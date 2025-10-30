@@ -5,7 +5,7 @@ namespace WasabiBot.Api.Infrastructure.Database;
 
 public static class DependencyInjection
 {
-    public static void AddDatabase(this IHostApplicationBuilder builder)
+    public static void AddDbContext(this IHostApplicationBuilder builder)
     {
         builder.Services.AddDbContext<WasabiBotContext>(options =>
         {

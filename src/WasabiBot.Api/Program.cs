@@ -1,8 +1,7 @@
+using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Infrastructure.Discord;
-using WasabiBot.DataAccess.Abstractions;
-using WasabiBot.DataAccess.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -15,22 +14,22 @@ builder.Host.UseDefaultServiceProvider(options =>
 });
 
 builder.Configuration.AddUserSecrets<Program>(optional: true);
-builder.Services.AddDiscordInfrastructure();
-builder.AddAIInfrastructure();
-builder.AddDatabase();
+builder.Services.AddDiscordServices();
+builder.AddAIServices();
+builder.AddDbContext();
 builder.AddServiceDefaults();
 
 var app = builder.Build();
 
 var configuredPathBase = app.Configuration["ASPNETCORE_PATHBASE"];
-if (!string.IsNullOrWhiteSpace(configuredPathBase))
+if (!configuredPathBase.IsNullOrWhiteSpace())
 {
     app.Logger.LogInformation("Applying path base {PathBase}", configuredPathBase);
     app.UsePathBase(configuredPathBase);
 }
 
 app.MapDefaultEndpoints();
-app.MapDiscordCommands();
+app.MapDiscordCommandHandlers();
 app.MapGet("/", () => "Hello, world!");
 
 app.Run();

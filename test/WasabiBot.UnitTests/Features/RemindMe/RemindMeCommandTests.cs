@@ -18,7 +18,7 @@ public class RemindMeCommandTests
         IReminderTimeCalculator timeCalculator)
     {
         var tracer = TracerProvider.Default.GetTracer("remindme-tests");
-        return new RemindMeCommand(chatClient, tracer, scopeFactory, timeCalculator, NullLogger<RemindMeCommand>.Instance);
+        return new RemindMeCommand(chatClient, tracer, scopeFactory, timeCalculator, NullLogger<RemindMeCommand>.Instance, TimeProvider.System);
     }
 
     private static IServiceScopeFactory CreateScopeFactory(IReminderService reminderService)

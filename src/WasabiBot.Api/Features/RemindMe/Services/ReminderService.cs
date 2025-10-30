@@ -15,15 +15,17 @@ public sealed class ReminderService : IReminderService
     private readonly RestClient _discordClient;
     private readonly ILogger<ReminderService> _logger;
     private readonly Tracer _tracer;
+    private readonly TimeProvider _timeProvider;
 
     public ReminderService(WasabiBotContext ctx, IReminderStore store, RestClient discordClient,
-        ILogger<ReminderService> logger, Tracer tracer)
+        ILogger<ReminderService> logger, Tracer tracer, TimeProvider timeProvider)
     {
         _ctx = ctx;
         _store = store;
         _discordClient = discordClient;
         _logger = logger;
         _tracer = tracer;
+        _timeProvider = timeProvider;
     }
 
     public async Task<bool> ScheduleAsync(ulong userId, ulong channelId, string reminder, DateTimeOffset remindAt)
@@ -35,7 +37,7 @@ public sealed class ReminderService : IReminderService
             ChannelId = (long)channelId,
             ReminderMessage = reminder,
             RemindAt = remindAt,
-            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = _timeProvider.GetUtcNow(),
             IsReminderSent = false
         };
         _ctx.Reminders.Add(entity);
@@ -78,7 +80,7 @@ public sealed class ReminderService : IReminderService
 
         using var updateSpan = _tracer.StartActiveSpan("reminder.send.update_db");
         await _ctx.Reminders
-            .Where(r => sentReminderIds.Contains(r.Id))
+            .Where(r => r.IsReminderSent == false && sentReminderIds.Contains(r.Id))
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsReminderSent, r => true), ct);
 
         return sentReminderIds;

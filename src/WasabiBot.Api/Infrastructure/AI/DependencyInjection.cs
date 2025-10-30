@@ -7,7 +7,7 @@ namespace WasabiBot.Api.Infrastructure.AI;
 
 internal static class DependencyInjection
 {
-    public static void AddAIInfrastructure(this WebApplicationBuilder builder)
+    public static void AddAIServices(this WebApplicationBuilder builder)
     {
         builder.Services
             .AddOptions<GeminiOptions>()

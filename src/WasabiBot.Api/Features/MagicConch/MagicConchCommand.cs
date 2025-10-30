@@ -1,15 +1,14 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.AI;
-using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
-using WasabiBot.ServiceDefaults;
 
 namespace WasabiBot.Api.Features.MagicConch;
 
-internal sealed class MagicConchCommand : CommandBase
+[CommandHandler("conch", "Ask the magic conch a question.", nameof(ExecuteAsync))]
+internal sealed class MagicConchCommand
 {
     private readonly IChatClient _chatClient;
     private readonly Tracer _tracer;
@@ -25,18 +24,6 @@ internal sealed class MagicConchCommand : CommandBase
         _chatClient = chatClient;
         _tracer = tracer;
         _logger = logger;
-    }
-
-    public override string Command => "conch";
-    public override string Description => "Ask the magic conch a question.";
-
-    [CommandEntry]
-    public Task HandleAsync(
-        ApplicationCommandContext ctx,
-        [SlashCommandParameter(Name = "question", Description = "Ask a yes/no style question")] string question)
-    {
-        var commandContext = new DiscordCommandContext(ctx);
-        return ExecuteAsync(commandContext, question);
     }
 
     public async Task ExecuteAsync(ICommandContext ctx, string question)
@@ -60,14 +47,7 @@ internal sealed class MagicConchCommand : CommandBase
 
         try
         {
-            var llmStart = Stopwatch.GetTimestamp();
             var chatResponse = await _chatClient.GetResponseAsync(prompt, ChatOptions);
-            var elapsed = Stopwatch.GetElapsedTime(llmStart).TotalSeconds;
-            LlmMetrics.LlmResponseLatency.Record(elapsed, new TagList
-            {
-                {"command", Command},
-                {"status", "ok"}
-            });
             _logger.LogInformation(
                 "Magic conch responded to user {User} with answer '{Answer}'",
                 userDisplayName,
