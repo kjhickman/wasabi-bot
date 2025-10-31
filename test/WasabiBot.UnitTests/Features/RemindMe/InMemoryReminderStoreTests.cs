@@ -74,7 +74,7 @@ public class InMemoryReminderStoreTests
         currentTime = baseTime.AddHours(1);
 
         var dueIds = store.GetAllDueReminders().Select(r => r.Id).ToArray();
-        await Assert.That(dueIds.SequenceEqual(new long[] { 11, 12, 10 })).IsTrue();
+        await Assert.That(dueIds.SequenceEqual([11, 12, 10])).IsTrue();
     }
 
     [Test]
@@ -94,7 +94,7 @@ public class InMemoryReminderStoreTests
         currentTime = baseTime;
 
         var dueIds = store.GetAllDueReminders().Select(r => r.Id).ToArray();
-        await Assert.That(dueIds.SequenceEqual(new long[] { 1, 2 })).IsTrue();
+        await Assert.That(dueIds.SequenceEqual([1, 2])).IsTrue();
     }
 
     [Test]

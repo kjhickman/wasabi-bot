@@ -72,7 +72,7 @@ public sealed class InMemoryReminderStore : IReminderStore
     {
         lock (_lock)
         {
-            if (_sorted.Count == 0) return new();
+            if (_sorted.Count == 0) return [];
             var list = new List<ReminderEntity>();
             foreach (var r in _sorted)
             {

@@ -10,10 +10,11 @@ namespace WasabiBot.UnitTests.Features.MagicConch;
 
 public class MagicConchCommandTests
 {
-    private static MagicConchCommand CreateCommand(IChatClient chatClient)
+    private static MagicConchCommand CreateCommand(IChatClient chatClient, IMagicConchTool? tool = null)
     {
         var tracer = TracerProvider.Default.GetTracer("magicconch-tests");
-        return new MagicConchCommand(chatClient, tracer, NullLogger<MagicConchCommand>.Instance);
+        tool ??= Substitute.For<IMagicConchTool>();
+        return new MagicConchCommand(chatClient, tracer, NullLogger<MagicConchCommand>.Instance, tool);
     }
 
     [Test]

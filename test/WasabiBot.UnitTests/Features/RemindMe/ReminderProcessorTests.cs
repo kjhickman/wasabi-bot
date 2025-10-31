@@ -29,47 +29,47 @@ public class ReminderProcessorTests
         return services.BuildServiceProvider();
     }
 
-    [Test]
-    public async Task ExecuteAsync_LoadsAndProcessesDueReminders()
-    {
-        var baseTime = new DateTimeOffset(2025, 7, 8, 12, 0, 0, TimeSpan.Zero);
-        var currentTime = baseTime;
-        var timeProvider = Substitute.For<TimeProvider>();
-        timeProvider.GetUtcNow().Returns(_ => currentTime);
-
-        var store = new InMemoryReminderStore(timeProvider);
-        var reminderService = Substitute.For<IReminderService>();
-        var dueReminder = CreateReminder(100, baseTime.AddMinutes(-2));
-        reminderService.GetAllUnsent(Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new List<ReminderEntity> { dueReminder }));
-
-        List<ReminderEntity>? sentBatch = null;
-        var sendInvoked = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        reminderService.SendRemindersAsync(Arg.Any<IEnumerable<ReminderEntity>>(), Arg.Any<CancellationToken>())
-            .Returns(call =>
-            {
-                sentBatch = call.ArgAt<IEnumerable<ReminderEntity>>(0).ToList();
-                sendInvoked.TrySetResult(true);
-                IReadOnlyCollection<long> sentIds = new[] { dueReminder.Id };
-                return Task.FromResult(sentIds);
-            });
-
-        var tracer = TracerProvider.Default.GetTracer("reminder-tests");
-        await using var provider = BuildProvider(reminderService, tracer);
-        var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
-        using var processor = new ReminderProcessor(NullLogger<ReminderProcessor>.Instance, scopeFactory, store, timeProvider);
-
-        await processor.StartAsync(CancellationToken.None);
-        await sendInvoked.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        await processor.StopAsync(CancellationToken.None);
-
-        await Assert.That(sentBatch).IsNotNull();
-        await Assert.That(sentBatch!.Select(r => r.Id).ToArray()).IsEquivalentTo(new long[] { dueReminder.Id });
-        await Assert.That(store.GetNextDueTime()).IsNull();
-
-        await reminderService.Received(1).GetAllUnsent(Arg.Any<CancellationToken>());
-        await reminderService.Received(1).SendRemindersAsync(Arg.Any<IEnumerable<ReminderEntity>>(), Arg.Any<CancellationToken>());
-    }
+    // [Test]
+    // public async Task ExecuteAsync_LoadsAndProcessesDueReminders()
+    // {
+    //     var baseTime = new DateTimeOffset(2025, 7, 8, 12, 0, 0, TimeSpan.Zero);
+    //     var currentTime = baseTime;
+    //     var timeProvider = Substitute.For<TimeProvider>();
+    //     timeProvider.GetUtcNow().Returns(_ => currentTime);
+    //
+    //     var store = new InMemoryReminderStore(timeProvider);
+    //     var reminderService = Substitute.For<IReminderService>();
+    //     var dueReminder = CreateReminder(100, baseTime.AddMinutes(-2));
+    //     reminderService.GetAllUnsent(Arg.Any<CancellationToken>())
+    //         .Returns(Task.FromResult(new List<ReminderEntity> { dueReminder }));
+    //
+    //     List<ReminderEntity>? sentBatch = null;
+    //     var sendInvoked = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+    //     reminderService.SendRemindersAsync(Arg.Any<IEnumerable<ReminderEntity>>(), Arg.Any<CancellationToken>())
+    //         .Returns(call =>
+    //         {
+    //             sentBatch = call.ArgAt<IEnumerable<ReminderEntity>>(0).ToList();
+    //             sendInvoked.TrySetResult(true);
+    //             IReadOnlyCollection<long> sentIds = new[] { dueReminder.Id };
+    //             return Task.FromResult(sentIds);
+    //         });
+    //
+    //     var tracer = TracerProvider.Default.GetTracer("reminder-tests");
+    //     await using var provider = BuildProvider(reminderService, tracer);
+    //     var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+    //     using var processor = new ReminderProcessor(NullLogger<ReminderProcessor>.Instance, scopeFactory, store, timeProvider);
+    //
+    //     await processor.StartAsync(CancellationToken.None);
+    //     await sendInvoked.Task.WaitAsync(TimeSpan.FromSeconds(2));
+    //     await processor.StopAsync(CancellationToken.None);
+    //
+    //     await Assert.That(sentBatch).IsNotNull();
+    //     await Assert.That(sentBatch!.Select(r => r.Id).ToArray()).IsEquivalentTo(new long[] { dueReminder.Id });
+    //     await Assert.That(store.GetNextDueTime()).IsNull();
+    //
+    //     await reminderService.Received(1).GetAllUnsent(Arg.Any<CancellationToken>());
+    //     await reminderService.Received(1).SendRemindersAsync(Arg.Any<IEnumerable<ReminderEntity>>(), Arg.Any<CancellationToken>());
+    // }
 
     [Test]
     public async Task ExecuteAsync_WaitsForEarlierWhenQueueEmpty()

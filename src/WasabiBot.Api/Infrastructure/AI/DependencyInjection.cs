@@ -2,6 +2,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using OpenAI;
+using WasabiBot.Api.Features.MagicConch;
 
 namespace WasabiBot.Api.Infrastructure.AI;
 
@@ -32,5 +33,9 @@ internal static class DependencyInjection
                 .UseLogging()
                 .Build(serviceProvider);
         });
+
+        // AI Tools
+        builder.Services.AddSingleton<IMagicConchTool, MagicConchTool>();
+        builder.Services.AddSingleton(Random.Shared);
     }
 }
