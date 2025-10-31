@@ -119,6 +119,18 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
         {
           name  = "ASPNETCORE_PATHBASE"
           value = local.http_api_path_base
+        },
+        {
+          name  = "OTEL_RESOURCE_ATTRIBUTES"
+          value = "service.name=wasabi-bot,service.namespace=Wasabi,deployment.environment=staging"
+        },
+        {
+          name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+          value = "https://otlp-gateway-prod-us-east-2.grafana.net/otlp"
+        },
+        {
+          name  = "OTEL_EXPORTER_OTLP_PROTOCOL"
+          value = "http/protobuf"
         }
       ]
       secrets = [
@@ -133,6 +145,10 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
         {
           name      = "ConnectionStrings__wasabi-db"
           valueFrom = "/wasabi-bot/${local.environment}/NeonDbConnectionString"
+        },
+        {
+          name      = "OTEL_EXPORTER_OTLP_HEADERS"
+          valueFrom = "/wasabi-bot/${local.environment}/GrafanaOtelHeaders"
         }
       ]
     }
