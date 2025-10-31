@@ -21,12 +21,12 @@ public sealed class ReminderProcessor : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try
+        while (!stoppingToken.IsCancellationRequested)
         {
-            await LoadAllAsync(stoppingToken);
-
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
+                await LoadAllAsync(stoppingToken);
+
                 var nextDue = _store.GetNextDueTime();
                 if (nextDue == null)
                 {
@@ -43,7 +43,8 @@ public sealed class ReminderProcessor : BackgroundService
                 }
 
                 var delay = nextDue.Value - now;
-                _logger.LogDebug("Waiting {Delay} until next due reminder at {NextDue}", delay, nextDue.Value.ToString("O"));
+                _logger.LogDebug("Waiting {Delay} until next due reminder at {NextDue}", delay,
+                    nextDue.Value.ToString("O"));
 
                 // Wait either for delay to elapse OR an earlier reminder to be inserted.
                 var delayTask = Task.Delay(delay, stoppingToken);
@@ -58,14 +59,14 @@ public sealed class ReminderProcessor : BackgroundService
                 // Delay elapsed; process due reminders.
                 await ProcessDueAsync(stoppingToken);
             }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-            // graceful shutdown
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled exception in ReminderProcessor loop");
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // graceful shutdown
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled exception in ReminderProcessor loop");
+            }
         }
 
         _logger.LogInformation("ReminderProcessor stopping");

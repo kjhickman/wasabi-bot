@@ -7,6 +7,7 @@
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.5.1" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.5.1" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="9.5.1" />
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.5.2" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10" />
@@ -23,7 +24,6 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
     <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.437" />
     <PackageVersion Include="Npgsql" Version="9.0.3" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.13.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.13.1" />
