@@ -1,11 +1,13 @@
 using AspNet.Security.OAuth.Discord;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Infrastructure.Discord;
+using WasabiBot.Api.Infrastructure.Auth;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -62,7 +64,15 @@ builder.Services
         options.SaveTokens = true;
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddSingleton<IAuthorizationHandler, DiscordGuildRequirementHandler>();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("DiscordGuildMember", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.AddRequirements(new DiscordGuildRequirement());
+    });
+});
 
 var app = builder.Build();
 
@@ -95,6 +105,6 @@ app.MapGet("/signin-discord", (string? returnUrl) =>
     })
     .AllowAnonymous();
 
-app.MapGet("/", () => "Hello, world!").RequireAuthorization();
+app.MapGet("/", () => "Hello, world!").RequireAuthorization("DiscordGuildMember");
 
 app.Run();
