@@ -11,12 +11,14 @@ WORKDIR /src
 COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
 COPY ["src/WasabiBot.Api/WasabiBot.Api.csproj", "src/WasabiBot.Api/"]
+COPY ["src/WasabiBot.Api.Generators/WasabiBot.Api.Generators.csproj", "src/WasabiBot.Api.Generators/"]
 COPY ["src/WasabiBot.DataAccess/WasabiBot.DataAccess.csproj", "src/WasabiBot.DataAccess/"]
 COPY ["src/WasabiBot.ServiceDefaults/WasabiBot.ServiceDefaults.csproj", "src/WasabiBot.ServiceDefaults/"]
 
 RUN dotnet restore "src/WasabiBot.Api/WasabiBot.Api.csproj" -r ${TARGET_RUNTIME}
 
 COPY src/WasabiBot.Api/ src/WasabiBot.Api/
+COPY src/WasabiBot.Api.Generators/ src/WasabiBot.Api.Generators/
 COPY src/WasabiBot.DataAccess/ src/WasabiBot.DataAccess/
 COPY src/WasabiBot.ServiceDefaults/ src/WasabiBot.ServiceDefaults/
 
