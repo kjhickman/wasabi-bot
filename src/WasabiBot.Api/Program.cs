@@ -105,6 +105,13 @@ app.MapGet("/signin-discord", (string? returnUrl) =>
     })
     .AllowAnonymous();
 
+app.MapPost("/signout", async (HttpContext httpContext) =>
+    {
+        await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Results.NoContent();
+    })
+    .RequireAuthorization();
+
 app.MapGet("/", () => "Hello, world!").RequireAuthorization("DiscordGuildMember");
 
 app.Run();
