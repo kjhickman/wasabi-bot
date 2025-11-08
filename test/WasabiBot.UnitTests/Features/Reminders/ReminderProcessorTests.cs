@@ -2,11 +2,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Features.RemindMe.Abstractions;
-using WasabiBot.Api.Features.RemindMe.Services;
+using WasabiBot.Api.Features.Reminders.Abstractions;
+using WasabiBot.Api.Features.Reminders.Services;
 using WasabiBot.DataAccess.Entities;
 
-namespace WasabiBot.UnitTests.Features.RemindMe;
+namespace WasabiBot.UnitTests.Features.Reminders;
 
 public class ReminderProcessorTests
 {

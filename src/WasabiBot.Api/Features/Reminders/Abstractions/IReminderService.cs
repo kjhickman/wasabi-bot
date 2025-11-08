@@ -1,6 +1,6 @@
 ﻿using WasabiBot.DataAccess.Entities;
 
-namespace WasabiBot.Api.Features.RemindMe.Abstractions;
+namespace WasabiBot.Api.Features.Reminders.Abstractions;
 
 public interface IReminderService
 {
@@ -8,3 +8,4 @@ public interface IReminderService
     Task<List<ReminderEntity>> GetAllUnsent(CancellationToken ct = default);
     Task<IReadOnlyCollection<long>> SendRemindersAsync(IEnumerable<ReminderEntity> reminders, CancellationToken ct = default);
 }
+

@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
-namespace WasabiBot.Api.Infrastructure.Auth.Endpoints;
+namespace WasabiBot.Api.Features.Auth;
 
-public static class SignOut
+public static class Logout
 {
     public static async Task<IResult> Handle(HttpContext httpContext)
     {

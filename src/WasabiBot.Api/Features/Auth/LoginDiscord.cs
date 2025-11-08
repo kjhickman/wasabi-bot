@@ -1,9 +1,9 @@
 ﻿using AspNet.Security.OAuth.Discord;
 using Microsoft.AspNetCore.Authentication;
 
-namespace WasabiBot.Api.Infrastructure.Auth.Endpoints;
+namespace WasabiBot.Api.Features.Auth;
 
-public static class DiscordSignin
+public static class LoginDiscord
 {
     public static IResult Handle(string? returnUrl)
     {

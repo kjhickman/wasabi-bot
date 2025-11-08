@@ -1,7 +1,7 @@
 ﻿using OpenTelemetry.Trace;
-using WasabiBot.Api.Features.RemindMe.Abstractions;
+using WasabiBot.Api.Features.Reminders.Abstractions;
 
-namespace WasabiBot.Api.Features.RemindMe.Services;
+namespace WasabiBot.Api.Features.Reminders.Services;
 
 public sealed class ReminderProcessor : BackgroundService
 {
@@ -103,3 +103,4 @@ public sealed class ReminderProcessor : BackgroundService
         }
     }
 }
+

@@ -3,7 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace WasabiBot.Api.Infrastructure.Auth;
 
-internal sealed class ApiTokenOptions
+public sealed class ApiTokenOptions
 {
     public ApiTokenOptions(SymmetricSecurityKey signingKey, TimeSpan lifetime)
     {

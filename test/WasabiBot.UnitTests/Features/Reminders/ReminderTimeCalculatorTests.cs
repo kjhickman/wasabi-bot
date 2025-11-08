@@ -1,6 +1,6 @@
-﻿using WasabiBot.Api.Features.RemindMe.Services;
+﻿using WasabiBot.Api.Features.Reminders.Services;
 
-namespace WasabiBot.UnitTests.Features.RemindMe;
+namespace WasabiBot.UnitTests.Features.Reminders;
 
 public class ReminderTimeCalculatorTests
 {

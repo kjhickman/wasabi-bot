@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace WasabiBot.Api.Infrastructure.Auth;
 
-internal sealed class ApiTokenFactory
+public sealed class ApiTokenFactory
 {
     private static readonly JwtSecurityTokenHandler TokenHandler = new();
 

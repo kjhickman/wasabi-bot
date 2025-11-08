@@ -1,4 +1,4 @@
-namespace WasabiBot.Api.Features.RemindMe.Contracts;
+﻿namespace WasabiBot.Api.Features.Reminders.Contracts;
 
 public class CreateReminderRequest
 {
@@ -7,3 +7,4 @@ public class CreateReminderRequest
     public required string ReminderMessage { get; set; }
     public required DateTimeOffset RemindAt { get; set; }
 }
+

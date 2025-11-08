@@ -1,8 +1,8 @@
 using NSubstitute;
-using WasabiBot.Api.Features.RemindMe.Services;
+using WasabiBot.Api.Features.Reminders.Services;
 using WasabiBot.DataAccess.Entities;
 
-namespace WasabiBot.UnitTests.Features.RemindMe;
+namespace WasabiBot.UnitTests.Features.Reminders;
 
 public class InMemoryReminderStoreTests
 {
