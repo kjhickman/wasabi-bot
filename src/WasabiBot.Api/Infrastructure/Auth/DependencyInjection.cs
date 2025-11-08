@@ -42,6 +42,7 @@ public static class DependencyInjection
         var apiTokenOptions = new ApiTokenOptions(signingKey, TimeSpan.FromMinutes(tokenLifetimeMinutes));
 
         services.AddSingleton(apiTokenOptions);
+        services.AddSingleton<ApiTokenFactory>();
 
         services
             .AddAuthentication(options =>

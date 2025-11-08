@@ -8,7 +8,8 @@ var database = postgres.AddDatabase("wasabi-db");
 
 var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
     .WithReference(database)
-    .WaitFor(database);
+    .WaitFor(database)
+    .WithUrl("/scalar", "API Reference");
 
 var migrations = builder.AddProject<Projects.WasabiBot_Migrations>("migrations")
     .WithReference(database)

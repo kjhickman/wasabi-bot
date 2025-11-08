@@ -10,10 +10,12 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+      <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
       <PackageReference Include="Microsoft.Extensions.AI" />
       <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
       <PackageReference Include="AspNet.Security.OAuth.Discord" />
       <PackageReference Include="NetCord.Hosting.Services" />
+      <PackageReference Include="Scalar.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>
