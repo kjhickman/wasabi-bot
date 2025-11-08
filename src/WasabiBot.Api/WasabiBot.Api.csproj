@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
       <PackageReference Include="Microsoft.Extensions.AI" />
       <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
       <PackageReference Include="AspNet.Security.OAuth.Discord" />

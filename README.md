@@ -8,8 +8,8 @@ Requires .NET 9.0 SDK
 
 ```
 dotnet user-secrets set "Discord:Token" "your-bot-token"
-dotnet user-secrets set "Discord:ClientId" "your-oauth2-clientid"
-dotnet user-secrets set "Discord:ClientSecret" "your-oauth2-clientsecret"
+dotnet user-secrets set "Authentication:Discord:ClientId" "your-oauth2-clientid"
+dotnet user-secrets set "Authentication:Discord:ClientSecret" "your-oauth2-clientsecret"
 dotnet user-secrets set "Gemini:ApiKey" "your-openai-apikey"
 ```
 
