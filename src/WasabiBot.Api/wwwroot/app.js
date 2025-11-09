@@ -3,9 +3,7 @@
 const unauthenticatedSection = document.getElementById('unauthenticated');
 const authenticatedSection = document.getElementById('authenticated');
 const statusMessage = document.getElementById('status-message');
-const userIdElement = document.getElementById('user-id');
-const usernameRow = document.getElementById('username-row');
-const usernameElement = document.getElementById('username');
+const userGreetingElement = document.getElementById('user-greeting');
 const tokenOutput = document.getElementById('token-output');
 const generateTokenButton = document.getElementById('generate-token');
 const logoutButton = document.getElementById('logout-button');
@@ -38,6 +36,15 @@ const parseProblem = async (response) => {
     }
 };
 
+const updateGreeting = (displayName) => {
+    if (!userGreetingElement) {
+        console.warn('Missing user greeting element; skipping greeting update.');
+        return;
+    }
+
+    userGreetingElement.textContent = displayName || 'there';
+};
+
 const loadProfile = async () => {
     try {
         const response = await fetch('auth/me', {
@@ -61,15 +68,8 @@ const loadProfile = async () => {
         }
 
         const profile = await response.json();
-        userIdElement.textContent = profile.userId;
-
-        const displayName = profile.globalName || profile.username;
-        if (displayName) {
-            usernameElement.textContent = displayName;
-            show(usernameRow);
-        } else {
-            hide(usernameRow);
-        }
+        const displayName = profile.globalName || profile.username || '';
+        updateGreeting(displayName);
 
         hide(unauthenticatedSection);
         show(authenticatedSection);
@@ -150,4 +150,8 @@ const initialize = () => {
     loadProfile();
 };
 
-initialize();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize, { once: true });
+} else {
+    initialize();
+}

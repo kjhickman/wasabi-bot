@@ -1,53 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <title>Wasabi Bot</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sign in with Discord to manage your Wasabi Bot API access.">
+    <meta name="color-scheme" content="light dark">
     <base href="./">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="modulepreload" href="app.js">
     <script type="module" src="app.js"></script>
 </head>
 <body>
-    <main class="container">
-        <section id="unauthenticated" hidden>
-            <h1>Wasabi Bot</h1>
-            <p class="lead">Sign in with Discord to view your user id and manage your API token.</p>
-            <a id="login-link" class="button primary" href="auth/login-discord">Sign in with Discord</a>
+    <main>
+        <section id="unauthenticated" hidden aria-labelledby="unauthenticated-heading">
+            <header>
+                <h1 id="unauthenticated-heading">Wasabi Bot</h1>
+                <p>Sign in with Discord to view your user id and manage your API token.</p>
+            </header>
+            <p>
+                <a id="login-link" href="auth/login-discord">Sign in with Discord</a>
+            </p>
         </section>
 
-        <section id="authenticated" hidden>
-            <header class="header">
+        <section id="authenticated" hidden aria-labelledby="authenticated-heading">
+            <header>
                 <div>
-                    <h1>Wasabi Bot</h1>
-                    <p class="lead">You are signed in with Discord. Use the tools below to manage your API access.</p>
+                    <p>Signed in as</p>
+                    <h1 id="authenticated-heading">
+                        <span id="user-greeting"></span>
+                    </h1>
                 </div>
-                <button id="logout-button" type="button" class="button">Log out</button>
+                <button id="logout-button" type="button">Log out</button>
             </header>
 
-            <article class="card">
-                <h2>Your Discord Details</h2>
-                <dl class="details">
-                    <div>
-                        <dt>User ID</dt>
-                        <dd id="user-id"></dd>
-                    </div>
-                    <div id="username-row" hidden>
-                        <dt>Username</dt>
-                        <dd id="username"></dd>
-                    </div>
-                </dl>
-            </article>
-
-            <article class="card">
-                <h2>API Token</h2>
-                <p>Generate a fresh token whenever you need to authenticate with Wasabi Bot.</p>
-                <button id="generate-token" type="button" class="button primary">Generate API Token</button>
-                <pre id="token-output" class="token-output" hidden></pre>
+            <article aria-labelledby="token-heading">
+                <h2 id="token-heading">API token</h2>
+                <p>Generate a fresh token to authenticate with the Wasabi Bot API.</p>
+                <button id="generate-token" type="button">Generate Token</button>
+                <pre id="token-output" hidden></pre>
             </article>
         </section>
 
-        <p id="status-message" role="status" class="status" hidden></p>
+        <p id="status-message" role="status" aria-live="polite" hidden></p>
     </main>
 </body>
 </html>
