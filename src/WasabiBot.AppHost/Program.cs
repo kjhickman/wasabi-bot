@@ -1,3 +1,5 @@
+using Aspire.Hosting.ApplicationModel;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
@@ -9,7 +11,12 @@ var database = postgres.AddDatabase("wasabi-db");
 var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
     .WithReference(database)
     .WaitFor(database)
-    .WithUrl("/scalar", "API Reference");
+    .WithUrlForEndpoint("http", url => url.DisplayText = "Frontend")
+    .WithUrlForEndpoint("http", _ => new ResourceUrlAnnotation
+    {
+        Url = "/scalar",
+        DisplayText = "API Reference"
+    });
 
 var migrations = builder.AddProject<Projects.WasabiBot_Migrations>("migrations")
     .WithReference(database)
