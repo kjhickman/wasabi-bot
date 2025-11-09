@@ -151,6 +151,10 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
           valueFrom = "/wasabi-bot/${local.environment}/DiscordClientSecret"
         },
         {
+          name      = "Authentication__Token__SigningKey"
+          valueFrom = "/wasabi-bot/${local.environment}/TokenSigningKey"
+        },
+        {
           name      = "ConnectionStrings__wasabi-db"
           valueFrom = "/wasabi-bot/${local.environment}/NeonDbConnectionString"
         },
