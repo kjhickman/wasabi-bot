@@ -1,0 +1,134 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #121212;
+    color: #f5f5f5;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem 1rem;
+}
+
+.container {
+    width: min(720px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+}
+
+h1, h2 {
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+}
+
+.lead {
+    margin: 0;
+    color: #c7c7c7;
+}
+
+.card {
+    background: rgba(28, 28, 28, 0.9);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.4);
+}
+
+.details {
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.details dt {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9aa0ab;
+}
+
+.details dd {
+    margin: 0.15rem 0 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.button {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.6rem;
+    padding: 0.6rem 1.2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: inherit;
+    background: transparent;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.button.primary {
+    background: linear-gradient(135deg, #7f5af0, #2cb67d);
+    border: none;
+    color: #0f0f0f;
+}
+
+.button.primary:hover {
+    filter: brightness(1.05);
+}
+
+.token-output {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: #0f0f0f;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-family: "Fira Code", "Consolas", "Courier New", monospace;
+    font-size: 0.95rem;
+    overflow-x: auto;
+    word-break: break-all;
+}
+
+.status {
+    margin: 0 auto;
+    max-width: 640px;
+    color: #f4bf75;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 1.5rem 1rem;
+    }
+
+    .card {
+        padding: 1.25rem;
+    }
+}

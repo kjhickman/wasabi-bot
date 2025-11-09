@@ -33,6 +33,9 @@ if (!configuredPathBase.IsNullOrWhiteSpace())
     app.UsePathBase(configuredPathBase);
 }
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

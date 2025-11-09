@@ -16,6 +16,11 @@ public static class Routes
             .WithDescription("Initiates the Discord OAuth2 login process.")
             .AllowAnonymous();
 
+        auth.MapGet("/me", GetCurrentUser.Handle)
+            .WithDisplayName("Current User")
+            .WithDescription("Returns details about the authenticated Discord user.")
+            .RequireAuthorization();
+
         auth.MapPost("/logout", (Delegate)Logout.Handle)
             .WithDisplayName("Logout")
             .WithDescription("Logs the user out of the application.")
