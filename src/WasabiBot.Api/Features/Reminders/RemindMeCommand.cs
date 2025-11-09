@@ -1,10 +1,10 @@
-using Microsoft.Extensions.AI;
+﻿using Microsoft.Extensions.AI;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Features.RemindMe.Abstractions;
+using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
-namespace WasabiBot.Api.Features.RemindMe;
+namespace WasabiBot.Api.Features.Reminders;
 
 [CommandHandler("remindme", "Set a reminder for the channel.", nameof(ExecuteAsync))]
 internal sealed class RemindMeCommand
@@ -151,3 +151,4 @@ internal sealed class RemindMeCommand
         }
     }
 }
+

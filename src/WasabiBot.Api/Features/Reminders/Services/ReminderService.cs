@@ -2,11 +2,11 @@
 using Microsoft.EntityFrameworkCore;
 using NetCord.Rest;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Features.RemindMe.Abstractions;
+using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.DataAccess;
 using WasabiBot.DataAccess.Entities;
 
-namespace WasabiBot.Api.Features.RemindMe.Services;
+namespace WasabiBot.Api.Features.Reminders.Services;
 
 public sealed class ReminderService : IReminderService
 {
@@ -86,3 +86,4 @@ public sealed class ReminderService : IReminderService
         return sentReminderIds;
     }
 }
+

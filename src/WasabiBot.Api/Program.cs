@@ -1,7 +1,10 @@
 using WasabiBot.Api.Core.Extensions;
+using WasabiBot.Api.Features.Routing;
 using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Infrastructure.Discord;
+using WasabiBot.Api.Infrastructure.Auth;
+using WasabiBot.Api.Infrastructure.Scalar;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
@@ -13,8 +16,10 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateOnBuild = true;
 });
 
+builder.AddOpenApi();
 builder.Configuration.AddUserSecrets<Program>(optional: true);
 builder.Services.AddDiscordServices();
+builder.AddAuthServices();
 builder.AddAIServices();
 builder.AddDbContext();
 builder.AddServiceDefaults();
@@ -28,8 +33,12 @@ if (!configuredPathBase.IsNullOrWhiteSpace())
     app.UsePathBase(configuredPathBase);
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapScalarUi();
 app.MapDefaultEndpoints();
 app.MapDiscordCommandHandlers();
-app.MapGet("/", () => "Hello, world!");
+app.MapEndpoints();
 
 app.Run();

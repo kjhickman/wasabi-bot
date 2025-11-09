@@ -3,12 +3,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Features.RemindMe;
-using WasabiBot.Api.Features.RemindMe.Abstractions;
+using WasabiBot.Api.Features.Reminders;
+using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.UnitTests.Builders;
 using WasabiBot.UnitTests.Infrastructure.Discord;
 
-namespace WasabiBot.UnitTests.Features.RemindMe;
+namespace WasabiBot.UnitTests.Features.Reminders;
 
 public class RemindMeCommandTests
 {
@@ -229,4 +229,3 @@ public class RemindMeCommandTests
         await Assert.That(ephemerals.Single()).IsEqualTo("Failed to process reminder.");
     }
 }
-

@@ -1,6 +1,6 @@
-﻿using WasabiBot.Api.Features.RemindMe.Abstractions;
+﻿using WasabiBot.Api.Features.Reminders.Abstractions;
 
-namespace WasabiBot.Api.Features.RemindMe.Services;
+namespace WasabiBot.Api.Features.Reminders.Services;
 
 internal sealed class ReminderTimeCalculator : IReminderTimeCalculator
 {
@@ -105,3 +105,4 @@ internal sealed class ReminderTimeCalculator : IReminderTimeCalculator
         }
     }
 }
+

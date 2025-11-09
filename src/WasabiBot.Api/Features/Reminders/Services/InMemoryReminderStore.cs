@@ -1,7 +1,7 @@
-﻿using WasabiBot.Api.Features.RemindMe.Abstractions;
+﻿using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.DataAccess.Entities;
 
-namespace WasabiBot.Api.Features.RemindMe.Services;
+namespace WasabiBot.Api.Features.Reminders.Services;
 
 public sealed class InMemoryReminderStore : IReminderStore
 {
@@ -127,3 +127,4 @@ public sealed class InMemoryReminderStore : IReminderStore
         }
     }
 }
+
