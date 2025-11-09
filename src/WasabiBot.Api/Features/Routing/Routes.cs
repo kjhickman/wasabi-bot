@@ -19,6 +19,8 @@ public static class Routes
         auth.MapGet("/me", GetCurrentUser.Handle)
             .WithDisplayName("Current User")
             .WithDescription("Returns details about the authenticated Discord user.")
+            .Produces<CurrentUserResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .RequireAuthorization();
 
         auth.MapPost("/logout", (Delegate)Logout.Handle)
