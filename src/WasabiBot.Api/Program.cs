@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Features.Routing;
 using WasabiBot.Api.Infrastructure.AI;
@@ -23,9 +24,16 @@ builder.AddAuthServices();
 builder.AddAIServices();
 builder.AddDbContext();
 builder.AddServiceDefaults();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(); // May be able to remove once using custom domain
 var configuredPathBase = app.Configuration["ASPNETCORE_PATHBASE"];
 if (!configuredPathBase.IsNullOrWhiteSpace())
 {
