@@ -6,10 +6,11 @@ const statusMessage = document.getElementById('status-message');
 const userGreetingElement = document.getElementById('user-greeting');
 const tokenPanel = document.getElementById('token-panel');
 const tokenOutput = document.getElementById('token-output');
-const copyTokenButton = document.getElementById('copy-token');
 const generateTokenButton = document.getElementById('generate-token');
 const logoutButton = document.getElementById('logout-button');
-const defaultCopyButtonText = copyTokenButton?.textContent?.trim() ?? 'Copy token';
+const tooltipTarget = tokenPanel || tokenOutput;
+const defaultTokenCopyTooltip = tooltipTarget?.dataset?.tooltip?.trim() || 'Click to copy';
+let tokenCopyFeedbackTimeoutId;
 let currentTokenValue = '';
 
 const show = (element) => {
@@ -58,6 +59,33 @@ const setAuthenticatedView = (isAuthenticated) => {
     setStatus('');
 };
 
+const setTooltipText = (text) => {
+    if (!tooltipTarget) {
+        return;
+    }
+
+    if (text) {
+        tooltipTarget.setAttribute('data-tooltip', text);
+    } else {
+        tooltipTarget.removeAttribute('data-tooltip');
+    }
+};
+
+const resetTokenCopyState = () => {
+    clearTimeout(tokenCopyFeedbackTimeoutId);
+    tooltipTarget?.setAttribute('data-copy-state', 'ready');
+    setTooltipText(defaultTokenCopyTooltip);
+};
+
+const indicateTokenCopied = () => {
+    clearTimeout(tokenCopyFeedbackTimeoutId);
+    tooltipTarget?.setAttribute('data-copy-state', 'copied');
+    setTooltipText('Copied!');
+    tokenCopyFeedbackTimeoutId = setTimeout(() => {
+        resetTokenCopyState();
+    }, 1500);
+};
+
 const hideTokenPanel = () => {
     currentTokenValue = '';
 
@@ -66,11 +94,7 @@ const hideTokenPanel = () => {
     }
 
     hide(tokenPanel);
-
-    if (copyTokenButton) {
-        copyTokenButton.textContent = defaultCopyButtonText;
-        copyTokenButton.disabled = false;
-    }
+    resetTokenCopyState();
 };
 
 const showTokenPanel = () => {
@@ -196,16 +220,16 @@ const handleCopyToken = async () => {
             throw new Error('copy-failed');
         }
 
-        if (copyTokenButton) {
-            copyTokenButton.textContent = 'Copied!';
-            copyTokenButton.disabled = true;
-            setTimeout(() => {
-                copyTokenButton.textContent = defaultCopyButtonText;
-                copyTokenButton.disabled = false;
-            }, 1500);
-        }
+        indicateTokenCopied();
     } catch (error) {
         setStatus('Unable to copy automatically. Please copy the token manually.');
+    }
+};
+
+const handleTokenOutputKeydown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleCopyToken();
     }
 };
 
@@ -228,7 +252,8 @@ const handleLogout = async () => {
 
 const initialize = () => {
     generateTokenButton?.addEventListener('click', handleGenerateToken);
-    copyTokenButton?.addEventListener('click', handleCopyToken);
+    tokenOutput?.addEventListener('click', handleCopyToken);
+    tokenOutput?.addEventListener('keydown', handleTokenOutputKeydown);
     logoutButton?.addEventListener('click', handleLogout);
     loadProfile();
 };
