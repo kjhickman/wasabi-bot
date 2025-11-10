@@ -4,9 +4,13 @@ const unauthenticatedSection = document.getElementById('unauthenticated');
 const authenticatedSection = document.getElementById('authenticated');
 const statusMessage = document.getElementById('status-message');
 const userGreetingElement = document.getElementById('user-greeting');
+const tokenPanel = document.getElementById('token-panel');
 const tokenOutput = document.getElementById('token-output');
+const copyTokenButton = document.getElementById('copy-token');
 const generateTokenButton = document.getElementById('generate-token');
 const logoutButton = document.getElementById('logout-button');
+const defaultCopyButtonText = copyTokenButton?.textContent?.trim() ?? 'Copy token';
+let currentTokenValue = '';
 
 const show = (element) => {
     element.hidden = false;
@@ -37,12 +41,65 @@ const parseProblem = async (response) => {
 };
 
 const updateGreeting = (displayName) => {
-    if (!userGreetingElement) {
-        console.warn('Missing user greeting element; skipping greeting update.');
+    if (userGreetingElement) {
+        userGreetingElement.textContent = displayName || 'there';
+    }
+};
+
+const setAuthenticatedView = (isAuthenticated) => {
+    if (isAuthenticated) {
+        hide(unauthenticatedSection);
+        show(authenticatedSection);
         return;
     }
 
-    userGreetingElement.textContent = displayName || 'there';
+    hide(authenticatedSection);
+    show(unauthenticatedSection);
+    setStatus('');
+};
+
+const hideTokenPanel = () => {
+    currentTokenValue = '';
+
+    if (!tokenPanel) {
+        return;
+    }
+
+    hide(tokenPanel);
+
+    if (copyTokenButton) {
+        copyTokenButton.textContent = defaultCopyButtonText;
+        copyTokenButton.disabled = false;
+    }
+};
+
+const showTokenPanel = () => {
+    if (!tokenPanel) {
+        return;
+    }
+
+    show(tokenPanel);
+};
+
+const copyTextToClipboard = async (text) => {
+    if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+    }
+
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        return document.execCommand('copy');
+    } finally {
+        document.body.removeChild(textArea);
+    }
 };
 
 const loadProfile = async () => {
@@ -53,17 +110,17 @@ const loadProfile = async () => {
         });
 
         if (response.status === 401) {
-            hide(authenticatedSection);
             hide(statusMessage);
-            show(unauthenticatedSection);
+            hideTokenPanel();
+            setAuthenticatedView(false);
             return;
         }
 
         if (!response.ok) {
             const message = await parseProblem(response);
             setStatus(`Unable to load profile: ${message}`);
-            hide(authenticatedSection);
-            show(unauthenticatedSection);
+            hideTokenPanel();
+            setAuthenticatedView(false);
             return;
         }
 
@@ -71,20 +128,19 @@ const loadProfile = async () => {
         const displayName = profile.globalName || profile.username || '';
         updateGreeting(displayName);
 
-        hide(unauthenticatedSection);
-        show(authenticatedSection);
-        hide(tokenOutput);
+        setAuthenticatedView(true);
+        hideTokenPanel();
         setStatus('');
     } catch (error) {
         setStatus('Unable to reach the server. Please try again.');
-        hide(authenticatedSection);
-        show(unauthenticatedSection);
+        hideTokenPanel();
+        setAuthenticatedView(false);
     }
 };
 
 const handleGenerateToken = async () => {
     setStatus('');
-    hide(tokenOutput);
+    hideTokenPanel();
     generateTokenButton.disabled = true;
 
     try {
@@ -104,26 +160,52 @@ const handleGenerateToken = async () => {
         }
 
         const token = await response.json();
-        const tokenType = token.token_type ?? token.tokenType ?? 'Bearer';
-        const accessToken = token.access_token ?? token.accessToken ?? '';
-        const expiresIn = token.expires_in ?? token.expiresIn;
-
+        const accessToken = token.access_token ?? '';
         if (!accessToken) {
             setStatus('Token was generated but the response is missing the token value.');
             return;
         }
 
-        const tokenValue = `${tokenType} ${accessToken}`.trim();
-        const expiresLine = typeof expiresIn === 'number'
-            ? `\n\nExpires In: ${expiresIn} seconds`
-            : '';
+        const tokenValue = accessToken.trim();
 
-        tokenOutput.textContent = `${tokenValue}${expiresLine}`;
-        show(tokenOutput);
+        if (!tokenOutput) {
+            console.warn('Missing token output element; cannot display generated token.');
+            return;
+        }
+
+        currentTokenValue = tokenValue;
+        tokenOutput.textContent = tokenValue;
+
+        showTokenPanel();
     } catch (error) {
         setStatus('Unable to reach the server. Please try again.');
     } finally {
         generateTokenButton.disabled = false;
+    }
+};
+
+const handleCopyToken = async () => {
+    if (!currentTokenValue) {
+        setStatus('Generate a token before copying.');
+        return;
+    }
+
+    try {
+        const copied = await copyTextToClipboard(currentTokenValue);
+        if (!copied) {
+            throw new Error('copy-failed');
+        }
+
+        if (copyTokenButton) {
+            copyTokenButton.textContent = 'Copied!';
+            copyTokenButton.disabled = true;
+            setTimeout(() => {
+                copyTokenButton.textContent = defaultCopyButtonText;
+                copyTokenButton.disabled = false;
+            }, 1500);
+        }
+    } catch (error) {
+        setStatus('Unable to copy automatically. Please copy the token manually.');
     }
 };
 
@@ -146,12 +228,9 @@ const handleLogout = async () => {
 
 const initialize = () => {
     generateTokenButton?.addEventListener('click', handleGenerateToken);
+    copyTokenButton?.addEventListener('click', handleCopyToken);
     logoutButton?.addEventListener('click', handleLogout);
     loadProfile();
 };
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialize, { once: true });
-} else {
-    initialize();
-}
+initialize();

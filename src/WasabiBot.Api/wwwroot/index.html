@@ -16,11 +16,9 @@
         <section id="unauthenticated" hidden aria-labelledby="unauthenticated-heading">
             <article>
                 <header>
-                    <hgroup>
-                        <h1 id="unauthenticated-heading">Wasabi Bot</h1>
-                        <p>Connect your Discord account to generate API tokens for integrations.</p>
-                    </hgroup>
+                    <h1 id="unauthenticated-heading">Wasabi Bot</h1>
                 </header>
+                <p>Connect your Discord account to generate a token for the Wasabi Bot API.</p>
                 <footer>
                     <a id="login-link" href="auth/login-discord" role="button" class="contrast">Sign in with Discord</a>
                 </footer>
@@ -37,10 +35,14 @@
                 <section aria-labelledby="token-heading">
                     <hgroup>
                         <h2 id="token-heading">Hello, <span id="user-greeting"></span></h2>
-                        <p>Generate a short-lived token to authenticate with the Wasabi Bot API</p>
+                        <p>Generate a short-lived token to authenticate with the Wasabi Bot API (lasts 1 hour)</p>
                     </hgroup>
                     <button id="generate-token" type="button" class="contrast" style="width:auto;">Generate Token</button>
-                    <pre id="token-output" hidden></pre>
+                    <div id="token-panel" hidden>
+                        <p style="margin-bottom:0.25rem;">Your token:</p>
+                        <pre id="token-output" style="white-space:pre-wrap; word-break:break-all; overflow:auto; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem;"></pre>
+                        <button id="copy-token" type="button" class="outline" style="width:auto; margin-top:0.75rem;">Copy token</button>
+                    </div>
                 </section>
             </article>
         </section>
