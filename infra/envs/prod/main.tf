@@ -3,12 +3,6 @@ data "aws_region" "current" {}
 resource "aws_cloudwatch_log_group" "http_api" {
   name              = "/aws/apigateway/http/${local.project}/${local.environment}"
   retention_in_days = 30
-
-  tags = {
-    Environment = local.environment
-    Project     = local.project
-    ManagedBy   = "terraform"
-  }
 }
 
 resource "aws_acm_certificate" "wasabi_bot" {
@@ -18,10 +12,6 @@ resource "aws_acm_certificate" "wasabi_bot" {
 
   lifecycle {
     create_before_destroy = true
-  }
-
-  tags = {
-    Name = "${local.project}-${local.environment}-cert"
   }
 }
 
@@ -38,12 +28,6 @@ resource "aws_apigatewayv2_domain_name" "wasabi_bot" {
 resource "aws_apigatewayv2_api" "wasabi_bot" {
   name          = "${local.project}-${local.environment}-http-api"
   protocol_type = "HTTP"
-
-  tags = {
-    Environment = local.environment
-    Project     = local.project
-    ManagedBy   = "terraform"
-  }
 }
 
 resource "aws_apigatewayv2_stage" "wasabi_bot" {
@@ -70,12 +54,6 @@ resource "aws_apigatewayv2_stage" "wasabi_bot" {
   default_route_settings {
     throttling_burst_limit = 1000
     throttling_rate_limit  = 500
-  }
-
-  tags = {
-    Environment = local.environment
-    Project     = local.project
-    ManagedBy   = "terraform"
   }
 }
 
