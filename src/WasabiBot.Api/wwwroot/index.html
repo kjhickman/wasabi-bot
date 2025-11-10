@@ -4,44 +4,48 @@
     <meta charset="utf-8">
     <title>Wasabi Bot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sign in with Discord to manage your Wasabi Bot API access.">
     <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Sign in with Discord to manage your Wasabi Bot API access.">
     <base href="./">
+    <link rel="stylesheet" href="css/pico.green.min.css">
     <link rel="modulepreload" href="app.js">
     <script type="module" src="app.js"></script>
 </head>
 <body>
-    <main>
+    <main class="container">
         <section id="unauthenticated" hidden aria-labelledby="unauthenticated-heading">
-            <header>
-                <h1 id="unauthenticated-heading">Wasabi Bot</h1>
-                <p>Sign in with Discord to view your user id and manage your API token.</p>
-            </header>
-            <p>
-                <a id="login-link" href="auth/login-discord">Sign in with Discord</a>
-            </p>
-        </section>
-
-        <section id="authenticated" hidden aria-labelledby="authenticated-heading">
-            <header>
-                <div>
-                    <p>Signed in as</p>
-                    <h1 id="authenticated-heading">
-                        <span id="user-greeting"></span>
-                    </h1>
-                </div>
-                <button id="logout-button" type="button">Log out</button>
-            </header>
-
-            <article aria-labelledby="token-heading">
-                <h2 id="token-heading">API token</h2>
-                <p>Generate a fresh token to authenticate with the Wasabi Bot API.</p>
-                <button id="generate-token" type="button">Generate Token</button>
-                <pre id="token-output" hidden></pre>
+            <article>
+                <header>
+                    <hgroup>
+                        <h1 id="unauthenticated-heading">Wasabi Bot</h1>
+                        <p>Connect your Discord account to generate API tokens for integrations.</p>
+                    </hgroup>
+                </header>
+                <footer>
+                    <a id="login-link" href="auth/login-discord" role="button" class="contrast">Sign in with Discord</a>
+                </footer>
             </article>
         </section>
 
-        <p id="status-message" role="status" aria-live="polite" hidden></p>
+        <section id="authenticated" hidden aria-labelledby="authenticated-heading">
+            <article>
+                <header style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+                    <h1 id="authenticated-heading" style="margin:0;">Wasabi Bot</h1>
+                    <button id="logout-button" type="button" class="secondary" style="width:auto; align-self:flex-start;">Log out</button>
+                </header>
+
+                <section aria-labelledby="token-heading">
+                    <hgroup>
+                        <h2 id="token-heading">Hello, <span id="user-greeting"></span></h2>
+                        <p>Generate a short-lived token to authenticate with the Wasabi Bot API</p>
+                    </hgroup>
+                    <button id="generate-token" type="button" class="contrast" style="width:auto;">Generate Token</button>
+                    <pre id="token-output" hidden></pre>
+                </section>
+            </article>
+        </section>
+
+        <aside id="status-message" role="status" aria-live="polite" hidden></aside>
     </main>
 </body>
 </html>
