@@ -23,17 +23,6 @@ locals {
   service_discovery_namespace_id = data.terraform_remote_state.network.outputs.service_discovery_namespace_id
   neon_project_id                = data.terraform_remote_state.network.outputs.neon_project_id
   neon_project_default_branch_id = data.terraform_remote_state.network.outputs.neon_project_default_branch_id
-  http_api_execution_arn         = data.terraform_remote_state.network.outputs.http_api_execution_arn
-  http_api_stage_name            = data.terraform_remote_state.network.outputs.http_api_stage_name
-  http_api_invoke_url            = data.terraform_remote_state.network.outputs.http_api_invoke_url
-  http_api_vpc_link_id           = data.terraform_remote_state.network.outputs.http_api_vpc_link_id
-  http_api_id = element(
-    split(
-      "/",
-      element(split(":", local.http_api_execution_arn), 5)
-    ),
-    0
-  )
-  http_api_stage_prefix = local.http_api_stage_name == "$default" ? "" : "/${local.http_api_stage_name}"
-  http_api_path_base    = "${local.http_api_stage_prefix}/wasabi"
+  vpc_link_id                    = data.terraform_remote_state.network.outputs.vpc_link_id
+  http_api_stage_name            = local.environment
 }

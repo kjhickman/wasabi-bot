@@ -49,8 +49,8 @@ output "http_api_integration_id" {
 }
 
 output "http_api_wasabi_base_url" {
-  description = "Invoke URL for the Wasabi Bot service when accessed through the shared HTTP API."
-  value       = "${trimsuffix(local.http_api_invoke_url, "/")}/wasabi"
+  description = "Invoke URL for the Wasabi Bot service when accessed through its dedicated HTTP API."
+  value       = trimsuffix(aws_apigatewayv2_stage.wasabi_bot.invoke_url, "/")
 }
 
 output "acm_certificate_domain_validation_options" {
