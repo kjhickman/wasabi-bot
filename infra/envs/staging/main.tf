@@ -4,6 +4,30 @@ data "aws_apigatewayv2_api" "shared_http_api" {
   api_id = local.http_api_id
 }
 
+resource "aws_acm_certificate" "wasabi_bot" {
+  domain_name               = local.domain_name
+  subject_alternative_names = []
+  validation_method         = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Name = "${local.project}-${local.environment}-cert"
+  }
+}
+
+resource "aws_apigatewayv2_domain_name" "wasabi_bot" {
+  domain_name = local.domain_name
+
+  domain_name_configuration {
+    certificate_arn = aws_acm_certificate.wasabi_bot.arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
+}
+
 resource "aws_ecr_repository" "wasabi_bot" {
   name                 = "${local.project}/${local.api_service_name}-${local.environment}"
   image_tag_mutability = "MUTABLE"
@@ -231,6 +255,18 @@ resource "aws_apigatewayv2_route" "wasabi_bot_api_proxy" {
   api_id    = data.aws_apigatewayv2_api.shared_http_api.id
   route_key = "ANY /wasabi/{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.wasabi_bot_api.id}"
+}
+
+resource "aws_apigatewayv2_api_mapping" "wasabi_bot" {
+  api_id      = data.aws_apigatewayv2_api.shared_http_api.id
+  domain_name = aws_apigatewayv2_domain_name.wasabi_bot.id
+  stage       = local.http_api_stage_name
+  api_mapping_key = local.custom_domain_base_path
+
+  depends_on = [
+    aws_apigatewayv2_route.wasabi_bot_api_root,
+    aws_apigatewayv2_route.wasabi_bot_api_proxy
+  ]
 }
 
 resource "neon_role" "main" {

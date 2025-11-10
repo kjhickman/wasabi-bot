@@ -36,4 +36,6 @@ locals {
   )
   http_api_stage_prefix = local.http_api_stage_name == "$default" ? "" : "/${local.http_api_stage_name}"
   http_api_path_base    = "${local.http_api_stage_prefix}/wasabi"
+  domain_name           = "staging.wasabibot.com"
+  custom_domain_base_path = "staging"
 }
