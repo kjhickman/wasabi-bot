@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using WasabiBot.Api.Components;
 using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Features.Routing;
 using WasabiBot.Api.Infrastructure.AI;
@@ -24,6 +25,7 @@ builder.AddAuthServices();
 builder.AddAIServices();
 builder.AddDbContext();
 builder.AddServiceDefaults();
+builder.Services.AddRazorComponents();
 
 var app = builder.Build();
 
@@ -39,10 +41,14 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
 app.MapScalarUi();
 app.MapDefaultEndpoints();
 app.MapDiscordCommandHandlers();
 app.MapEndpoints();
+
+
+app.MapRazorComponents<App>();
 
 app.Run();
