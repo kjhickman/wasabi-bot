@@ -11,6 +11,30 @@ resource "aws_cloudwatch_log_group" "http_api" {
   }
 }
 
+resource "aws_acm_certificate" "wasabi_bot" {
+  domain_name               = local.domain_name
+  subject_alternative_names = []
+  validation_method         = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Name = "${local.project}-${local.environment}-cert"
+  }
+}
+
+resource "aws_apigatewayv2_domain_name" "wasabi_bot" {
+  domain_name = local.domain_name
+
+  domain_name_configuration {
+    certificate_arn = aws_acm_certificate.wasabi_bot.arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
+}
+
 resource "aws_apigatewayv2_api" "wasabi_bot" {
   name          = "${local.project}-${local.environment}-http-api"
   protocol_type = "HTTP"
@@ -261,6 +285,17 @@ resource "aws_apigatewayv2_route" "wasabi_bot_api_proxy" {
   api_id    = aws_apigatewayv2_api.wasabi_bot.id
   route_key = "ANY /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.wasabi_bot_api.id}"
+}
+
+resource "aws_apigatewayv2_api_mapping" "wasabi_bot" {
+  api_id          = aws_apigatewayv2_api.wasabi_bot.id
+  domain_name     = aws_apigatewayv2_domain_name.wasabi_bot.id
+  stage           = aws_apigatewayv2_stage.wasabi_bot.name
+
+  depends_on = [
+    aws_apigatewayv2_route.wasabi_bot_api_root,
+    aws_apigatewayv2_route.wasabi_bot_api_proxy
+  ]
 }
 
 resource "neon_role" "main" {

@@ -25,4 +25,5 @@ locals {
   neon_project_default_branch_id = data.terraform_remote_state.network.outputs.neon_project_default_branch_id
   vpc_link_id                    = data.terraform_remote_state.network.outputs.vpc_link_id
   http_api_stage_name            = local.environment
+  domain_name                    = "wasabibot.com"
 }
