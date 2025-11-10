@@ -49,6 +49,26 @@ output "http_api_integration_id" {
 }
 
 output "http_api_wasabi_base_url" {
-  description = "Invoke URL for the Wasabi Bot service when accessed through the shared HTTP API."
-  value       = "${trimsuffix(local.http_api_invoke_url, "/")}/wasabi"
+  description = "Invoke URL for the Wasabi Bot service when accessed through its dedicated HTTP API."
+  value       = trimsuffix(aws_apigatewayv2_stage.wasabi_bot.invoke_url, "/")
+}
+
+output "acm_certificate_domain_validation_options" {
+  description = "DNS records ACM requires for validating wasabibot.com."
+  value       = aws_acm_certificate.wasabi_bot.domain_validation_options
+}
+
+output "custom_domain_name" {
+  description = "Hostname served by the production API Gateway custom domain."
+  value       = aws_apigatewayv2_domain_name.wasabi_bot.domain_name
+}
+
+output "custom_domain_target_domain_name" {
+  description = "API Gateway Regional endpoint Cloudflare must point to."
+  value       = aws_apigatewayv2_domain_name.wasabi_bot.domain_name_configuration[0].target_domain_name
+}
+
+output "custom_domain_hosted_zone_id" {
+  description = "Hosted zone ID for the API Gateway domain (useful for Route53 alias records)."
+  value       = aws_apigatewayv2_domain_name.wasabi_bot.domain_name_configuration[0].hosted_zone_id
 }

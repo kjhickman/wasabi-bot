@@ -1,7 +1,60 @@
 data "aws_region" "current" {}
 
-data "aws_apigatewayv2_api" "shared_http_api" {
-  api_id = local.http_api_id
+resource "aws_cloudwatch_log_group" "http_api" {
+  name              = "/aws/apigateway/http/${local.project}/${local.environment}"
+  retention_in_days = 30
+}
+
+resource "aws_acm_certificate" "wasabi_bot" {
+  domain_name               = local.domain_name
+  subject_alternative_names = []
+  validation_method         = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_apigatewayv2_domain_name" "wasabi_bot" {
+  domain_name = local.domain_name
+
+  domain_name_configuration {
+    certificate_arn = aws_acm_certificate.wasabi_bot.arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
+}
+
+resource "aws_apigatewayv2_api" "wasabi_bot" {
+  name          = "${local.project}-${local.environment}-http-api"
+  protocol_type = "HTTP"
+}
+
+resource "aws_apigatewayv2_stage" "wasabi_bot" {
+  api_id      = aws_apigatewayv2_api.wasabi_bot.id
+  name        = local.http_api_stage_name
+  auto_deploy = true
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.http_api.arn
+    format = jsonencode({
+      requestId               = "$context.requestId"
+      sourceIp                = "$context.identity.sourceIp"
+      requestTime             = "$context.requestTime"
+      httpMethod              = "$context.httpMethod"
+      routeKey                = "$context.routeKey"
+      status                  = "$context.status"
+      protocol                = "$context.protocol"
+      responseLength          = "$context.responseLength"
+      integrationStatus       = "$context.integrationStatus"
+      integrationErrorMessage = "$context.integrationErrorMessage"
+    })
+  }
+
+  default_route_settings {
+    throttling_burst_limit = 1000
+    throttling_rate_limit  = 500
+  }
 }
 
 resource "aws_ecr_repository" "wasabi_bot" {
@@ -115,10 +168,6 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
         {
           name  = "ASPNETCORE_ENVIRONMENT"
           value = title(local.environment)
-        },
-        {
-          name  = "ASPNETCORE_PATHBASE"
-          value = local.http_api_path_base
         }
       ]
       secrets = [
@@ -193,27 +242,38 @@ resource "aws_ecs_service" "wasabi_bot_api" {
 }
 
 resource "aws_apigatewayv2_integration" "wasabi_bot_api" {
-  api_id                 = data.aws_apigatewayv2_api.shared_http_api.id
+  api_id                 = aws_apigatewayv2_api.wasabi_bot.id
   integration_type       = "HTTP_PROXY"
   integration_method     = "ANY"
   integration_uri        = aws_service_discovery_service.wasabi_bot_api.arn
   connection_type        = "VPC_LINK"
-  connection_id          = local.http_api_vpc_link_id
+  connection_id          = local.vpc_link_id
   payload_format_version = "1.0"
   timeout_milliseconds   = 29000
-  description            = "Routes Wasabi Bot API traffic through the shared gateway."
+  description            = "Routes Wasabi Bot API traffic through the dedicated gateway."
 }
 
 resource "aws_apigatewayv2_route" "wasabi_bot_api_root" {
-  api_id    = data.aws_apigatewayv2_api.shared_http_api.id
-  route_key = "ANY /wasabi"
+  api_id    = aws_apigatewayv2_api.wasabi_bot.id
+  route_key = "ANY /"
   target    = "integrations/${aws_apigatewayv2_integration.wasabi_bot_api.id}"
 }
 
 resource "aws_apigatewayv2_route" "wasabi_bot_api_proxy" {
-  api_id    = data.aws_apigatewayv2_api.shared_http_api.id
-  route_key = "ANY /wasabi/{proxy+}"
+  api_id    = aws_apigatewayv2_api.wasabi_bot.id
+  route_key = "ANY /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.wasabi_bot_api.id}"
+}
+
+resource "aws_apigatewayv2_api_mapping" "wasabi_bot" {
+  api_id          = aws_apigatewayv2_api.wasabi_bot.id
+  domain_name     = aws_apigatewayv2_domain_name.wasabi_bot.id
+  stage           = aws_apigatewayv2_stage.wasabi_bot.name
+
+  depends_on = [
+    aws_apigatewayv2_route.wasabi_bot_api_root,
+    aws_apigatewayv2_route.wasabi_bot_api_proxy
+  ]
 }
 
 resource "neon_role" "main" {
