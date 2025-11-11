@@ -44,6 +44,14 @@ public static class Routes
         var interactions = v1.MapGroup("/interactions")
             .WithTags("Interactions");
 
+        interactions.MapGet("/", GetInteractions.Handle)
+            .WithDisplayName("Get Interactions")
+            .WithDescription("Retrieves a list of interactions.")
+            .RequireAuthorization("DiscordGuildMember")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .Produces<GetInteractionsResponse>();
+
         interactions.MapGet("/{id:long}", GetInteractionById.Handle)
             .WithDisplayName("Get Interaction by ID")
             .WithDescription("Retrieves an interaction by its unique ID.")

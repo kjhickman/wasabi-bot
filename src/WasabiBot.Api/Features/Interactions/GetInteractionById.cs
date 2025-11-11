@@ -6,7 +6,7 @@ public static class GetInteractionById
 {
     public static async Task<IResult> Handle(long id, IInteractionService interactionService)
     {
-        if (id < 1)
+        if (id <= 0)
         {
             return Results.BadRequest("Invalid interaction ID.");
         }
