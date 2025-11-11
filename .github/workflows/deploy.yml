@@ -18,7 +18,7 @@ permissions:
   id-token: write
 
 env:
-  DOTNET_VERSION: 9.0.x
+  DOTNET_VERSION: 10.0.x
   AWS_REGION: us-east-1
   TARGET_ENV: ${{ inputs.environment }}
 

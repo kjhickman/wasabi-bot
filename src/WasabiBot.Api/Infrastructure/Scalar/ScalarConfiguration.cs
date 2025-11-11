@@ -1,4 +1,4 @@
-﻿using Microsoft.OpenApi.Models;
+﻿using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using WasabiBot.Api.Infrastructure.Auth;
 
@@ -15,6 +15,8 @@ internal static class ScalarConfiguration
             options.AddDocumentTransformer((document, _, _) =>
             {
                 document.Components ??= new OpenApiComponents();
+                document.Components.SecuritySchemes ??=
+                    new Dictionary<string, IOpenApiSecurityScheme>(StringComparer.OrdinalIgnoreCase);
                 if (!document.Components.SecuritySchemes.ContainsKey(ApiTokenSchemeName))
                 {
                     document.Components.SecuritySchemes[ApiTokenSchemeName] = new OpenApiSecurityScheme
