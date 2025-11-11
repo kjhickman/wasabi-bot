@@ -14,9 +14,8 @@ public static class GetToken
 
         var response = new TokenResponse
         {
-            AccessToken = token,
-            TokenType = tokenFactory.TokenType,
-            ExpiresIn = tokenFactory.LifetimeSeconds
+            Token = token,
+            ExpiresAt = DateTimeOffset.UtcNow.Add(tokenFactory.Lifetime)
         };
 
         return Results.Ok(response);

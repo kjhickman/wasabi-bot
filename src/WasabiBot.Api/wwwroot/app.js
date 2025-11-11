@@ -184,7 +184,7 @@ const handleGenerateToken = async () => {
         }
 
         const token = await response.json();
-        const accessToken = token.access_token ?? '';
+        const accessToken = token.token ?? '';
         if (!accessToken) {
             setStatus('Token was generated but the response is missing the token value.');
             return;
