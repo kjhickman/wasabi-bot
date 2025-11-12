@@ -44,15 +44,29 @@ else
 
                 @if (!string.IsNullOrEmpty(GeneratedToken))
                 {
-                    <div id="token-panel" style="border-bottom:none;">
+                    <div id="token-panel" data-tooltip="Click to copy" data-placement="bottom" style="border-bottom:none;">
                         <p style="margin-bottom:0.25rem;">Your token:</p>
                         <pre id="token-output"
-                             style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; background-color:transparent;">@GeneratedToken</pre>
+                             role="button"
+                             tabindex="0"
+                             aria-label="Copy token"
+                             style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; background-color:transparent; cursor:pointer;">@GeneratedToken</pre>
                         @if (TokenExpiresAt.HasValue)
                         {
                             <p style="margin-top:0.5rem;"><small>Expires at: @TokenExpiresAt.Value.ToString("u")</small></p>
                         }
                     </div>
+
+                    <script>
+                        (function initTokenCopy() {
+                            if (window.WasabiBot && window.WasabiBot.setupTokenCopy) {
+                                window.WasabiBot.setupTokenCopy('token-output');
+                            } else {
+                                // Retry after a short delay if WasabiBot isn't loaded yet
+                                setTimeout(initTokenCopy, 50);
+                            }
+                        })();
+                    </script>
                 }
             </section>
         </article>
