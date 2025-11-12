@@ -28,7 +28,7 @@
                  aria-label="Copy token"
                  onclick="window.copyToken()"
                  onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.copyToken(); }"
-                 style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; background-color:transparent; cursor:pointer;">@GeneratedToken</pre>
+                 style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; background-color:var(--pico-code-background-color); color:var(--pico-code-color); cursor:pointer;">@GeneratedToken</pre>
             @if (TokenExpiresAt.HasValue)
             {
                 <p style="margin-top:0.5rem;"><small>Expires at: @TokenExpiresAt.Value.ToString("u")</small></p>
