@@ -36,8 +36,8 @@ if (!configuredPathBase.IsNullOrWhiteSpace())
     app.UsePathBase(configuredPathBase);
 }
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
+app.MapStaticAssets();
+app.MapRazorComponents<App>();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -47,7 +47,5 @@ app.MapScalarUi();
 app.MapDefaultEndpoints();
 app.MapDiscordCommandHandlers();
 app.MapEndpoints();
-
-app.MapRazorComponents<App>();
 
 app.Run();
