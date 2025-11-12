@@ -15,10 +15,6 @@ public sealed class ApiTokenFactory
         _options = options;
     }
 
-    public string TokenType => "Bearer";
-
-    public int LifetimeSeconds => (int)_options.Lifetime.TotalSeconds;
-
     public TimeSpan Lifetime => _options.Lifetime;
 
     public bool TryCreateToken(ClaimsPrincipal user, out string token)

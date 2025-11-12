@@ -31,45 +31,128 @@ else
                     <p>Generate a short-lived token to authenticate with the Wasabi Bot API (lasts 1 hour)</p>
                 </hgroup>
 
-                @if (!string.IsNullOrEmpty(ErrorMessage))
-                {
-                    <article style="background-color: var(--pico-del-color); margin-bottom: 1rem;">
-                        <p style="margin: 0;">@ErrorMessage</p>
-                    </article>
-                }
+                <div id="token-container">
+                    <button id="generate-token" 
+                            type="button" 
+                            class="primary" 
+                            style="width:auto; margin-bottom: 1rem;"
+                            hx-get="/api/v1/token"
+                            hx-target="#token-container"
+                            hx-swap="innerHTML">
+                        Generate Token
+                    </button>
+                </div>
+            </section>
+        </article>
+    </section>
+}
 
-                <form method="get" style="margin-bottom: 1rem;">
-                    <button id="generate-token" type="submit" name="generated" value="true" class="primary" style="width:auto;">Generate Token</button>
-                </form>
-
-                @if (!string.IsNullOrEmpty(GeneratedToken))
-                {
+<script>
+document.addEventListener('htmx:beforeSwap', function(evt) {
+    if (evt.detail.target.id === 'token-container') {
+        try {
+            const data = JSON.parse(evt.detail.xhr.responseText);
+            
+            if (data.token) {
+                const expiresAt = new Date(data.expires_at).toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+                
+                evt.detail.target.innerHTML = `
+                    <button id="generate-token" 
+                            type="button" 
+                            class="primary" 
+                            style="width:auto; margin-bottom: 1rem;"
+                            hx-get="/api/v1/token"
+                            hx-target="#token-container"
+                            hx-swap="innerHTML">
+                        Generate Token
+                    </button>
+                    
                     <div id="token-panel" data-tooltip="Click to copy" data-placement="bottom" style="border-bottom:none;">
                         <p style="margin-bottom:0.25rem;">Your token:</p>
                         <pre id="token-output"
                              role="button"
                              tabindex="0"
                              aria-label="Copy token"
-                             style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; background-color:transparent; cursor:pointer;">@GeneratedToken</pre>
-                        @if (TokenExpiresAt.HasValue)
-                        {
-                            <p style="margin-top:0.5rem;"><small>Expires at: @TokenExpiresAt.Value.ToString("u")</small></p>
-                        }
+                             style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; background-color:transparent; cursor:pointer;">${data.token}</pre>
+                        <p style="margin-top:0.5rem;"><small>Expires at: ${expiresAt}</small></p>
                     </div>
+                `;
+                
+                // Re-initialize htmx on the new button
+                htmx.process(evt.detail.target);
+                
+                // Setup clipboard functionality
+                const tokenOutput = document.getElementById('token-output');
+                const tokenPanel = document.getElementById('token-panel');
+                if (tokenOutput && tokenPanel) {
+                    const defaultTooltip = 'Click to copy';
+                    let feedbackTimeoutId;
 
-                    <script>
-                        (function initTokenCopy() {
-                            if (window.WasabiBot && window.WasabiBot.setupTokenCopy) {
-                                window.WasabiBot.setupTokenCopy('token-output');
-                            } else {
-                                // Retry after a short delay if WasabiBot isn't loaded yet
-                                setTimeout(initTokenCopy, 50);
+                    const resetTooltip = () => {
+                        clearTimeout(feedbackTimeoutId);
+                        tokenPanel.setAttribute('data-tooltip', defaultTooltip);
+                    };
+
+                    const showCopiedFeedback = () => {
+                        clearTimeout(feedbackTimeoutId);
+                        tokenPanel.setAttribute('data-tooltip', 'Copied!');
+                        feedbackTimeoutId = setTimeout(resetTooltip, 1500);
+                    };
+
+                    const copyToClipboard = async (text) => {
+                        try {
+                            if (navigator.clipboard?.writeText) {
+                                await navigator.clipboard.writeText(text);
+                                return true;
                             }
-                        })();
-                    </script>
+
+                            const textArea = document.createElement('textarea');
+                            textArea.value = text;
+                            textArea.style.position = 'fixed';
+                            textArea.style.left = '-9999px';
+                            document.body.appendChild(textArea);
+                            textArea.focus();
+                            textArea.select();
+
+                            try {
+                                return document.execCommand('copy');
+                            } finally {
+                                document.body.removeChild(textArea);
+                            }
+                        } catch (error) {
+                            return false;
+                        }
+                    };
+
+                    const handleCopy = async () => {
+                        const text = tokenOutput.textContent?.trim();
+                        if (!text) return;
+
+                        const success = await copyToClipboard(text);
+                        if (success) {
+                            showCopiedFeedback();
+                        } else {
+                            tokenPanel.setAttribute('data-tooltip', 'Failed to copy. Please copy manually.');
+                            setTimeout(resetTooltip, 2000);
+                        }
+                    };
+
+                    tokenOutput.addEventListener('click', handleCopy);
+                    tokenOutput.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleCopy();
+                        }
+                    });
                 }
-            </section>
-        </article>
-    </section>
-}
+                
+                evt.detail.shouldSwap = false; // Prevent default swap since we did it manually
+            }
+        } catch (error) {
+            // If it's not JSON or there's an error, let htmx handle it normally
+            console.error('Error processing token response:', error);
+        }
+    }
+});
+</script>
 

@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using WasabiBot.Api.Infrastructure.Auth;
 
 namespace WasabiBot.Api.Components.Pages;
 
@@ -10,19 +9,10 @@ public partial class Home : ComponentBase
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
-    [SupplyParameterFromQuery(Name = "generated")]
-    public bool TokenGenerated { get; set; }
-
-    [Inject]
-    private ApiTokenFactory TokenFactory { get; set; } = null!;
-
     private bool IsAuthenticated { get; set; }
     private string? Username { get; set; }
     private string? GlobalName { get; set; }
     private string? DisplayName { get; set; }
-    private string? GeneratedToken { get; set; }
-    private DateTimeOffset? TokenExpiresAt { get; set; }
-    private string? ErrorMessage { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -41,20 +31,6 @@ public partial class Home : ComponentBase
                     ?? user.FindFirst("urn:discord:user:globalname")?.Value;
 
                 DisplayName = GlobalName ?? Username ?? "User";
-
-                // Generate token if the query parameter is set
-                if (TokenGenerated)
-                {
-                    if (TokenFactory.TryCreateToken(user, out var token))
-                    {
-                        GeneratedToken = token;
-                        TokenExpiresAt = DateTimeOffset.UtcNow.Add(TokenFactory.Lifetime);
-                    }
-                    else
-                    {
-                        ErrorMessage = "Unable to generate token. Missing user information.";
-                    }
-                }
             }
         }
     }
