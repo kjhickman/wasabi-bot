@@ -18,7 +18,10 @@ else
 {
     <section id="authenticated">
         <article>
-            <TokenGenerator DisplayName="@DisplayName" />
+            <hgroup>
+                <h2>Hello, <span id="user-greeting">@DisplayName</span></h2>
+            </hgroup>
+            <TokenGenerator />
         </article>
     </section>
 }

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using WasabiBot.Api.Infrastructure.Auth;
@@ -7,9 +6,6 @@ namespace WasabiBot.Api.Components.Pages;
 
 public partial class TokenGenerator : ComponentBase
 {
-    [Parameter, EditorRequired]
-    public required string DisplayName { get; set; }
-
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
@@ -25,7 +21,7 @@ public partial class TokenGenerator : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        // Generate token if form was submitted
+        // Generate token if form was submitted - results in entire page re-render. Temporary solution
         if (ShouldGenerateToken && AuthenticationStateTask is not null)
         {
             var authState = await AuthenticationStateTask;

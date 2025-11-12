@@ -1,6 +1,5 @@
 <section aria-labelledby="token-heading">
     <hgroup>
-        <h2 id="token-heading">Hello, <span id="user-greeting">@DisplayName</span></h2>
         <p>Generate a short-lived token to authenticate with the Wasabi Bot API (lasts 1 hour)</p>
     </hgroup>
 
@@ -39,7 +38,6 @@
 </section>
 
 <script>
-    // Global function for copying token - persists across enhanced navigation
     window.copyToken = async function() {
         const tokenOutput = document.getElementById('token-output');
         if (!tokenOutput) return;
@@ -49,23 +47,8 @@
         if (!text) return;
 
         try {
-            // Try modern clipboard API first
-            if (navigator.clipboard?.writeText) {
-                await navigator.clipboard.writeText(text);
-            } else {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-9999px';
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-            }
+            await navigator.clipboard.writeText(text);
             
-            // Show feedback
             if (tokenPanel) {
                 const originalTooltip = tokenPanel.getAttribute('data-tooltip');
                 tokenPanel.setAttribute('data-tooltip', 'Copied!');
