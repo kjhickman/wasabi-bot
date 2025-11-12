@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using WasabiBot.Api.Core.Extensions;
 
 namespace WasabiBot.Api.Components.Pages;
 
@@ -21,12 +22,7 @@ public partial class Home : ComponentBase
 
         if (IsAuthenticated)
         {
-            var username = user.FindFirst("urn:discord:user:username")?.Value
-                ?? user.FindFirst(ClaimTypes.Name)?.Value;
-            var globalName = user.FindFirst("urn:discord:user:global_name")?.Value
-                ?? user.FindFirst("urn:discord:user:globalname")?.Value;
-
-            DisplayName = globalName ?? username ?? "User";
+            DisplayName = user.DisplayName;
         }
     }
 }
