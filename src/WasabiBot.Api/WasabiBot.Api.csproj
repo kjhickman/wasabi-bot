@@ -9,8 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Htmx" />
-      <PackageReference Include="Htmx.TagHelpers" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
       <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
       <PackageReference Include="Microsoft.Extensions.AI" />
