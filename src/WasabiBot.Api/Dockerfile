@@ -22,7 +22,7 @@ COPY src/WasabiBot.Api.Generators/ src/WasabiBot.Api.Generators/
 COPY src/WasabiBot.DataAccess/ src/WasabiBot.DataAccess/
 COPY src/WasabiBot.ServiceDefaults/ src/WasabiBot.ServiceDefaults/
 
-RUN dotnet publish "src/WasabiBot.Api/WasabiBot.Api.csproj" -c ${BUILD_CONFIGURATION} -r ${TARGET_RUNTIME} --no-restore -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "src/WasabiBot.Api/WasabiBot.Api.csproj" -c ${BUILD_CONFIGURATION} -r ${TARGET_RUNTIME} -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

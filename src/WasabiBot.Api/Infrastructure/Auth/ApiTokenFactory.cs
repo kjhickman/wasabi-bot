@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
@@ -16,10 +14,6 @@ public sealed class ApiTokenFactory
     {
         _options = options;
     }
-
-    public string TokenType => "Bearer";
-
-    public int LifetimeSeconds => (int)_options.Lifetime.TotalSeconds;
 
     public TimeSpan Lifetime => _options.Lifetime;
 

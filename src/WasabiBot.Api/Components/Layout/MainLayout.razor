@@ -1,0 +1,22 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="container">
+        <AuthorizeView>
+            <Authorized>
+                <header class="main-header">
+                    <nav class="header-nav">
+                        <h1>Wasabi Bot</h1>
+                        <form action="/auth/logout" method="post" class="logout-form">
+                            <button id="logout-button" type="submit" class="contrast">Log out</button>
+                        </form>
+                    </nav>
+                </header>
+            </Authorized>
+        </AuthorizeView>
+        
+        <main>
+            @Body
+        </main>
+    </div>
+</div>
