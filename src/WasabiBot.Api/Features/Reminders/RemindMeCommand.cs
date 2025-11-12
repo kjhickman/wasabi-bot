@@ -6,7 +6,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Reminders;
 
-[CommandHandler("remindme", "Set a reminder for the channel.", nameof(ExecuteAsync))]
+[CommandHandler("reminder", "Set a reminder for the channel.", nameof(ExecuteAsync))]
 internal sealed class RemindMeCommand
 {
     private readonly IChatClient _chatClient;
