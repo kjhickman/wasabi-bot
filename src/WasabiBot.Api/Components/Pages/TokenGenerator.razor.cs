@@ -4,13 +4,10 @@ using WasabiBot.Api.Infrastructure.Auth;
 
 namespace WasabiBot.Api.Components.Pages;
 
-public partial class TokenGenerator : ComponentBase
+public partial class TokenGenerator(ApiTokenFactory tokenFactory) : ComponentBase
 {
     [CascadingParameter]
     public required Task<AuthenticationState> AuthenticationStateTask { get; set; }
-
-    [Inject]
-    public required ApiTokenFactory TokenFactory { get; set; }
 
     [SupplyParameterFromForm]
     private bool ShouldGenerateToken { get; set; }
@@ -27,10 +24,10 @@ public partial class TokenGenerator : ComponentBase
             var authState = await AuthenticationStateTask;
             var user = authState.User;
 
-            if (TokenFactory.TryCreateToken(user, out var token))
+            if (tokenFactory.TryCreateToken(user, out var token))
             {
                 GeneratedToken = token;
-                TokenExpiresAt = DateTimeOffset.UtcNow.Add(TokenFactory.Lifetime);
+                TokenExpiresAt = DateTimeOffset.UtcNow.Add(tokenFactory.Lifetime);
                 ErrorMessage = null;
             }
             else
