@@ -26,6 +26,7 @@ builder.AddAIServices();
 builder.AddDbContext();
 builder.AddServiceDefaults();
 builder.Services.AddRazorComponents();
+builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();
 

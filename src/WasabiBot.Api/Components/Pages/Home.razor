@@ -1,40 +1,39 @@
 @page "/"
 
-<section id="unauthenticated" aria-labelledby="unauthenticated-heading">
-    <article>
-        <header>
-            <h1 id="unauthenticated-heading">Wasabi Bot</h1>
-        </header>
-        <p>Connect your Discord account to generate a token for the Wasabi Bot API.</p>
-        <footer>
-            <a id="login-link" href="#" role="button" class="secondary">Sign in with Discord</a>
-        </footer>
-    </article>
-</section>
+@if (!IsAuthenticated)
+{
+    <section id="unauthenticated" aria-labelledby="unauthenticated-heading">
+        <article>
+            <header>
+                <h1 id="unauthenticated-heading">Wasabi Bot</h1>
+            </header>
+            <p>Connect your Discord account to generate a token for the Wasabi Bot API.</p>
+            <footer>
+                <a id="login-link" href="/auth/login-discord" role="button" class="secondary">Sign in with Discord</a>
+            </footer>
+        </article>
+    </section>
+}
+else
+{
+    <section id="authenticated" aria-labelledby="authenticated-heading">
+        <article>
+            <header style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+                <h1 id="authenticated-heading" style="margin:0;">Wasabi Bot</h1>
+                <form action="/auth/logout" method="post" style="margin:0;">
+                    <button id="logout-button" type="submit" class="contrast" style="width:auto; align-self:flex-start;">Log out</button>
+                </form>
+            </header>
 
-<section id="authenticated" hidden aria-labelledby="authenticated-heading">
-    <article>
-        <header style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
-            <h1 id="authenticated-heading" style="margin:0;">Wasabi Bot</h1>
-            <button id="logout-button" type="button" class="contrast" style="width:auto; align-self:flex-start;">Log out</button>
-        </header>
+            <section aria-labelledby="token-heading">
+                <hgroup>
+                    <h2 id="token-heading">Hello, <span id="user-greeting">@DisplayName</span></h2>
+                    <p>Generate a short-lived token to authenticate with the Wasabi Bot API (lasts 1 hour)</p>
+                </hgroup>
+                <button id="generate-token" type="button" class="primary" style="width:auto;" disabled>Generate Token</button>
+                <p><small><em>Token generation coming soon...</em></small></p>
+            </section>
+        </article>
+    </section>
+}
 
-        <section aria-labelledby="token-heading">
-            <hgroup>
-                <h2 id="token-heading">Hello, <span id="user-greeting"></span></h2>
-                <p>Generate a short-lived token to authenticate with the Wasabi Bot API (lasts 1 hour)</p>
-            </hgroup>
-            <button id="generate-token" type="button" class="primary" style="width:auto;">Generate Token</button>
-            <div id="token-panel" data-tooltip="Click to copy" data-placement="bottom" hidden style="border-bottom:none;">
-                <p style="margin-bottom:0.25rem;">Your token:</p>
-                <pre id="token-output"
-                     role="button"
-                     tabindex="0"
-                     aria-label="Copy token"
-                     style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; cursor:pointer; background-color:transparent;"></pre>
-            </div>
-        </section>
-    </article>
-</section>
-
-<aside id="status-message" role="status" aria-live="polite" hidden></aside>
