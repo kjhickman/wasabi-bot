@@ -2,19 +2,17 @@
 
 Wasabi Bot is a .NET Discord bot built using [NetCord](https://github.com/NetCordDev/NetCord).
 
-### Setting up local dev
+## Setting up local dev
 
-Requires .NET 9.0 SDK
+### Prerequisites
 
-```
-dotnet user-secrets set "Discord:Token" "your-bot-token"
-dotnet user-secrets set "Authentication:Discord:ClientId" "your-oauth2-clientid"
-dotnet user-secrets set "Authentication:Discord:ClientSecret" "your-oauth2-clientsecret"
-dotnet user-secrets set "Gemini:ApiKey" "your-openai-apikey"
+- [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+- [Aspire CLI 13](https://aspire.dev/get-started/install-cli/)
+
+### Running the bot
+
+```bash
+aspire run
 ```
 
-And that's it! You can run the bot locally using the Aspire AppHost:
-
-```
-dotnet run --project Wasabi.Bot/Wasabi.Bot.AppHost.csproj --launch-profile http
-```
+You will be prompted to enter some parameters such as your bot token. Once you've done that, the bot should start up and connect to Discord. You can then test it out by sending commands to your bot in a Discord server where it's been added.
