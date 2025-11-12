@@ -1,5 +1,4 @@
 @page "/"
-@using Microsoft.AspNetCore.Components.Forms
 
 @if (!IsAuthenticated)
 {
@@ -17,15 +16,8 @@
 }
 else
 {
-    <section id="authenticated" aria-labelledby="authenticated-heading">
+    <section id="authenticated">
         <article>
-            <header style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
-                <h1 id="authenticated-heading" style="margin:0;">Wasabi Bot</h1>
-                <form action="/auth/logout" method="post" style="margin:0;">
-                    <button id="logout-button" type="submit" class="contrast" style="width:auto; align-self:flex-start;">Log out</button>
-                </form>
-            </header>
-
             <TokenGenerator DisplayName="@DisplayName" />
         </article>
     </section>
