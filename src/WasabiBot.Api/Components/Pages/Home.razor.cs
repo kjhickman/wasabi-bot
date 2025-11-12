@@ -10,8 +10,6 @@ public partial class Home : ComponentBase
     public required Task<AuthenticationState> AuthenticationStateTask { get; set; }
 
     private bool IsAuthenticated { get; set; }
-    private string? Username { get; set; }
-    private string? GlobalName { get; set; }
     private string? DisplayName { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -23,12 +21,12 @@ public partial class Home : ComponentBase
 
         if (IsAuthenticated)
         {
-            Username = user.FindFirst("urn:discord:user:username")?.Value
+            var username = user.FindFirst("urn:discord:user:username")?.Value
                 ?? user.FindFirst(ClaimTypes.Name)?.Value;
-            GlobalName = user.FindFirst("urn:discord:user:global_name")?.Value
+            var globalName = user.FindFirst("urn:discord:user:global_name")?.Value
                 ?? user.FindFirst("urn:discord:user:globalname")?.Value;
 
-            DisplayName = GlobalName ?? Username ?? "User";
+            DisplayName = globalName ?? username ?? "User";
         }
     }
 }
