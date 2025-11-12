@@ -12,8 +12,13 @@
     flex-wrap: wrap;
 }
 
+.header-nav:focus {
+    outline: none;
+}
+
 .header-nav h1 {
     margin: 0;
+    outline: none;
 }
 
 .logout-form {
