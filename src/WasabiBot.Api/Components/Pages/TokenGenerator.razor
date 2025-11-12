@@ -10,9 +10,8 @@
         </article>
     }
 
-    <form method="post" data-enhance @formname="tokenForm">
+    <form method="post" data-enhance @formname="tokenForm" @onsubmit="GenerateToken">
         <AntiforgeryToken />
-        <input type="hidden" name="ShouldGenerateToken" value="true"/>
         <button type="submit" class="primary token-action-button">
             Generate Token
         </button>
