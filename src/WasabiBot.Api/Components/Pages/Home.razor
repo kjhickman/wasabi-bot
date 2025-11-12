@@ -46,21 +46,6 @@ else
                         Generate Token
                     </button>
                 </form>
-                
-                <script>
-                    console.log('Form script loaded');
-                    document.addEventListener('DOMContentLoaded', () => {
-                        const form = document.querySelector('form[data-enhance]');
-                        if (form) {
-                            console.log('Found enhanced form');
-                            form.addEventListener('submit', (e) => {
-                                console.log('Form submit event fired', e);
-                            });
-                        } else {
-                            console.warn('Enhanced form not found!');
-                        }
-                    });
-                </script>
 
                 @if (!string.IsNullOrEmpty(GeneratedToken))
                 {
@@ -70,91 +55,64 @@ else
                              role="button"
                              tabindex="0"
                              aria-label="Copy token"
+                             onclick="window.copyToken()"
+                             onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.copyToken(); }"
                              style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; background-color:transparent; cursor:pointer;">@GeneratedToken</pre>
                         @if (TokenExpiresAt.HasValue)
                         {
                             <p style="margin-top:0.5rem;"><small>Expires at: @TokenExpiresAt.Value.ToString("u")</small></p>
                         }
                     </div>
-
-                    <script>
-                        (function() {
-                            'use strict';
-
-                            const tokenOutput = document.getElementById('token-output');
-                            if (!tokenOutput) return;
-
-                            const tokenPanel = tokenOutput.closest('#token-panel');
-                            const defaultTooltip = tokenPanel?.dataset?.tooltip || 'Click to copy';
-                            let feedbackTimeoutId;
-
-                            const resetTooltip = () => {
-                                clearTimeout(feedbackTimeoutId);
-                                if (tokenPanel) {
-                                    tokenPanel.setAttribute('data-tooltip', defaultTooltip);
-                                }
-                            };
-
-                            const showCopiedFeedback = () => {
-                                clearTimeout(feedbackTimeoutId);
-                                if (tokenPanel) {
-                                    tokenPanel.setAttribute('data-tooltip', 'Copied!');
-                                }
-                                feedbackTimeoutId = setTimeout(resetTooltip, 1500);
-                            };
-
-                            const copyToClipboard = async (text) => {
-                                try {
-                                    if (navigator.clipboard?.writeText) {
-                                        await navigator.clipboard.writeText(text);
-                                        return true;
-                                    }
-
-                                    const textArea = document.createElement('textarea');
-                                    textArea.value = text;
-                                    textArea.style.position = 'fixed';
-                                    textArea.style.left = '-9999px';
-                                    document.body.appendChild(textArea);
-                                    textArea.focus();
-                                    textArea.select();
-
-                                    try {
-                                        return document.execCommand('copy');
-                                    } finally {
-                                        document.body.removeChild(textArea);
-                                    }
-                                } catch (error) {
-                                    return false;
-                                }
-                            };
-
-                            const handleCopy = async () => {
-                                const text = tokenOutput.textContent?.trim();
-                                if (!text) return;
-
-                                const success = await copyToClipboard(text);
-                                if (success) {
-                                    showCopiedFeedback();
-                                } else {
-                                    if (tokenPanel) {
-                                        tokenPanel.setAttribute('data-tooltip', 'Failed to copy. Please copy manually.');
-                                        setTimeout(resetTooltip, 2000);
-                                    }
-                                }
-                            };
-
-                            tokenOutput.addEventListener('click', handleCopy);
-                            tokenOutput.addEventListener('keydown', (event) => {
-                                if (event.key === 'Enter' || event.key === ' ') {
-                                    event.preventDefault();
-                                    handleCopy();
-                                }
-                            });
-                        })();
-                    </script>
                 }
             </section>
         </article>
     </section>
+    
+    <script>
+        // Global function for copying token - persists across enhanced navigation
+        window.copyToken = async function() {
+            const tokenOutput = document.getElementById('token-output');
+            if (!tokenOutput) return;
+            
+            const tokenPanel = document.getElementById('token-panel');
+            const text = tokenOutput.textContent?.trim();
+            if (!text) return;
+
+            try {
+                // Try modern clipboard API first
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-9999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                }
+                
+                // Show feedback
+                if (tokenPanel) {
+                    const originalTooltip = tokenPanel.getAttribute('data-tooltip');
+                    tokenPanel.setAttribute('data-tooltip', 'Copied!');
+                    setTimeout(() => {
+                        tokenPanel.setAttribute('data-tooltip', originalTooltip || 'Click to copy');
+                    }, 1500);
+                }
+            } catch (error) {
+                console.error('Failed to copy:', error);
+                if (tokenPanel) {
+                    tokenPanel.setAttribute('data-tooltip', 'Failed to copy');
+                    setTimeout(() => {
+                        tokenPanel.setAttribute('data-tooltip', 'Click to copy');
+                    }, 2000);
+                }
+            }
+        };
+    </script>
 }
 
