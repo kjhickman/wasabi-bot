@@ -39,8 +39,8 @@ internal sealed class HelpCommand
 
         // Fun commands
         sb.AppendLine("### Fun");
-        sb.AppendLine("• `/conch` - Ask the magic conch a question");
-        sb.AppendLine("• `/spin` - Spin a wheel with 2-7 options and pick one at random");
+        sb.AppendLine("• `/conch` - Ask the magic conch a yes/no question");
+        sb.AppendLine("• `/choose` - Choose randomly from 2-7 options");
         sb.AppendLine("• `/caption` - Generate a funny caption for an image");
 
         // Utility commands

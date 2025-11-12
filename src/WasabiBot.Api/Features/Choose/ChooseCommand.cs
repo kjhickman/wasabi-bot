@@ -4,13 +4,13 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Spin;
 
-[CommandHandler("spin", "Spin a wheel with 2-7 options and pick one at random.", nameof(ExecuteAsync))]
-internal sealed class SpinCommand
+[CommandHandler("choose", "Choose randomly from 2-7 options.", nameof(ExecuteAsync))]
+internal sealed class ChooseCommand
 {
     private readonly Tracer _tracer;
-    private readonly ILogger<SpinCommand> _logger;
+    private readonly ILogger<ChooseCommand> _logger;
 
-    public SpinCommand(Tracer tracer, ILogger<SpinCommand> logger)
+    public ChooseCommand(Tracer tracer, ILogger<ChooseCommand> logger)
     {
         _tracer = tracer;
         _logger = logger;
@@ -26,13 +26,13 @@ internal sealed class SpinCommand
         string? option6 = null,
         string? option7 = null)
     {
-        using var span = _tracer.StartActiveSpan("spin.choose");
+        using var span = _tracer.StartActiveSpan("choose.execute");
 
         var userDisplayName = ctx.UserDisplayName;
         var channelId = ctx.ChannelId;
 
         _logger.LogInformation(
-            "Spin command invoked by user {User} in channel {ChannelId}",
+            "Choose command invoked by user {User} in channel {ChannelId}",
             userDisplayName,
             channelId);
 
@@ -46,14 +46,14 @@ internal sealed class SpinCommand
         {
             case < 2:
                 _logger.LogWarning(
-                    "Spin command received insufficient options ({Count}) from user {User}",
+                    "Choose command received insufficient options ({Count}) from user {User}",
                     options.Count,
                     userDisplayName);
                 await ctx.SendEphemeralAsync("Please provide at least 3 distinct options.");
                 return;
             case > 7:
                 _logger.LogWarning(
-                    "Spin command received too many options ({Count}) from user {User}",
+                    "Choose command received too many options ({Count}) from user {User}",
                     options.Count,
                     userDisplayName);
                 await ctx.SendEphemeralAsync("Please limit to at most 7 options.");
@@ -62,10 +62,10 @@ internal sealed class SpinCommand
 
         var chosen = ChooseOption(options);
         var displayOptions = string.Join(", ", options);
-        var response = $"Spinning the wheel! Options: {displayOptions}\nThe wheel lands on... **{chosen}**";
+        var response = $"Options: {displayOptions}\nAnd the choice is... **{chosen}**";
 
         _logger.LogInformation(
-            "Spin command selected '{Chosen}' for user {User}",
+            "Choose command selected '{Chosen}' for user {User}",
             chosen,
             userDisplayName);
         await ctx.RespondAsync(response);

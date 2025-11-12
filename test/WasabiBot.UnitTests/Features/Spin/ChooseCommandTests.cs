@@ -2,7 +2,7 @@ using WasabiBot.Api.Features.Spin;
 
 namespace WasabiBot.UnitTests.Features.Spin;
 
-public class SpinCommandTests
+public class ChooseCommandTests
 {
     private sealed class DeterministicRandom : Random
     {
@@ -15,7 +15,7 @@ public class SpinCommandTests
     public async Task ChooseOption_WithinBounds_ReturnsIndex()
     {
         var options = new[] { "jackbox", "valorant", "rocket league" };
-        var chosen = SpinCommand.ChooseOption(options, new DeterministicRandom(1));
+        var chosen = ChooseCommand.ChooseOption(options, new DeterministicRandom(1));
         await Assert.That(chosen).IsEqualTo("valorant");
     }
 
@@ -26,7 +26,7 @@ public class SpinCommandTests
     public async Task ChooseOption_ValidCounts_NoException(int count)
     {
         var options = Enumerable.Range(0, count).Select(i => $"opt{i}").ToArray();
-        var chosen = SpinCommand.ChooseOption(options, new DeterministicRandom(0));
+        var chosen = ChooseCommand.ChooseOption(options, new DeterministicRandom(0));
         await Assert.That(options.Contains(chosen)).IsTrue();
     }
 
@@ -38,6 +38,6 @@ public class SpinCommandTests
     public async Task ChooseOption_InvalidCounts_Throws(int count)
     {
         var options = Enumerable.Range(0, count).Select(i => $"opt{i}").ToArray();
-        await Assert.That(() => SpinCommand.ChooseOption(options)).Throws<ArgumentException>();
+        await Assert.That(() => ChooseCommand.ChooseOption(options)).Throws<ArgumentException>();
     }
 }
