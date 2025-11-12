@@ -95,5 +95,39 @@ public sealed class ReminderService : IReminderService
 
         return sentReminderIds;
     }
+
+    public async Task<ReminderEntity?> GetByIdAsync(long reminderId, CancellationToken ct = default)
+    {
+        using var span = _tracer.StartActiveSpan("reminder.get_by_id");
+
+        return await _ctx.Reminders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == reminderId, ct);
+    }
+
+    public async Task<bool> DeleteByIdAsync(long reminderId, CancellationToken ct = default)
+    {
+        using var span = _tracer.StartActiveSpan("reminder.delete");
+
+        var reminder = await _ctx.Reminders
+            .FirstOrDefaultAsync(r => r.Id == reminderId, ct);
+
+        if (reminder == null)
+        {
+            _logger.LogWarning("Attempted to delete reminder {ReminderId} but it does not exist", reminderId);
+            return false;
+        }
+
+        _ctx.Reminders.Remove(reminder);
+        var deleted = await _ctx.SaveChangesAsync(ct) > 0;
+
+        if (deleted)
+        {
+            _store.RemoveById(reminder.Id);
+            _logger.LogInformation("Deleted reminder {ReminderId}", reminderId);
+        }
+
+        return deleted;
+    }
 }
 
