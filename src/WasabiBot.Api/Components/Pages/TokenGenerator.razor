@@ -26,7 +26,7 @@
                  tabindex="0"
                  aria-label="Copy token"
                  onclick="window.copyToken()"
-                 onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.copyToken(); }">@GeneratedToken</pre>
+                 onkeydown="(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.copyToken(); } }">@GeneratedToken</pre>
             @if (TokenExpiresAt.HasValue)
             {
                 <p class="token-expiry"><small>Expires at: @TokenExpiresAt.Value.ToString("u")</small></p>
