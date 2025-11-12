@@ -1,6 +1,3 @@
-@using Microsoft.AspNetCore.Components.Web
-@using WasabiBot.Api.Components
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,11 +7,12 @@
     <meta name="description" content="Sign in with Discord to manage your Wasabi Bot API access.">
     <base href="/" />
     <title>Wasabi Bot</title>
-    <link rel="stylesheet" href="pico.green.min.css" />
+    <link rel="stylesheet" href="@Assets["pico.green.min.css"]"/>
+
     <HeadOutlet />
 </head>
 <body>
     <Routes />
-    <script src="_framework/blazor.web.js"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 </html>

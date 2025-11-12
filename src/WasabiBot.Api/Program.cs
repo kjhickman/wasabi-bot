@@ -1,5 +1,4 @@
 using WasabiBot.Api.Components;
-using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Features.Routing;
 using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Database;
