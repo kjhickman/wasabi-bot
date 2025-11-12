@@ -14,7 +14,7 @@ public class GetInteractions
         [FromQuery(Name = "application_id")] long? applicationId,
         [FromQuery(Name = "guild_id")] long? guildId,
         [FromQuery(Name = "limit")] int? limit,
-        [FromQuery(Name = "sort")] string? sort,
+        [FromQuery(Name = "sort")] SortDirection? sort,
         [FromQuery(Name = "cursor")] string? cursor,
         IInteractionService interactionService)
     {
@@ -24,11 +24,7 @@ public class GetInteractions
             return Results.Unauthorized();
         }
 
-        var sortDirection = SortDirection.Descending;
-        if (sort?.ToLowerInvariant() == "asc")
-        {
-            sortDirection = SortDirection.Ascending;
-        }
+        var sortDirection = sort ?? SortDirection.Desc;
 
         InteractionCursor? parsedCursor = null;
         if (!string.IsNullOrWhiteSpace(cursor))
