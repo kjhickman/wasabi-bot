@@ -5,33 +5,32 @@
 
     @if (!string.IsNullOrEmpty(ErrorMessage))
     {
-        <article style="background-color: var(--pico-del-color); margin-bottom: 1rem;">
-            <p style="margin: 0;">@ErrorMessage</p>
+        <article class="error-message">
+            <p>@ErrorMessage</p>
         </article>
     }
 
     <form method="post" data-enhance @formname="tokenForm">
         <AntiforgeryToken />
         <input type="hidden" name="ShouldGenerateToken" value="true"/>
-        <button type="submit" class="primary" style="width:auto; margin-bottom: 1rem;">
+        <button type="submit" class="primary token-action-button">
             Generate Token
         </button>
     </form>
 
     @if (!string.IsNullOrEmpty(GeneratedToken))
     {
-        <div id="token-panel" data-tooltip="Click to copy" data-placement="bottom" style="border-bottom:none;">
-            <p style="margin-bottom:0.25rem;">Your token:</p>
+        <div id="token-panel" data-tooltip="Click to copy" data-placement="bottom">
+            <p class="token-label">Your token:</p>
             <pre id="token-output"
                  role="button"
                  tabindex="0"
                  aria-label="Copy token"
                  onclick="window.copyToken()"
-                 onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.copyToken(); }"
-                 style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; background-color:var(--pico-code-background-color); color:var(--pico-code-color); cursor:pointer;">@GeneratedToken</pre>
+                 onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.copyToken(); }">@GeneratedToken</pre>
             @if (TokenExpiresAt.HasValue)
             {
-                <p style="margin-top:0.5rem;"><small>Expires at: @TokenExpiresAt.Value.ToString("u")</small></p>
+                <p class="token-expiry"><small>Expires at: @TokenExpiresAt.Value.ToString("u")</small></p>
             }
         </div>
     }
