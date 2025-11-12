@@ -7,7 +7,7 @@ using WasabiBot.Api.Infrastructure.Discord;
 using WasabiBot.Api.Infrastructure.Auth;
 using WasabiBot.Api.Infrastructure.Scalar;
 
-var builder = WebApplication.CreateSlimBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseKestrel(options => options.AddServerHeader = false);
 
@@ -47,7 +47,6 @@ app.MapScalarUi();
 app.MapDefaultEndpoints();
 app.MapDiscordCommandHandlers();
 app.MapEndpoints();
-
 
 app.MapRazorComponents<App>();
 
