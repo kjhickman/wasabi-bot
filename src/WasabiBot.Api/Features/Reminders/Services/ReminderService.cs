@@ -59,6 +59,16 @@ public sealed class ReminderService : IReminderService
             .ToListAsync(ct);
     }
 
+    public async Task<List<ReminderEntity>> GetAllByUserId(long userId, CancellationToken ct = default)
+    {
+        using var span = _tracer.StartActiveSpan("reminder.list.by_user");
+        return await _ctx.Reminders
+            .AsNoTracking()
+            .Where(r => r.UserId == userId && !r.IsReminderSent)
+            .OrderBy(r => r.RemindAt)
+            .ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyCollection<long>> SendRemindersAsync(IEnumerable<ReminderEntity> reminders, CancellationToken ct = default)
     {
         using var span = _tracer.StartActiveSpan("reminder.send");
