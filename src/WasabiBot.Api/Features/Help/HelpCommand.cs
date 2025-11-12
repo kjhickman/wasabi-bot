@@ -3,7 +3,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Help;
 
-[CommandHandler("help", "Shows all available commands and helpful links.", nameof(ExecuteAsync))]
+[CommandHandler("help", "Shows all available commands and helpful links.")]
 internal sealed class HelpCommand
 {
     private readonly ILogger<HelpCommand> _logger;
@@ -45,7 +45,7 @@ internal sealed class HelpCommand
 
         // Utility commands
         sb.AppendLine("### Utility");
-        sb.AppendLine("• `/echo` - Echoes back your message");
+        sb.AppendLine("• `/stats` - Show bot usage statistics");
         sb.AppendLine("• `/help` - Shows this help message");
 
         // Links section

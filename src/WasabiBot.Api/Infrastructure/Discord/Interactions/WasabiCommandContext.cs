@@ -17,6 +17,7 @@ public sealed class WasabiCommandContext : ICommandContext
 
     public ulong ChannelId => _interaction.Channel.Id;
     public ulong UserId => _interaction.User.Id;
+    public ulong InteractionId => _interaction.Id;
     public string Username => _interaction.User.Username;
     public string? GlobalName => _interaction.User.GlobalName;
     public string UserDisplayName =>  GlobalName ?? Username;

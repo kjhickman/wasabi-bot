@@ -8,7 +8,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.CaptionThis;
 
-[CommandHandler("caption", "Generate a funny caption for an image.", nameof(ExecuteAsync))]
+[CommandHandler("caption", "Generate a funny caption for an image.")]
 internal sealed class CaptionThisCommand
 {
     private readonly IChatClient _chatClient;

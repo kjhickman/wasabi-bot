@@ -5,7 +5,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.MagicConch;
 
-[CommandHandler("conch", "Ask the magic conch a question.", nameof(ExecuteAsync))]
+[CommandHandler("conch", "Ask the magic conch a question.")]
 internal sealed class MagicConchCommand
 {
     private readonly IChatClient _chatClient;

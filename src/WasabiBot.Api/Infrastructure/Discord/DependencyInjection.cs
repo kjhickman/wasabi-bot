@@ -4,6 +4,7 @@ using WasabiBot.Api.Features.CaptionThis.Abstractions;
 using WasabiBot.Api.Features.CaptionThis.Services;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Features.Reminders.Services;
+using WasabiBot.Api.Features.Stats;
 using WasabiBot.Api.Infrastructure.Discord.EventHandlers;
 using WasabiBot.DataAccess.Abstractions;
 using WasabiBot.DataAccess.Services;
@@ -28,5 +29,6 @@ internal static class DependencyInjection
         services.AddSingleton<IReminderStore, InMemoryReminderStore>();
         services.AddHostedService<ReminderProcessor>();
         services.AddScoped<IImageRetrievalService, HttpClientImageRetrievalService>();
+        services.AddScoped<IStatsService, StatsService>();
     }
 }

@@ -4,7 +4,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Spin;
 
-[CommandHandler("choose", "Choose randomly from 2-7 options.", nameof(ExecuteAsync))]
+[CommandHandler("choose", "Choose randomly from 2-7 options.")]
 internal sealed class ChooseCommand
 {
     private readonly Tracer _tracer;

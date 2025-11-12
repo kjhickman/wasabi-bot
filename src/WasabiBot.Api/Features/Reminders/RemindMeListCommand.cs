@@ -5,7 +5,7 @@ using WasabiBot.DataAccess.Entities;
 
 namespace WasabiBot.Api.Features.Reminders;
 
-[CommandHandler("reminder-list", "List all your reminders.", nameof(ExecuteAsync))]
+[CommandHandler("reminder-list", "List all your reminders.")]
 internal sealed class RemindMeListCommand
 {
     private readonly ILogger<RemindMeListCommand> _logger;
