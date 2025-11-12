@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.HttpOverrides;
 using WasabiBot.Api.Components;
 using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Features.Routing;

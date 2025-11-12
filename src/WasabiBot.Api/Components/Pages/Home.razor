@@ -30,8 +30,30 @@ else
                     <h2 id="token-heading">Hello, <span id="user-greeting">@DisplayName</span></h2>
                     <p>Generate a short-lived token to authenticate with the Wasabi Bot API (lasts 1 hour)</p>
                 </hgroup>
-                <button id="generate-token" type="button" class="primary" style="width:auto;" disabled>Generate Token</button>
-                <p><small><em>Token generation coming soon...</em></small></p>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <article style="background-color: var(--pico-del-color); margin-bottom: 1rem;">
+                        <p style="margin: 0;">@ErrorMessage</p>
+                    </article>
+                }
+
+                <form method="get" style="margin-bottom: 1rem;">
+                    <button id="generate-token" type="submit" name="generated" value="true" class="primary" style="width:auto;">Generate Token</button>
+                </form>
+
+                @if (!string.IsNullOrEmpty(GeneratedToken))
+                {
+                    <div id="token-panel" style="border-bottom:none;">
+                        <p style="margin-bottom:0.25rem;">Your token:</p>
+                        <pre id="token-output"
+                             style="white-space:pre-wrap; word-break:break-all; margin:0; padding:0.75rem; border:1px solid currentColor; border-radius:0.5rem; background-color:transparent;">@GeneratedToken</pre>
+                        @if (TokenExpiresAt.HasValue)
+                        {
+                            <p style="margin-top:0.5rem;"><small>Expires at: @TokenExpiresAt.Value.ToString("u")</small></p>
+                        }
+                    </div>
+                }
             </section>
         </article>
     </section>
