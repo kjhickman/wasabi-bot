@@ -30,6 +30,29 @@ public sealed class InteractionService(WasabiBotContext context, Tracer tracer) 
         if (request.GuildId.HasValue)
             query = query.Where(i => i.GuildId == request.GuildId.Value);
 
+        if (request.Cursor != null)
+        {
+            if (request.SortDirection == SortDirection.Descending)
+            {
+                query = query.Where(i =>
+                    i.CreatedAt < request.Cursor.CreatedAt ||
+                    (i.CreatedAt == request.Cursor.CreatedAt && i.Id < request.Cursor.Id));
+            }
+            else
+            {
+                query = query.Where(i =>
+                    i.CreatedAt > request.Cursor.CreatedAt ||
+                    (i.CreatedAt == request.Cursor.CreatedAt && i.Id > request.Cursor.Id));
+            }
+        }
+
+        query = request.SortDirection == SortDirection.Descending
+            ? query.OrderByDescending(i => i.CreatedAt).ThenByDescending(i => i.Id)
+            : query.OrderBy(i => i.CreatedAt).ThenBy(i => i.Id);
+
+        // Take limit + 1 to determine if there are more results
+        query = query.Take(request.Limit + 1);
+
         return await query.ToArrayAsync();
 
     }
@@ -49,4 +72,19 @@ public class GetAllInteractionsRequest
     public long? ChannelId { get; set; }
     public long? ApplicationId { get; set; }
     public long? GuildId { get; set; }
+    public int Limit { get; set; }
+    public SortDirection SortDirection { get; set; } = SortDirection.Descending;
+    public InteractionCursor? Cursor { get; set; }
+}
+
+public class InteractionCursor
+{
+    public DateTimeOffset CreatedAt { get; set; }
+    public long Id { get; set; }
+}
+
+public enum SortDirection
+{
+    Ascending,
+    Descending
 }
