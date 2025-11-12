@@ -7,7 +7,7 @@ namespace WasabiBot.Api.Components.Pages;
 public partial class Home : ComponentBase
 {
     [CascadingParameter]
-    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+    public required Task<AuthenticationState> AuthenticationStateTask { get; set; }
 
     private bool IsAuthenticated { get; set; }
     private string? Username { get; set; }
@@ -16,22 +16,19 @@ public partial class Home : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        if (AuthenticationStateTask is not null)
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+
+        IsAuthenticated = user.Identity?.IsAuthenticated ?? false;
+
+        if (IsAuthenticated)
         {
-            var authState = await AuthenticationStateTask;
-            var user = authState.User;
+            Username = user.FindFirst("urn:discord:user:username")?.Value
+                ?? user.FindFirst(ClaimTypes.Name)?.Value;
+            GlobalName = user.FindFirst("urn:discord:user:global_name")?.Value
+                ?? user.FindFirst("urn:discord:user:globalname")?.Value;
 
-            IsAuthenticated = user.Identity?.IsAuthenticated ?? false;
-
-            if (IsAuthenticated)
-            {
-                Username = user.FindFirst("urn:discord:user:username")?.Value
-                    ?? user.FindFirst(ClaimTypes.Name)?.Value;
-                GlobalName = user.FindFirst("urn:discord:user:global_name")?.Value
-                    ?? user.FindFirst("urn:discord:user:globalname")?.Value;
-
-                DisplayName = GlobalName ?? Username ?? "User";
-            }
+            DisplayName = GlobalName ?? Username ?? "User";
         }
     }
 }

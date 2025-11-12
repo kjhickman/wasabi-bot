@@ -1,5 +1,7 @@
 @page "/"
 
+<PageTitle>@(IsAuthenticated ? $"Dashboard - {DisplayName}" : "Sign In") - Wasabi Bot</PageTitle>
+
 @if (!IsAuthenticated)
 {
     <section id="unauthenticated" aria-labelledby="unauthenticated-heading">

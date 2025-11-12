@@ -7,10 +7,10 @@ namespace WasabiBot.Api.Components.Pages;
 public partial class TokenGenerator : ComponentBase
 {
     [CascadingParameter]
-    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+    public required Task<AuthenticationState> AuthenticationStateTask { get; set; }
 
     [Inject]
-    private ApiTokenFactory TokenFactory { get; set; } = null!;
+    public required ApiTokenFactory TokenFactory { get; set; }
 
     [SupplyParameterFromForm]
     private bool ShouldGenerateToken { get; set; }
@@ -22,7 +22,7 @@ public partial class TokenGenerator : ComponentBase
     protected override async Task OnInitializedAsync()
     {
         // Generate token if form was submitted - results in entire page re-render. Temporary solution
-        if (ShouldGenerateToken && AuthenticationStateTask is not null)
+        if (ShouldGenerateToken)
         {
             var authState = await AuthenticationStateTask;
             var user = authState.User;
