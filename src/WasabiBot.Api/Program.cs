@@ -29,13 +29,6 @@ builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();
 
-var configuredPathBase = app.Configuration["ASPNETCORE_PATHBASE"];
-if (!configuredPathBase.IsNullOrWhiteSpace())
-{
-    app.Logger.LogInformation("Applying path base {PathBase}", configuredPathBase);
-    app.UsePathBase(configuredPathBase);
-}
-
 app.MapStaticAssets();
 app.MapRazorComponents<App>();
 
