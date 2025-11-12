@@ -1,4 +1,5 @@
 ﻿using WasabiBot.Api.Features.Auth;
+using WasabiBot.Api.Features.Interactions;
 using WasabiBot.Api.Features.Token;
 
 namespace WasabiBot.Api.Features.Routing;
@@ -37,7 +38,28 @@ public static class Routes
             .WithDescription("Generates a new API token for the authenticated user.")
             .RequireAuthorization("DiscordGuildMember")
             .Produces<TokenResponse>()
-            .ProducesProblem(StatusCodes.Status400BadRequest);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithTags("Token");
+
+        var interactions = v1.MapGroup("/interactions")
+            .WithTags("Interactions");
+
+        interactions.MapGet("/", GetInteractions.Handle)
+            .WithDisplayName("Get Interactions")
+            .WithDescription("Retrieves a list of interactions.")
+            .RequireAuthorization("DiscordGuildMember")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .Produces<GetInteractionsResponse>();
+
+        interactions.MapGet("/{id:long}", GetInteractionById.Handle)
+            .WithDisplayName("Get Interaction by ID")
+            .WithDescription("Retrieves an interaction by its unique ID.")
+            .RequireAuthorization("DiscordGuildMember")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .Produces<InteractionDto>();
 
         return app;
     }

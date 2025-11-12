@@ -71,7 +71,6 @@ public static class DependencyInjection
                     ValidateIssuer = false,
                     ValidateAudience = false,
                     ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
                 };
             });
 

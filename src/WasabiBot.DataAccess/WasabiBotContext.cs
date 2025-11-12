@@ -15,6 +15,7 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
         {
             builder.HasIndex(e => e.UserId);
             builder.HasIndex(e => e.GuildId).HasFilter("\"GuildId\" IS NOT NULL");
+            builder.Property(e => e.Data).HasColumnType("jsonb");
         });
 
         modelBuilder.Entity<ReminderEntity>(builder =>

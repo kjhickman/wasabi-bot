@@ -13,10 +13,15 @@ var geminiApiKey = builder.AddParameter("gemini-api-key", secret: true)
     .WithDescription("Gemini API Key for AI features");
 
 var postgres = builder.AddPostgres("postgres")
-    .WithLifetime(ContainerLifetime.Persistent)
-    .WithPgWeb();
+    .WithLifetime(ContainerLifetime.Persistent);
+
+postgres.WithPgWeb(pgWeb => pgWeb.WithParentRelationship(postgres));
 
 var database = postgres.AddDatabase("wasabi-db");
+
+var migrations = builder.AddProject<Projects.WasabiBot_Migrations>("migrations")
+    .WithReference(database)
+    .WaitFor(database).WithParentRelationship(postgres);
 
 var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
     .WithReference(database)
@@ -35,9 +40,5 @@ var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
         Url = "/scalar",
         DisplayText = "API Reference"
     });
-
-var migrations = builder.AddProject<Projects.WasabiBot_Migrations>("migrations")
-    .WithReference(database)
-    .WaitFor(database);
 
 builder.Build().Run();

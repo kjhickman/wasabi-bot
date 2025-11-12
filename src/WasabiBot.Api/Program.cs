@@ -37,7 +37,7 @@ app.UseAntiforgery();
 
 app.MapScalarUi();
 app.MapDefaultEndpoints();
-app.MapDiscordCommandHandlers();
 app.MapEndpoints();
+app.MapDiscordCommandHandlers();
 
 app.Run();
