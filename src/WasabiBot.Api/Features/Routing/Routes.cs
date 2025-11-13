@@ -10,19 +10,12 @@ public static class Routes
     {
         // Auth endpoints
         var auth = app.MapGroup("/auth")
-            .WithTags("Authentication");
+            .ExcludeFromDescription();
 
         auth.MapGet("/login-discord", LoginDiscord.Handle)
             .WithDisplayName("Discord Login")
             .WithDescription("Initiates the Discord OAuth2 login process.")
             .AllowAnonymous();
-
-        auth.MapGet("/me", GetCurrentUser.Handle)
-            .WithDisplayName("Current User")
-            .WithDescription("Returns details about the authenticated Discord user.")
-            .Produces<CurrentUserResponse>()
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .RequireAuthorization();
 
         auth.MapPost("/logout", (Delegate)Logout.Handle)
             .WithDisplayName("Logout")

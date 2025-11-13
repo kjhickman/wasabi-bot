@@ -39,11 +39,6 @@ internal static class ScalarConfiguration
     {
         app.MapOpenApi();
 
-        if (!app.Environment.IsDevelopment())
-        {
-            return;
-        }
-
         var tokenFactory = app.Services.GetRequiredService<ApiTokenFactory>();
 
         app.MapScalarApiReference((options, httpContext) =>
