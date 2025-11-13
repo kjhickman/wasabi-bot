@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
@@ -21,7 +22,7 @@ internal sealed class MagicConchCommand
         _magicConchTool = magicConchTool;
     }
 
-    public async Task ExecuteAsync(ICommandContext ctx, string question)
+    public async Task ExecuteAsync(ICommandContext ctx, [SlashCommandParameter(Description = "A yes/no question")]string question)
     {
         var userDisplayName = ctx.UserDisplayName;
         var channelId = ctx.ChannelId;

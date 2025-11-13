@@ -2,7 +2,7 @@ using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
-namespace WasabiBot.Api.Features.Spin;
+namespace WasabiBot.Api.Features.Choose;
 
 [CommandHandler("choose", "Choose randomly from 2-7 options.")]
 internal sealed class ChooseCommand

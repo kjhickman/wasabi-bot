@@ -1,4 +1,4 @@
-using WasabiBot.Api.Features.Spin;
+using WasabiBot.Api.Features.Choose;
 
 namespace WasabiBot.UnitTests.Features.Spin;
 

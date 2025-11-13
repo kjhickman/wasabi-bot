@@ -17,7 +17,7 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
         globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
         typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
         genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
-        miscellaneousOptions: SymbolDisplayMiscellaneousOptions.ExpandNullable | SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
+        miscellaneousOptions: SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier | SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
 
     private static readonly DiagnosticDescriptor EntryPointNotFound = new(
         id: "WB0001",
@@ -104,7 +104,16 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
 
                 foreach (var parameter in info.Parameters.Skip(1))
                 {
-                    lambdaParameters.Add($"{parameter.TypeName} {parameter.Name}");
+                    var attributePrefix = parameter.Attributes.Length > 0 
+                        ? string.Join(" ", parameter.Attributes) + " " 
+                        : string.Empty;
+                    
+                    var paramDeclaration = $"{attributePrefix}{parameter.TypeName} {parameter.Name}";
+                    if (parameter.HasNullDefault)
+                    {
+                        paramDeclaration += " = null";
+                    }
+                    lambdaParameters.Add(paramDeclaration);
                     callArguments.Add(parameter.Name);
                 }
 
@@ -192,9 +201,19 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
         }
 
         var parameters = entryMethodWithContext.Parameters
-            .Select(p => new CommandParameterInfo(
-                p.Type.ToDisplayString(TypeDisplayFormat),
-                p.Name))
+            .Select(p =>
+            {
+                var attributes = p.GetAttributes()
+                    .Select(attr => FormatAttribute(attr))
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToImmutableArray();
+
+                return new CommandParameterInfo(
+                    p.Type.ToDisplayString(TypeDisplayFormat),
+                    p.Name,
+                    p.HasExplicitDefaultValue && p.ExplicitDefaultValue is null,
+                    attributes);
+            })
             .ToImmutableArray();
 
         return CommandHandlerResult.FromInfo(new CommandHandlerInfo(
@@ -203,6 +222,101 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
             description,
             entryMethodWithContext.Name,
             parameters));
+    }
+
+    private static string FormatAttribute(AttributeData attribute)
+    {
+        var attributeClass = attribute.AttributeClass;
+        if (attributeClass is null)
+        {
+            return string.Empty;
+        }
+
+        var name = attributeClass.ToDisplayString(TypeDisplayFormat);
+
+        // Remove "Attribute" suffix if present
+        if (name.EndsWith("Attribute"))
+        {
+            name = name.Substring(0, name.Length - "Attribute".Length);
+        }
+
+        var builder = new StringBuilder();
+        builder.Append('[').Append(name);
+
+        var hasArguments = false;
+
+        // Constructor arguments
+        if (attribute.ConstructorArguments.Length > 0)
+        {
+            builder.Append('(');
+            hasArguments = true;
+
+            for (int i = 0; i < attribute.ConstructorArguments.Length; i++)
+            {
+                if (i > 0) builder.Append(", ");
+                builder.Append(FormatTypedConstant(attribute.ConstructorArguments[i]));
+            }
+        }
+
+        // Named arguments
+        if (attribute.NamedArguments.Length > 0)
+        {
+            if (!hasArguments)
+            {
+                builder.Append('(');
+                hasArguments = true;
+            }
+            else
+            {
+                builder.Append(", ");
+            }
+
+            for (int i = 0; i < attribute.NamedArguments.Length; i++)
+            {
+                if (i > 0) builder.Append(", ");
+                var namedArg = attribute.NamedArguments[i];
+                builder.Append(namedArg.Key).Append(" = ").Append(FormatTypedConstant(namedArg.Value));
+            }
+        }
+
+        if (hasArguments)
+        {
+            builder.Append(')');
+        }
+
+        builder.Append(']');
+        return builder.ToString();
+    }
+
+    private static string FormatTypedConstant(TypedConstant constant)
+    {
+        if (constant.IsNull)
+        {
+            return "null";
+        }
+
+        if (constant.Kind == TypedConstantKind.Array)
+        {
+            var elements = constant.Values.Select(FormatTypedConstant);
+            return $"new[] {{ {string.Join(", ", elements)} }}";
+        }
+
+        if (constant.Type?.TypeKind == TypeKind.Enum)
+        {
+            return $"{constant.Type.ToDisplayString(TypeDisplayFormat)}.{constant.Value}";
+        }
+
+        if (constant.Value is string stringValue)
+        {
+            return Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(stringValue, quote: true);
+        }
+
+        if (constant.Value is bool boolValue)
+        {
+            return boolValue ? "true" : "false";
+        }
+
+        return constant.Value?.ToString() ?? "null";
     }
 
     private sealed class CommandHandlerInfo
@@ -230,14 +344,18 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
 
     private sealed class CommandParameterInfo
     {
-        public CommandParameterInfo(string typeName, string name)
+        public CommandParameterInfo(string typeName, string name, bool hasNullDefault, ImmutableArray<string> attributes)
         {
             TypeName = typeName;
             Name = name;
+            HasNullDefault = hasNullDefault;
+            Attributes = attributes;
         }
 
         public string TypeName { get; }
         public string Name { get; }
+        public bool HasNullDefault { get; }
+        public ImmutableArray<string> Attributes { get; }
     }
 
     private readonly struct CommandHandlerResult
