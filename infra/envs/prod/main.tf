@@ -176,6 +176,10 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
           valueFrom = "/wasabi-bot/shared/GeminiApiKey"
         },
         {
+          name      = "Grok__ApiKey"
+          valueFrom = "/wasabi-bot/${local.environment}/GrokApiKey"
+        },
+        {
           name      = "Discord__Token"
           valueFrom = "/wasabi-bot/${local.environment}/DiscordToken"
         },
