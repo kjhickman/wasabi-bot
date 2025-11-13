@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DictionaryEntry;
 using Microsoft.EntityFrameworkCore;
 using WasabiBot.DataAccess;
 
@@ -56,7 +57,10 @@ public class StatsService : IStatsService
                         var commandName = nameElement.GetString();
                         if (!string.IsNullOrWhiteSpace(commandName))
                         {
-                            commandCounts[commandName] = commandCounts.GetValueOrDefault(commandName) + 1;
+                            commandCounts
+                                .Entry(commandName)
+                                .AndModify(count => count + 1)
+                                .OrInsert(1);
                         }
                     }
                 }
@@ -68,14 +72,10 @@ public class StatsService : IStatsService
 
             // Count by user
             var displayName = interaction.GlobalName ?? interaction.Username;
-            if (userCounts.TryGetValue(interaction.UserId, out var existing))
-            {
-                userCounts[interaction.UserId] = (existing.name, existing.count + 1);
-            }
-            else
-            {
-                userCounts[interaction.UserId] = (displayName, 1);
-            }
+            userCounts
+                .Entry(interaction.UserId)
+                .AndModify(existing => (existing.name, existing.count + 1))
+                .OrInsert((displayName, 1));
         }
 
         var mostUsedCommand = commandCounts.Count > 0
@@ -109,4 +109,3 @@ public class StatsData
     public long TopUserId { get; init; }
     public int TopUserCount { get; init; }
 }
-
