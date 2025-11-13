@@ -14,6 +14,7 @@ internal sealed class FakeCommandContext : ICommandContext
         UserId = userId;
         ChannelId = channelId;
         UserDisplayName = userDisplayName;
+        InteractionId = 3;
     }
 
     public IReadOnlyList<(string Message, bool Ephemeral)> Messages => _messages;
@@ -26,6 +27,7 @@ internal sealed class FakeCommandContext : ICommandContext
     public ulong ChannelId { get; }
 
     public ulong UserId { get; }
+    public ulong InteractionId { get; }
     public string UserDisplayName { get; }
 
     public Task RespondAsync(string message, bool ephemeral = false)

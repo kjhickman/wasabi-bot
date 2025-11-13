@@ -61,6 +61,6 @@ internal static class ScalarConfiguration
                 }
             });
             options.EnablePersistentAuthentication();
-        });
+        }).RequireAuthorization("DiscordGuildMember");
     }
 }
