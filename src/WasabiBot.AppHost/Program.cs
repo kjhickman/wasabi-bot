@@ -10,7 +10,10 @@ var discordBotToken = builder.AddParameter("discord-bot-token", secret: true)
     .WithDescription("Discord Bot Token");
 
 var geminiApiKey = builder.AddParameter("gemini-api-key", secret: true)
-    .WithDescription("Gemini API Key for AI features");
+    .WithDescription("Gemini API Key");
+
+var grokApiKey = builder.AddParameter("grok-api-key", secret: true)
+    .WithDescription("Grok API Key");
 
 var postgres = builder.AddPostgres("postgres")
     .WithLifetime(ContainerLifetime.Persistent);
@@ -29,7 +32,8 @@ var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
     .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
     .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)
     .WithEnvironment("Discord__Token", discordBotToken)
-    .WithEnvironment("AI__GeminiApiKey", geminiApiKey)
+    .WithEnvironment("Gemini__ApiKey", geminiApiKey)
+    .WithEnvironment("Grok__ApiKey", grokApiKey)
     .WithChildRelationship(discordClientId)
     .WithChildRelationship(discordClientSecret)
     .WithChildRelationship(discordBotToken)
