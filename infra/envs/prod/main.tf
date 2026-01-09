@@ -177,7 +177,7 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
         },
         {
           name      = "Grok__ApiKey"
-          valueFrom = "/wasabi-bot/${local.environment}/GrokApiKey"
+          valueFrom = "/wasabi-bot/shared/GrokApiKey"
         },
         {
           name      = "Discord__Token"
