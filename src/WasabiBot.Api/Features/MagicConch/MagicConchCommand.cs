@@ -1,6 +1,8 @@
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
@@ -14,7 +16,7 @@ internal sealed class MagicConchCommand
     private readonly ILogger<MagicConchCommand> _logger;
     private readonly IMagicConchTool _magicConchTool;
 
-    public MagicConchCommand(IChatClient chatClient, Tracer tracer, ILogger<MagicConchCommand> logger, IMagicConchTool magicConchTool)
+    public MagicConchCommand([FromKeyedServices(AIServiceProvider.Grok)] IChatClient chatClient, Tracer tracer, ILogger<MagicConchCommand> logger, IMagicConchTool magicConchTool)
     {
         _chatClient = chatClient;
         _tracer = tracer;
