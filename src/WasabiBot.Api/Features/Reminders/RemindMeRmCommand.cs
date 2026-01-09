@@ -4,7 +4,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Reminders;
 
-[CommandHandler("reminder-rm", "Delete a reminder.")]
+// [CommandHandler("reminder-rm", "Delete a reminder.")]
 internal sealed class RemindMeRmCommand
 {
     private readonly ILogger<RemindMeRmCommand> _logger;

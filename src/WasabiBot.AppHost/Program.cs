@@ -34,10 +34,6 @@ var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
     .WithEnvironment("Discord__Token", discordBotToken)
     .WithEnvironment("Gemini__ApiKey", geminiApiKey)
     .WithEnvironment("Grok__ApiKey", grokApiKey)
-    .WithChildRelationship(discordClientId)
-    .WithChildRelationship(discordClientSecret)
-    .WithChildRelationship(discordBotToken)
-    .WithChildRelationship(geminiApiKey)
     .WithUrlForEndpoint("http", url => url.DisplayText = "Frontend")
     .WithUrlForEndpoint("http", _ => new ResourceUrlAnnotation
     {
