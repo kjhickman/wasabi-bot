@@ -1,4 +1,6 @@
-﻿using NetCord.Hosting.Gateway;
+﻿using NetCord;
+using NetCord.Gateway;
+using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services.ApplicationCommands;
 using WasabiBot.Api.Features.CaptionThis.Abstractions;
 using WasabiBot.Api.Features.CaptionThis.Services;
@@ -15,7 +17,19 @@ internal static class DependencyInjection
 {
     public static void AddDiscordServices(this IServiceCollection services)
     {
-        services.AddDiscordGateway();
+        services.AddDiscordGateway(x =>
+        {
+            x.Presence = new PresenceProperties(UserStatusType.Online)
+            {
+                Since = DateTimeOffset.UtcNow,
+                Activities = [ new UserActivityProperties("custom", UserActivityType.Custom)
+                {
+                    State = "Type /help for commands"
+                }],
+                Afk = false
+            };
+        });
+
         services.AddApplicationCommands();
         services.AddGatewayHandler<InteractionCreatedEventHandler>();
 
