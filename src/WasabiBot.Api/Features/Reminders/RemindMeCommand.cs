@@ -1,155 +1,74 @@
-﻿using Microsoft.Extensions.AI;
-using OpenTelemetry.Trace;
+﻿using NetCord.Services.ApplicationCommands;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Reminders;
 
-// Temporarily disabled until AI function calls are stable
-// [CommandHandler("reminder", "Set a reminder for the channel.")]
+[CommandHandler("reminder", "Set a reminder for the channel.")]
 internal sealed class RemindMeCommand
 {
-    private readonly IChatClient _chatClient;
-    private readonly Tracer _tracer;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly IReminderTimeCalculator _reminderTimeCalculator;
     private readonly ILogger<RemindMeCommand> _logger;
+    private readonly IReminderService _reminderService;
+    private readonly ITimeParsingService _timeParsingService;
     private readonly TimeProvider _timeProvider;
 
     public RemindMeCommand(
-        IChatClient chatClient,
-        Tracer tracer,
-        IServiceScopeFactory scopeFactory,
-        IReminderTimeCalculator reminderTimeCalculator,
         ILogger<RemindMeCommand> logger,
+        IReminderService reminderService,
+        ITimeParsingService timeParsingService,
         TimeProvider timeProvider)
     {
-        _chatClient = chatClient;
-        _tracer = tracer;
-        _scopeFactory = scopeFactory;
-        _reminderTimeCalculator = reminderTimeCalculator;
         _logger = logger;
+        _reminderService = reminderService;
+        _timeParsingService = timeParsingService;
         _timeProvider = timeProvider;
     }
 
     public async Task ExecuteAsync(
         ICommandContext ctx,
-        string when,
-        string reminder)
+        [SlashCommandParameter(Description = "When do you want to be reminded?")] string when,
+        [SlashCommandParameter(Description = "Your reminder")] string reminder)
     {
-        using var span = _tracer.StartActiveSpan("remindme.schedule.request");
-
-        var userDisplayName = ctx.UserDisplayName;
-        var userId = ctx.UserId;
-        var channelId = ctx.ChannelId;
+        var whenText = when.Trim();
+        var reminderText = reminder.Trim();
 
         _logger.LogInformation(
-            "Reminder command invoked by user {User} in channel {ChannelId} with when='{When}' and reminder='{Reminder}'",
-            userDisplayName,
-            channelId,
-            when,
-            reminder);
+            "Reminder command invoked by {User} ({UserId}) in channel {ChannelId} with when='{When}'",
+            ctx.UserDisplayName,
+            ctx.UserId,
+            ctx.ChannelId,
+            whenText);
 
-        const string systemInstructions = "The user gives a natural language timeframe. Select the best tool: " +
-                                          "Use RelativeTime (relative offsets) when phrased like 'in 3 hours', 'after 2 days'. " +
-                                          "Use AbsoluteTime when specifying calendar components (month/day[/year] [time] [zone]). " +
-                                          "If AM/PM aren't specified, pick a reasonable assumption (prefer future). " +
-                                          "After calling exactly one tool, end the response with ONLY the resulting ISO timestamp. " +
-                                          "Do not add explanation or narrative.";
-
-        var userMessage = $"Timeframe: {when}";
-
+        DateTimeOffset remindAt;
         try
         {
-            var messages = new List<ChatMessage>
-            {
-                new(ChatRole.System, systemInstructions),
-                new(ChatRole.User, userMessage)
-            };
-
-            // TODO: figure out pattern for injecting tools via DI
-            var relative = AIFunctionFactory.Create(_reminderTimeCalculator.ComputeRelativeUtc);
-            var absolute = AIFunctionFactory.Create(_reminderTimeCalculator.ComputeAbsoluteUtc);
-            var chatOptions = new ChatOptions { Tools = [relative, absolute] };
-
-            var response = await _chatClient.GetResponseAsync(messages, chatOptions);
-            var toolMessage = response.Messages.FirstOrDefault(x => x.Role == ChatRole.Tool);
-            if (toolMessage?.Contents.FirstOrDefault() is not FunctionResultContent functionResult)
-            {
-                _logger.LogWarning(
-                    "AI tool failed to return a result for reminder request from user {User}",
-                    userDisplayName);
-                await ctx.SendEphemeralAsync("Failed to get a response from the AI tool.");
-                return;
-            }
-
-            var raw = functionResult.Result?.ToString();
-            if (string.IsNullOrWhiteSpace(raw))
-            {
-                _logger.LogWarning(
-                    "AI tool returned an empty result for reminder request from user {User}",
-                    userDisplayName);
-                await ctx.SendEphemeralAsync("I couldn't interpret that timeframe.");
-                return;
-            }
-
-            if (DateTimeOffset.TryParse(raw, out var targetTime))
-            {
-                var nowUtc = _timeProvider.GetUtcNow();
-                var currentMinute = new DateTimeOffset(nowUtc.Year, nowUtc.Month, nowUtc.Day, nowUtc.Hour, nowUtc.Minute, 0, TimeSpan.Zero);
-
-                if (targetTime <= currentMinute)
-                {
-                    _logger.LogWarning(
-                        "Reminder time {TargetTime} rejected because it is not far enough in the future (user {User})",
-                        targetTime.ToString("O"),
-                        userDisplayName);
-                    await ctx.SendEphemeralAsync("Only future times are allowed.");
-                    return;
-                }
-
-                using (var scope = _scopeFactory.CreateScope())
-                {
-                    var reminderService = scope.ServiceProvider.GetRequiredService<IReminderService>();
-                    var scheduled = await reminderService.ScheduleAsync(userId, channelId, reminder, targetTime);
-
-                    if (!scheduled)
-                    {
-                        _logger.LogError(
-                            "Failed to persist reminder for user {User} targeting {TargetTime}",
-                            userDisplayName,
-                            targetTime.ToString("O"));
-                        await ctx.SendEphemeralAsync("Reminder failed to save. Please try again later.");
-                        return;
-                    }
-                }
-
-                var unixTimeSeconds = targetTime.ToUnixTimeSeconds();
-                _logger.LogInformation(
-                    "Reminder scheduled for user {User} at {TargetTime}",
-                    userDisplayName,
-                    targetTime.ToString("O"));
-                await ctx.RespondAsync($"I'll remind you <t:{unixTimeSeconds}:f> to *{reminder}*");
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "Failed to parse AI-produced timestamp '{Raw}' for user {User}",
-                    raw,
-                    userDisplayName);
-                await ctx.SendEphemeralAsync("Something went wrong interpreting that timeframe.");
-            }
+            remindAt = await _timeParsingService.ParseTimeAsync(whenText) ?? throw new InvalidOperationException("Time parser returned no value.");
         }
         catch (Exception ex)
         {
-            span.RecordException(ex);
-            _logger.LogError(
-                ex,
-                "Unhandled error while processing reminder for user {User}",
-                userDisplayName);
-            await ctx.SendEphemeralAsync("Failed to process reminder.");
+            _logger.LogWarning(ex, "Failed to parse reminder time for user {UserId}", ctx.UserId);
+            await ctx.SendEphemeralAsync("Sorry, I couldn't understand that time. Try phrases like 'in 30 minutes' or 'tomorrow at 9am'.");
+            return;
         }
+
+        var now = _timeProvider.GetUtcNow();
+        if (remindAt <= now)
+        {
+            await ctx.SendEphemeralAsync("Please choose a time in the future.");
+            return;
+        }
+
+        var scheduled = await _reminderService.ScheduleAsync(ctx.UserId, ctx.ChannelId, reminderText, remindAt);
+        if (!scheduled)
+        {
+            _logger.LogWarning("Failed to schedule reminder for user {UserId} in channel {ChannelId}", ctx.UserId, ctx.ChannelId);
+            await ctx.SendEphemeralAsync("I couldn't schedule that reminder. Please try again.");
+            return;
+        }
+
+        var unixTimestamp = remindAt.ToUnixTimeSeconds();
+        await ctx.RespondAsync($"I'll remind you <t:{unixTimestamp}:f>: {reminderText}");
     }
 }
 

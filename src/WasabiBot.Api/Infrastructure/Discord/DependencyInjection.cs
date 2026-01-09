@@ -38,10 +38,10 @@ internal static class DependencyInjection
 
         // Services used for commands
         services.AddScoped<IInteractionService, InteractionService>();
-        // services.AddScoped<IReminderService, ReminderService>();
-        // services.AddSingleton<IReminderTimeCalculator, ReminderTimeCalculator>();
-        // services.AddSingleton<IReminderStore, InMemoryReminderStore>();
-        // services.AddHostedService<ReminderProcessor>();
+        services.AddScoped<ITimeParsingService, TimeParsingService>();
+        services.AddScoped<IReminderService, ReminderService>();
+        services.AddSingleton<IReminderStore, InMemoryReminderStore>();
+        services.AddHostedService<ReminderProcessor>();
         services.AddScoped<IImageRetrievalService, HttpClientImageRetrievalService>();
         services.AddScoped<IStatsService, StatsService>();
     }
