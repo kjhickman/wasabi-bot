@@ -1,231 +1,167 @@
-// using Microsoft.Extensions.AI;
-// using Microsoft.Extensions.DependencyInjection;
-// using Microsoft.Extensions.Logging.Abstractions;
-// using NSubstitute;
-// using OpenTelemetry.Trace;
-// using WasabiBot.Api.Features.Reminders;
-// using WasabiBot.Api.Features.Reminders.Abstractions;
-// using WasabiBot.UnitTests.Builders;
-// using WasabiBot.UnitTests.Infrastructure.Discord;
+using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
+using WasabiBot.Api.Features.Reminders;
+using WasabiBot.Api.Features.Reminders.Abstractions;
+using WasabiBot.UnitTests.Infrastructure.Discord;
 
-// namespace WasabiBot.UnitTests.Features.Reminders;
+namespace WasabiBot.UnitTests.Features.Reminders;
 
-// public class RemindMeCommandTests
-// {
-//     private static RemindMeCommand CreateCommand(
-//         IChatClient chatClient,
-//         IServiceScopeFactory scopeFactory,
-//         IReminderTimeCalculator timeCalculator)
-//     {
-//         var tracer = TracerProvider.Default.GetTracer("remindme-tests");
-//         return new RemindMeCommand(chatClient, tracer, scopeFactory, timeCalculator, NullLogger<RemindMeCommand>.Instance, TimeProvider.System);
-//     }
+public class RemindMeCommandTests
+{
+    private static RemindMeCommand CreateCommand(
+        IReminderService reminderService,
+        ITimeParsingService timeParsingService,
+        TimeProvider timeProvider)
+    {
+        return new RemindMeCommand(
+            NullLogger<RemindMeCommand>.Instance,
+            reminderService,
+            timeParsingService,
+            timeProvider);
+    }
 
-//     private static IServiceScopeFactory CreateScopeFactory(IReminderService reminderService)
-//     {
-//         var scopeFactory = Substitute.For<IServiceScopeFactory>();
-//         var scope = Substitute.For<IServiceScope>();
-//         var provider = Substitute.For<IServiceProvider>();
-//         provider.GetService(typeof(IReminderService)).Returns(reminderService);
-//         scope.ServiceProvider.Returns(provider);
-//         scopeFactory.CreateScope().Returns(scope);
-//         return scopeFactory;
-//     }
+    [Test]
+    public async Task ExecuteAsync_WhenScheduleSucceeds_RespondsWithConfirmation()
+    {
+        var reminderService = Substitute.For<IReminderService>();
+        reminderService
+            .ScheduleAsync(Arg.Any<ulong>(), Arg.Any<ulong>(), Arg.Any<string>(), Arg.Any<DateTimeOffset>())
+            .Returns(Task.FromResult(true));
 
-//     private static IChatClient CreateChatClient(ChatResponse response)
-//     {
-//         var chatClient = Substitute.For<IChatClient>();
-//         chatClient
-//             .GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
-//             .Returns(Task.FromResult(response));
-//         return chatClient;
-//     }
+        var parsedTime = new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero).AddHours(1);
+        var timeParsingService = Substitute.For<ITimeParsingService>();
+        timeParsingService
+            .ParseTimeAsync("in 45 minutes")
+            .Returns(Task.FromResult<DateTimeOffset?>(parsedTime));
 
-//     [Test]
-//     public async Task ExecuteAsync_WhenScheduleSucceeds_RespondsWithConfirmation()
-//     {
-//         var reminderService = Substitute.For<IReminderService>();
-//         reminderService
-//             .ScheduleAsync(Arg.Any<ulong>(), Arg.Any<ulong>(), Arg.Any<string>(), Arg.Any<DateTimeOffset>())
-//             .Returns(Task.FromResult(true));
-//         var scopeFactory = CreateScopeFactory(reminderService);
+        var now = parsedTime.AddMinutes(-5);
+        var timeProvider = Substitute.For<TimeProvider>();
+        timeProvider.GetUtcNow().Returns(now);
 
-//         var targetTime = DateTimeOffset.UtcNow.AddMinutes(30);
-//         var chatResponse = ChatResponseBuilder.Create()
-//             .WithToolResult("RelativeTime", targetTime.ToString("O"))
-//             .Build();
-//         var chatClient = CreateChatClient(chatResponse);
-//         var command = CreateCommand(chatClient, scopeFactory, Substitute.For<IReminderTimeCalculator>());
+        var command = CreateCommand(reminderService, timeParsingService, timeProvider);
+        var context = new FakeCommandContext(userId: 42, channelId: 9001, userDisplayName: "ReminderUser");
 
-//         var context = new FakeCommandContext(userId: 42, channelId: 9001, userDisplayName: "ReminderUser");
+        await command.ExecuteAsync(context, "  in 45 minutes  ", "  stretch   ");
 
-//         await command.ExecuteAsync(context, "in 30 minutes", "stretch");
+        await timeParsingService.Received(1).ParseTimeAsync("in 45 minutes");
+        await reminderService.Received(1).ScheduleAsync(42UL, 9001UL, "stretch", parsedTime);
 
-//         await reminderService.Received(1).ScheduleAsync(
-//             42UL,
-//             9001UL,
-//             "stretch",
-//             Arg.Is<DateTimeOffset>(d => d == targetTime));
+        await Assert.That(context.Messages.Count).IsEqualTo(1);
+        var (message, ephemeral) = context.Messages.Single();
+        await Assert.That(ephemeral).IsFalse();
+        var expectedTimestamp = parsedTime.ToUnixTimeSeconds();
+        await Assert.That(message)
+            .IsEqualTo($"I'll remind you <t:{expectedTimestamp}:f>: stretch");
+    }
 
-//         await Assert.That(context.Messages.Count).IsEqualTo(1);
-//         var (message, ephemeral) = context.Messages.Single();
-//         await Assert.That(ephemeral).IsFalse();
-//         await Assert.That(message.Contains("<t:")).IsTrue();
-//         await Assert.That(message.Contains("stretch")).IsTrue();
-//     }
+    [Test]
+    public async Task ExecuteAsync_WhenTimeParsingThrows_SendsFriendlyError()
+    {
+        var reminderService = Substitute.For<IReminderService>();
+        var timeParsingService = Substitute.For<ITimeParsingService>();
+        timeParsingService
+            .ParseTimeAsync(Arg.Any<string>())
+            .Returns(Task.FromException<DateTimeOffset?>(new InvalidOperationException("boom")));
 
-//     [Test]
-//     public async Task ExecuteAsync_WhenToolMessageMissing_SendsToolFailure()
-//     {
-//         var reminderService = Substitute.For<IReminderService>();
-//         var scopeFactory = CreateScopeFactory(reminderService);
+        var timeProvider = Substitute.For<TimeProvider>();
+        var command = CreateCommand(reminderService, timeParsingService, timeProvider);
+        var context = new FakeCommandContext();
 
-//         var chatResponse = ChatResponseBuilder.Create()
-//             .WithAssistantText("no tools used")
-//             .Build();
-//         var chatClient = CreateChatClient(chatResponse);
-//         var command = CreateCommand(chatClient, scopeFactory, Substitute.For<IReminderTimeCalculator>());
+        await command.ExecuteAsync(context, "soon", "hydrate");
 
-//         var context = new FakeCommandContext();
+        await reminderService.DidNotReceive().ScheduleAsync(
+            Arg.Any<ulong>(),
+            Arg.Any<ulong>(),
+            Arg.Any<string>(),
+            Arg.Any<DateTimeOffset>());
 
-//         await command.ExecuteAsync(context, "soon", "hydrate");
+        var ephemerals = context.EphemeralMessages;
+        await Assert.That(ephemerals.Count).IsEqualTo(1);
+        await Assert.That(ephemerals.Single())
+            .IsEqualTo("Sorry, I couldn't understand that time. Try phrases like 'in 30 minutes' or 'tomorrow at 9am'.");
+    }
 
-//         await reminderService.DidNotReceive().ScheduleAsync(
-//             Arg.Any<ulong>(),
-//             Arg.Any<ulong>(),
-//             Arg.Any<string>(),
-//             Arg.Any<DateTimeOffset>());
+    [Test]
+    public async Task ExecuteAsync_WhenTimeParsingReturnsNull_SendsFriendlyError()
+    {
+        var reminderService = Substitute.For<IReminderService>();
+        var timeParsingService = Substitute.For<ITimeParsingService>();
+        timeParsingService
+            .ParseTimeAsync(Arg.Any<string>())
+            .Returns(Task.FromResult<DateTimeOffset?>(null));
 
-//         var ephemerals = context.EphemeralMessages;
-//         await Assert.That(ephemerals.Count).IsEqualTo(1);
-//         await Assert.That(ephemerals.Single()).IsEqualTo("Failed to get a response from the AI tool.");
-//     }
+        var timeProvider = Substitute.For<TimeProvider>();
+        var command = CreateCommand(reminderService, timeParsingService, timeProvider);
+        var context = new FakeCommandContext();
 
-//     [Test]
-//     public async Task ExecuteAsync_WhenToolResultEmpty_SendsInterpretationFailure()
-//     {
-//         var reminderService = Substitute.For<IReminderService>();
-//         var scopeFactory = CreateScopeFactory(reminderService);
+        await command.ExecuteAsync(context, "in 5 minutes", "refill water");
 
-//         var chatResponse = ChatResponseBuilder.Create()
-//             .WithToolResult("RelativeTime", string.Empty)
-//             .Build();
-//         var chatClient = CreateChatClient(chatResponse);
-//         var command = CreateCommand(chatClient, scopeFactory, Substitute.For<IReminderTimeCalculator>());
+        await reminderService.DidNotReceive().ScheduleAsync(
+            Arg.Any<ulong>(),
+            Arg.Any<ulong>(),
+            Arg.Any<string>(),
+            Arg.Any<DateTimeOffset>());
 
-//         var context = new FakeCommandContext();
+        var ephemerals = context.EphemeralMessages;
+        await Assert.That(ephemerals.Count).IsEqualTo(1);
+        await Assert.That(ephemerals.Single())
+            .IsEqualTo("Sorry, I couldn't understand that time. Try phrases like 'in 30 minutes' or 'tomorrow at 9am'.");
+    }
 
-//         await command.ExecuteAsync(context, "in 5 minutes", "refill water");
+    [Test]
+    public async Task ExecuteAsync_WhenParsedTimeIsNotInFuture_SendsFutureOnlyWarning()
+    {
+        var reminderService = Substitute.For<IReminderService>();
 
-//         await reminderService.DidNotReceive().ScheduleAsync(
-//             Arg.Any<ulong>(),
-//             Arg.Any<ulong>(),
-//             Arg.Any<string>(),
-//             Arg.Any<DateTimeOffset>());
+        var parsedTime = new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var timeParsingService = Substitute.For<ITimeParsingService>();
+        timeParsingService
+            .ParseTimeAsync(Arg.Any<string>())
+            .Returns(Task.FromResult<DateTimeOffset?>(parsedTime));
 
-//         var ephemerals = context.EphemeralMessages;
-//         await Assert.That(ephemerals.Count).IsEqualTo(1);
-//         await Assert.That(ephemerals.Single()).IsEqualTo("I couldn't interpret that timeframe.");
-//     }
+        var timeProvider = Substitute.For<TimeProvider>();
+        timeProvider.GetUtcNow().Returns(parsedTime);
 
-//     [Test]
-//     public async Task ExecuteAsync_WhenToolResultIsInvalidTimestamp_SendsParseFailure()
-//     {
-//         var reminderService = Substitute.For<IReminderService>();
-//         var scopeFactory = CreateScopeFactory(reminderService);
+        var command = CreateCommand(reminderService, timeParsingService, timeProvider);
+        var context = new FakeCommandContext();
 
-//         var chatResponse = ChatResponseBuilder.Create()
-//             .WithToolResult("RelativeTime", "not-a-timestamp")
-//             .Build();
-//         var chatClient = CreateChatClient(chatResponse);
-//         var command = CreateCommand(chatClient, scopeFactory, Substitute.For<IReminderTimeCalculator>());
+        await command.ExecuteAsync(context, "yesterday", "ping friend");
 
-//         var context = new FakeCommandContext();
+        await reminderService.DidNotReceive().ScheduleAsync(
+            Arg.Any<ulong>(),
+            Arg.Any<ulong>(),
+            Arg.Any<string>(),
+            Arg.Any<DateTimeOffset>());
 
-//         await command.ExecuteAsync(context, "later", "check oven");
+        var ephemerals = context.EphemeralMessages;
+        await Assert.That(ephemerals.Count).IsEqualTo(1);
+        await Assert.That(ephemerals.Single()).IsEqualTo("Please choose a time in the future.");
+    }
 
-//         await reminderService.DidNotReceive().ScheduleAsync(
-//             Arg.Any<ulong>(),
-//             Arg.Any<ulong>(),
-//             Arg.Any<string>(),
-//             Arg.Any<DateTimeOffset>());
+    [Test]
+    public async Task ExecuteAsync_WhenSchedulingFails_NotifiesUser()
+    {
+        var reminderService = Substitute.For<IReminderService>();
+        reminderService
+            .ScheduleAsync(Arg.Any<ulong>(), Arg.Any<ulong>(), Arg.Any<string>(), Arg.Any<DateTimeOffset>())
+            .Returns(Task.FromResult(false));
 
-//         var ephemerals = context.EphemeralMessages;
-//         await Assert.That(ephemerals.Count).IsEqualTo(1);
-//         await Assert.That(ephemerals.Single()).IsEqualTo("Something went wrong interpreting that timeframe.");
-//     }
+        var parsedTime = new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero).AddHours(2);
+        var timeParsingService = Substitute.For<ITimeParsingService>();
+        timeParsingService
+            .ParseTimeAsync(Arg.Any<string>())
+            .Returns(Task.FromResult<DateTimeOffset?>(parsedTime));
 
-//     [Test]
-//     public async Task ExecuteAsync_WhenTimestampIsNotInFuture_SendsFutureOnlyWarning()
-//     {
-//         var reminderService = Substitute.For<IReminderService>();
-//         var scopeFactory = CreateScopeFactory(reminderService);
+        var timeProvider = Substitute.For<TimeProvider>();
+        timeProvider.GetUtcNow().Returns(parsedTime.AddMinutes(-10));
 
-//         var targetTime = DateTimeOffset.UtcNow.AddMinutes(-2);
-//         var chatResponse = ChatResponseBuilder.Create()
-//             .WithToolResult("RelativeTime", targetTime.ToString("O"))
-//             .Build();
-//         var chatClient = CreateChatClient(chatResponse);
-//         var command = CreateCommand(chatClient, scopeFactory, Substitute.For<IReminderTimeCalculator>());
+        var command = CreateCommand(reminderService, timeParsingService, timeProvider);
+        var context = new FakeCommandContext();
 
-//         var context = new FakeCommandContext();
+        await command.ExecuteAsync(context, "in 10 minutes", "take break");
 
-//         await command.ExecuteAsync(context, "yesterday", "ping friend");
-
-//         await reminderService.DidNotReceive().ScheduleAsync(
-//             Arg.Any<ulong>(),
-//             Arg.Any<ulong>(),
-//             Arg.Any<string>(),
-//             Arg.Any<DateTimeOffset>());
-
-//         var ephemerals = context.EphemeralMessages;
-//         await Assert.That(ephemerals.Count).IsEqualTo(1);
-//         await Assert.That(ephemerals.Single()).IsEqualTo("Only future times are allowed.");
-//     }
-
-//     [Test]
-//     public async Task ExecuteAsync_WhenSchedulingFails_SendsPersistenceFailure()
-//     {
-//         var reminderService = Substitute.For<IReminderService>();
-//         reminderService
-//             .ScheduleAsync(Arg.Any<ulong>(), Arg.Any<ulong>(), Arg.Any<string>(), Arg.Any<DateTimeOffset>())
-//             .Returns(Task.FromResult(false));
-//         var scopeFactory = CreateScopeFactory(reminderService);
-
-//         var targetTime = DateTimeOffset.UtcNow.AddMinutes(10);
-//         var chatResponse = ChatResponseBuilder.Create()
-//             .WithToolResult("RelativeTime", targetTime.ToString("O"))
-//             .Build();
-//         var chatClient = CreateChatClient(chatResponse);
-//         var command = CreateCommand(chatClient, scopeFactory, Substitute.For<IReminderTimeCalculator>());
-
-//         var context = new FakeCommandContext();
-
-//         await command.ExecuteAsync(context, "in 10 minutes", "take break");
-
-//         var ephemerals = context.EphemeralMessages;
-//         await Assert.That(ephemerals.Count).IsEqualTo(1);
-//         await Assert.That(ephemerals.Single()).IsEqualTo("Reminder failed to save. Please try again later.");
-//     }
-
-//     [Test]
-//     public async Task ExecuteAsync_WhenChatClientThrows_SendsGenericFailure()
-//     {
-//         var reminderService = Substitute.For<IReminderService>();
-//         var scopeFactory = CreateScopeFactory(reminderService);
-
-//         var chatClient = Substitute.For<IChatClient>();
-//         chatClient
-//             .GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
-//             .Returns(Task.FromException<ChatResponse>(new InvalidOperationException("boom")));
-//         var command = CreateCommand(chatClient, scopeFactory, Substitute.For<IReminderTimeCalculator>());
-
-//         var context = new FakeCommandContext();
-
-//         await command.ExecuteAsync(context, "in an hour", "water plants");
-
-//         var ephemerals = context.EphemeralMessages;
-//         await Assert.That(ephemerals.Count).IsEqualTo(1);
-//         await Assert.That(ephemerals.Single()).IsEqualTo("Failed to process reminder.");
-//     }
-// }
+        var ephemerals = context.EphemeralMessages;
+        await Assert.That(ephemerals.Count).IsEqualTo(1);
+        await Assert.That(ephemerals.Single()).IsEqualTo("I couldn't schedule that reminder. Please try again.");
+    }
+}
