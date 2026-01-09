@@ -32,10 +32,10 @@ internal sealed class HelpCommand
         sb.AppendLine();
 
         // Reminder commands
-        // sb.AppendLine("### Reminders");
-        // sb.AppendLine("• `/reminder` - Set a reminder for the channel");
-        // sb.AppendLine("• `/reminder-list` - List all your reminders");
-        // sb.AppendLine("• `/reminder-rm` - Delete a reminder by ID");
+        sb.AppendLine("### Reminders");
+        sb.AppendLine("• `/reminder` - Set a reminder for the channel");
+        sb.AppendLine("• `/reminder-list` - List all your reminders");
+        sb.AppendLine("• `/reminder-rm` - Delete a reminder by ID");
 
         // Fun commands
         sb.AppendLine("### Fun");
