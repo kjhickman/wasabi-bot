@@ -157,7 +157,7 @@ resource "aws_ecs_task_definition" "wasabi_bot_api" {
         }
       ]
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+        command     = ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health HTTP/1.1\\r\\nhost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'"]
         interval    = 30
         timeout     = 5
         retries     = 3
