@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using OpenAI;
 using WasabiBot.Api.Features.MagicConch;
-using Microsoft.Extensions.DependencyInjection; // Added for keyed service registration
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WasabiBot.Api.Infrastructure.AI;
 
@@ -12,67 +12,49 @@ internal static class DependencyInjection
     public static void AddAIServices(this WebApplicationBuilder builder)
     {
         builder.Services
-            .AddOptions<GeminiOptions>()
-            .Bind(builder.Configuration.GetSection(GeminiOptions.SectionName))
+            .AddOptions<OpenRouterOptions>()
+            .Bind(builder.Configuration.GetSection(OpenRouterOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        builder.Services
-            .AddOptions<GrokOptions>()
-            .Bind(builder.Configuration.GetSection(GrokOptions.SectionName))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
+        // Default chat client using the default preset
         builder.Services.AddChatClient(serviceProvider =>
         {
-            var geminiOptions = serviceProvider.GetRequiredService<IOptions<GeminiOptions>>().Value;
-            var apiKey = geminiOptions.ApiKey ?? throw new InvalidOperationException("Gemini API key is not configured.");
-
-            var clientOptions = new OpenAIClientOptions { Endpoint = new Uri(geminiOptions.Endpoint) };
-
-            var chatClient = new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions)
-                .GetChatClient(geminiOptions.Model)
-                .AsIChatClient();
-
-            return new ChatClientBuilder(chatClient)
-                .UseOpenTelemetry(serviceProvider.GetRequiredService<ILoggerFactory>(), "Microsoft.Extensions.AI")
-                .UseFunctionInvocation()
-                .UseLogging()
-                .Build(serviceProvider);
+            return CreateOpenRouterChatClient(serviceProvider, null);
         });
 
-        builder.Services.AddKeyedSingleton<IChatClient>(AIServiceProvider.Gemini, (serviceProvider, _) =>
+        // Keyed chat clients for each preset
+        builder.Services.AddKeyedSingleton<IChatClient>(AIPreset.GrokFast, (serviceProvider, _) =>
         {
-            var geminiOptions = serviceProvider.GetRequiredService<IOptions<GeminiOptions>>().Value;
-            var apiKey = geminiOptions.ApiKey ?? throw new InvalidOperationException("Gemini API key is not configured.");
-            var clientOptions = new OpenAIClientOptions { Endpoint = new Uri(geminiOptions.Endpoint) };
-            var chatClient = new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions)
-                .GetChatClient(geminiOptions.Model)
-                .AsIChatClient();
-            return new ChatClientBuilder(chatClient)
-                .UseOpenTelemetry(serviceProvider.GetRequiredService<ILoggerFactory>(), "Microsoft.Extensions.AI")
-                .UseFunctionInvocation()
-                .UseLogging()
-                .Build(serviceProvider);
+            return CreateOpenRouterChatClient(serviceProvider, AIConstants.Models.GrokFast);
         });
 
-        builder.Services.AddKeyedSingleton<IChatClient>(AIServiceProvider.Grok, (serviceProvider, _) =>
+        builder.Services.AddKeyedSingleton<IChatClient>(AIPreset.GeminiFlash, (serviceProvider, _) =>
         {
-            var grokOptions = serviceProvider.GetRequiredService<IOptions<GrokOptions>>().Value;
-            var apiKey = grokOptions.ApiKey ?? throw new InvalidOperationException("Grok API key is not configured.");
-            var clientOptions = new OpenAIClientOptions { Endpoint = new Uri(grokOptions.Endpoint) };
-            var chatClient = new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions)
-                .GetChatClient(grokOptions.Model)
-                .AsIChatClient();
-            return new ChatClientBuilder(chatClient)
-                .UseOpenTelemetry(serviceProvider.GetRequiredService<ILoggerFactory>(), "Microsoft.Extensions.AI")
-                .UseFunctionInvocation()
-                .UseLogging()
-                .Build(serviceProvider);
+            return CreateOpenRouterChatClient(serviceProvider, AIConstants.Models.GeminiFlash);
         });
 
         // AI Tools
         builder.Services.AddSingleton<IMagicConchTool, MagicConchTool>();
         builder.Services.AddSingleton(Random.Shared);
+    }
+
+    private static IChatClient CreateOpenRouterChatClient(IServiceProvider serviceProvider, string? preset)
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<OpenRouterOptions>>().Value;
+        var apiKey = options.ApiKey ?? throw new InvalidOperationException("OpenRouter API key is not configured.");
+        
+        var modelId = preset ?? options.DefaultPreset;
+        
+        var clientOptions = new OpenAIClientOptions { Endpoint = new Uri(options.Endpoint) };
+        var chatClient = new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions)
+            .GetChatClient(modelId)
+            .AsIChatClient();
+
+        return new ChatClientBuilder(chatClient)
+            .UseOpenTelemetry(serviceProvider.GetRequiredService<ILoggerFactory>(), "Microsoft.Extensions.AI")
+            .UseFunctionInvocation()
+            .UseLogging()
+            .Build(serviceProvider);
     }
 }

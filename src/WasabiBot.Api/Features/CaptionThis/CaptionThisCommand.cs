@@ -18,7 +18,7 @@ internal sealed class CaptionThisCommand
     private readonly Tracer _tracer;
     private readonly ILogger<CaptionThisCommand> _logger;
 
-    public CaptionThisCommand([FromKeyedServices(AIServiceProvider.Grok)] IChatClient chatClient, IImageRetrievalService imageRetrievalService, Tracer tracer,
+    public CaptionThisCommand([FromKeyedServices(AIPreset.GrokFast)] IChatClient chatClient, IImageRetrievalService imageRetrievalService, Tracer tracer,
         ILogger<CaptionThisCommand> logger)
     {
         _chatClient = chatClient;

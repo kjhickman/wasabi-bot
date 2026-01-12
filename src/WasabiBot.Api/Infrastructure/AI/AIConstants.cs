@@ -4,19 +4,18 @@ public static class AIConstants
 {
     public static class Endpoints
     {
-        public const string Gemini = "https://generativelanguage.googleapis.com/v1beta/openai/";
-        public const string Grok = "https://api.x.ai/v1";
+        public const string OpenRouter = "https://openrouter.ai/api/v1";
     }
 
     public static class Models
     {
-        public const string GeminiFlashLite = "gemini-3-flash-preview";
-        public const string GrokFastNonReasoning = "grok-4-fast-non-reasoning-latest";
+        public const string GrokFast = "@preset/grok";
+        public const string GeminiFlash = "@preset/gemini-flash";
     }
 }
 
-public enum AIServiceProvider
+public enum AIPreset
 {
-    Gemini,
-    Grok
+    GrokFast,
+    GeminiFlash
 }

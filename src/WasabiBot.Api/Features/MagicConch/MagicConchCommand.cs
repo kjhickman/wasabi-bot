@@ -16,7 +16,7 @@ internal sealed class MagicConchCommand
     private readonly ILogger<MagicConchCommand> _logger;
     private readonly IMagicConchTool _magicConchTool;
 
-    public MagicConchCommand([FromKeyedServices(AIServiceProvider.Grok)] IChatClient chatClient, Tracer tracer, ILogger<MagicConchCommand> logger, IMagicConchTool magicConchTool)
+    public MagicConchCommand([FromKeyedServices(AIPreset.GrokFast)] IChatClient chatClient, Tracer tracer, ILogger<MagicConchCommand> logger, IMagicConchTool magicConchTool)
     {
         _chatClient = chatClient;
         _tracer = tracer;
