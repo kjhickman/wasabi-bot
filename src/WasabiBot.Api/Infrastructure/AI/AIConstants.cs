@@ -7,15 +7,15 @@ public static class AIConstants
         public const string OpenRouter = "https://openrouter.ai/api/v1";
     }
 
-    public static class Models
+    public static class Presets
     {
-        public const string GrokFast = "@preset/grok";
-        public const string GeminiFlash = "@preset/gemini-flash";
+        public const string LowLatencyCreative = "@preset/grok";
+        public const string LowLatency = "@preset/low-latency";
     }
 }
 
-public enum AIPreset
+public enum LlmPreset
 {
-    GrokFast,
-    GeminiFlash
+    LowLatency,
+    LowLatencyCreative
 }

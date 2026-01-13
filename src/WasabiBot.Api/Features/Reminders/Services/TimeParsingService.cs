@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.Extensions.AI;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
+using WasabiBot.Api.Infrastructure.AI;
 
 namespace WasabiBot.Api.Features.Reminders.Services;
 
@@ -13,12 +15,14 @@ internal sealed class TimeParsingService : ITimeParsingService
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<TimeParsingService> _logger;
     private readonly IChatClient _chatClient;
+    private readonly Tracer _tracer;
 
-    public TimeParsingService(TimeProvider timeProvider, ILogger<TimeParsingService> logger, IChatClient chatClient)
+    public TimeParsingService(TimeProvider timeProvider, ILogger<TimeParsingService> logger, IChatClientFactory chatClientFactory, Tracer tracer)
     {
         _timeProvider = timeProvider;
         _logger = logger;
-        _chatClient = chatClient;
+        _chatClient = chatClientFactory.GetChatClient(LlmPreset.LowLatency);
+        _tracer = tracer;
     }
 
     public async Task<DateTimeOffset?> ParseTimeAsync(string timeInput)
@@ -37,9 +41,11 @@ internal sealed class TimeParsingService : ITimeParsingService
             new(ChatRole.User, timeInput.Trim())
         };
 
+        using var span = _tracer.StartActiveSpan("reminders.time.parse");
+
         try
         {
-            var response = await _chatClient.GetResponseAsync(messages).ConfigureAwait(false);
+            var response = await _chatClient.GetResponseAsync(messages).ConfigureAwait(false);            
             var timestampText = response.Text?.Trim();
 
             if (string.IsNullOrWhiteSpace(timestampText))
@@ -58,6 +64,7 @@ internal sealed class TimeParsingService : ITimeParsingService
         }
         catch (Exception ex)
         {
+            span.RecordException(ex);
             _logger.LogError(ex, "Failed to parse reminder time from input '{Input}'", timeInput);
             throw;
         }

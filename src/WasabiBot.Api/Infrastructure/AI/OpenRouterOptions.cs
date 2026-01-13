@@ -13,6 +13,13 @@ public sealed class OpenRouterOptions
     [Url]
     public string Endpoint { get; set; } = AIConstants.Endpoints.OpenRouter;
 
-    [Required]
-    public string DefaultPreset { get; set; } = AIConstants.Models.GeminiFlash;
+    /// <summary>
+    /// Model used for low-latency interactive commands.
+    /// </summary>
+    public string LowLatency { get; set; } = AIConstants.Presets.LowLatency;
+
+    /// <summary>
+    /// Model used for low-latency creative commands.
+    /// </summary>
+    public string LowLatencyCreative { get; set; } = AIConstants.Presets.LowLatencyCreative;
 }
