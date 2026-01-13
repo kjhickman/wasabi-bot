@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.MagicConch;
+using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.UnitTests.Builders;
 using WasabiBot.UnitTests.Infrastructure.Discord;
 
@@ -12,9 +13,11 @@ public class MagicConchCommandTests
 {
     private static MagicConchCommand CreateCommand(IChatClient chatClient, IMagicConchTool? tool = null)
     {
+        var factory = Substitute.For<IChatClientFactory>();
+        factory.GetChatClient(Arg.Any<LlmPreset>()).Returns(chatClient);
         var tracer = TracerProvider.Default.GetTracer("magicconch-tests");
         tool ??= Substitute.For<IMagicConchTool>();
-        return new MagicConchCommand(chatClient, tracer, NullLogger<MagicConchCommand>.Instance, tool);
+        return new MagicConchCommand(factory, tracer, NullLogger<MagicConchCommand>.Instance, tool);
     }
 
     [Test]

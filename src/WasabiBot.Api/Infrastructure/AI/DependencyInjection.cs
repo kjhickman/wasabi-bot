@@ -6,9 +6,8 @@ internal static class DependencyInjection
 {
     public static void AddAIServices(this WebApplicationBuilder builder)
     {
-        builder.Services
-            .AddOptions<OpenRouterOptions>()
-            .Bind(builder.Configuration.GetSection(OpenRouterOptions.SectionName))
+        builder.Services.AddOptions<OpenRouterV2Options>()
+            .Bind(builder.Configuration.GetSection(OpenRouterV2Options.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 

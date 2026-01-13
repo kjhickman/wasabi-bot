@@ -6,6 +6,7 @@ using NSubstitute;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.CaptionThis;
 using WasabiBot.Api.Features.CaptionThis.Abstractions;
+using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.UnitTests.Builders;
 using WasabiBot.UnitTests.Infrastructure.Discord;
 
@@ -15,8 +16,10 @@ public class CaptionThisCommandTests
 {
     private static CaptionThisCommand CreateCommand(IChatClient chatClient, IImageRetrievalService imageRetrievalService)
     {
+        var factory = Substitute.For<IChatClientFactory>();
+        factory.GetChatClient(Arg.Any<LlmPreset>()).Returns(chatClient);
         var tracer = TracerProvider.Default.GetTracer("caption-tests");
-        return new CaptionThisCommand(chatClient, imageRetrievalService, tracer, NullLogger<CaptionThisCommand>.Instance);
+        return new CaptionThisCommand(factory, imageRetrievalService, tracer, NullLogger<CaptionThisCommand>.Instance);
     }
 
     [Test]

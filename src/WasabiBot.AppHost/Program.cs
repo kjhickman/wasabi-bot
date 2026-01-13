@@ -29,7 +29,7 @@ var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
     .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
     .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)
     .WithEnvironment("Discord__Token", discordBotToken)
-    .WithEnvironment("OpenRouter__ApiKey", openRouterKey)
+    .WithEnvironment("OpenRouterV2__ApiKey", openRouterKey)
     .WithUrlForEndpoint("http", url => url.DisplayText = "Frontend")
     .WithUrlForEndpoint("http", _ => new ResourceUrlAnnotation
     {
