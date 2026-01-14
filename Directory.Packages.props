@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Amazon.Extensions.Configuration.SystemsManager" Version="7.0.1" />
+    <PackageVersion Include="AWSSDK.Core" Version="4.0.3.3" />
     <PackageVersion Include="DictionaryEntry" Version="0.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
     <PackageVersion Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
