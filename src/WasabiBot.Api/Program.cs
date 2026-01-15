@@ -22,7 +22,7 @@ if (!builder.Environment.IsDevelopment())
 {
     builder.Configuration.AddSystemsManager(options =>
     {
-        options.Path = $"/wasabi-bot/{builder.Environment.EnvironmentName}";
+        options.Path = $"/wasabi-bot/{builder.Environment.EnvironmentName.ToLower()}";
         options.ReloadAfter = TimeSpan.FromMinutes(1);
     });
 }
