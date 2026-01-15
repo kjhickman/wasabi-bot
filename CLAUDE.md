@@ -31,6 +31,7 @@ Secrets (Discord tokens, API keys) are configured in `src/WasabiBot.AppHost/Prog
 
 ## Running Tests
 
+**Important!! This is the only way to run tests with TUnit**
 ```bash
 dotnet run --project test/WasabiBot.UnitTests
 ```
