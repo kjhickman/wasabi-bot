@@ -9,13 +9,9 @@ public class OpenRouterV2Options
     [Required]
     public string? ApiKey { get; set; }
 
-    /// <summary>
-    /// Model used for low-latency interactive commands.
-    /// </summary>
+    [Required]
     public required string LowLatencyPreset { get; set; }
 
-    /// <summary>
-    /// Model used for low-latency creative commands.
-    /// </summary>
+    [Required]
     public required string LowLatencyCreativePreset { get; set; }
 }
