@@ -5,8 +5,7 @@ using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Features.CaptionThis.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
-using Microsoft.Extensions.DependencyInjection; // Added for FromKeyedServices
-using WasabiBot.Api.Infrastructure.AI; // For AIServiceProvider enum
+using WasabiBot.Api.Infrastructure.AI;
 
 namespace WasabiBot.Api.Features.CaptionThis;
 
@@ -18,10 +17,10 @@ internal sealed class CaptionThisCommand
     private readonly Tracer _tracer;
     private readonly ILogger<CaptionThisCommand> _logger;
 
-    public CaptionThisCommand([FromKeyedServices(AIServiceProvider.Grok)] IChatClient chatClient, IImageRetrievalService imageRetrievalService, Tracer tracer,
+    public CaptionThisCommand(IChatClientFactory chatClientFactory, IImageRetrievalService imageRetrievalService, Tracer tracer,
         ILogger<CaptionThisCommand> logger)
     {
-        _chatClient = chatClient;
+        _chatClient = chatClientFactory.GetChatClient(LlmPreset.LowLatencyCreative);
         _imageRetrievalService = imageRetrievalService;
         _tracer = tracer;
         _logger = logger;

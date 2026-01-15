@@ -18,6 +18,14 @@ builder.Host.UseDefaultServiceProvider(options =>
 
 builder.AddOpenApi();
 builder.Configuration.AddUserSecrets<Program>(optional: true);
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddSystemsManager(options =>
+    {
+        options.Path = $"/wasabi-bot/{builder.Environment.EnvironmentName.ToLower()}";
+        options.ReloadAfter = TimeSpan.FromMinutes(1);
+    });
+}
 builder.Services.AddDiscordServices();
 builder.AddAuthServices();
 builder.AddAIServices();

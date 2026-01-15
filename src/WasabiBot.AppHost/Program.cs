@@ -9,11 +9,8 @@ var discordClientSecret = builder.AddParameter("discord-client-secret", secret: 
 var discordBotToken = builder.AddParameter("discord-bot-token", secret: true)
     .WithDescription("Discord Bot Token");
 
-var geminiApiKey = builder.AddParameter("gemini-api-key", secret: true)
-    .WithDescription("Gemini API Key");
-
-var grokApiKey = builder.AddParameter("grok-api-key", secret: true)
-    .WithDescription("Grok API Key");
+var openRouterKey = builder.AddParameter("openrouter-api-key", secret: true)
+    .WithDescription("OpenRouter API Key");
 
 var postgres = builder.AddPostgres("postgres")
     .WithLifetime(ContainerLifetime.Persistent);
@@ -32,8 +29,7 @@ var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
     .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
     .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)
     .WithEnvironment("Discord__Token", discordBotToken)
-    .WithEnvironment("Gemini__ApiKey", geminiApiKey)
-    .WithEnvironment("Grok__ApiKey", grokApiKey)
+    .WithEnvironment("OpenRouterV2__ApiKey", openRouterKey)
     .WithUrlForEndpoint("http", url => url.DisplayText = "Frontend")
     .WithUrlForEndpoint("http", _ => new ResourceUrlAnnotation
     {
