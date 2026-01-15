@@ -55,9 +55,9 @@ internal sealed class ChatClientFactory : IChatClientFactory
     {
         return preset switch
         {
-            LlmPreset.LowLatency => _options.CurrentValue.LowLatency,
+            LlmPreset.LowLatency => _options.CurrentValue.LowLatencyPreset,
             LlmPreset.LowLatencyCreative => _options.CurrentValue.LowLatencyCreative,
-            _ => _options.CurrentValue.LowLatency
+            _ => _options.CurrentValue.LowLatencyPreset
         };
     }
 }

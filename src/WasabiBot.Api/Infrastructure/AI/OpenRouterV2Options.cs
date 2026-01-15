@@ -12,10 +12,10 @@ public class OpenRouterV2Options
     /// <summary>
     /// Model used for low-latency interactive commands.
     /// </summary>
-    public required string LowLatency { get; set; }
+    public required string LowLatencyPreset { get; set; }
 
     /// <summary>
     /// Model used for low-latency creative commands.
     /// </summary>
-    public required string LowLatencyCreative { get; set; }
+    public required string LowLatencyCreativePreset { get; set; }
 }
