@@ -45,7 +45,7 @@ jobs:
           if [ "${{ matrix.suite }}" = "unit" ]; then
             dotnet run --project test/WasabiBot.UnitTests/WasabiBot.UnitTests.csproj -c Release --no-restore
           else
-            dotnet test test/WasabiBot.IntegrationTests/WasabiBot.IntegrationTests.csproj -c Release --no-restore
+            dotnet run --project test/WasabiBot.IntegrationTests/WasabiBot.IntegrationTests.csproj -c Release --no-restore
           fi
 
       - name: Summarize tests
