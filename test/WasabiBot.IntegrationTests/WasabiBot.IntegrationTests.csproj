@@ -11,10 +11,14 @@
     <ItemGroup>
         <PackageReference Include="NSubstitute" />
         <PackageReference Include="TUnit" />
+        <PackageReference Include="Testcontainers.PostgreSql" />
+        <PackageReference Include="Respawn" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\WasabiBot.Api\WasabiBot.Api.csproj" />
+        <ProjectReference Include="..\..\src\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" />
         <ProjectReference Include="..\WasabiBot.TestShared\WasabiBot.TestShared.csproj" />
     </ItemGroup>
 
