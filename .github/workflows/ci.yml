@@ -22,40 +22,9 @@ env:
 
 jobs:
   tests:
-    name: Run ${{ matrix.suite }} tests
-    runs-on: ubuntu-24.04-arm
-    strategy:
-      fail-fast: false
-      matrix:
-        suite: [unit, integration]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-          cache: true
-          cache-dependency-path: |
-            **/*.csproj
-            **/*.props
-
-      - name: Restore
-        run: dotnet restore WasabiBot.slnx
-
-      - name: Test
-        run: |
-          if [ "${{ matrix.suite }}" = "unit" ]; then
-            dotnet run --project test/WasabiBot.UnitTests/WasabiBot.UnitTests.csproj -c Release --no-restore
-          else
-            dotnet test test/WasabiBot.IntegrationTests/WasabiBot.IntegrationTests.csproj -c Release --no-restore
-          fi
-
-      - name: Summarize tests
-        run: echo "::notice title=CI Tests::${{ matrix.suite }} test suite completed"
+    uses: ./.github/workflows/tests.yml
+    with:
+      dotnet-version: ${{ env.DOTNET_VERSION }}
 
   terraform-plan:
     name: Terraform plan

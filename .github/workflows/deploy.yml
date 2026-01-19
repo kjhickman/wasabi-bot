@@ -23,34 +23,15 @@ env:
   TARGET_ENV: ${{ inputs.environment }}
 
 jobs:
-  test:
-    name: Run tests
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-          cache: true
-          cache-dependency-path: |
-            **/*.csproj
-            **/*.props
-
-      - name: Restore
-        run: dotnet restore WasabiBot.slnx
-
-      - name: Test
-        run: dotnet run --project test/WasabiBot.UnitTests/WasabiBot.UnitTests.csproj -c Release --no-restore
+  tests:
+    uses: ./.github/workflows/tests.yml
+    with:
+      dotnet-version: ${{ env.DOTNET_VERSION }}
 
   build_image:
     name: Build & push image
     runs-on: ubuntu-24.04-arm
-    needs: test
+    needs: tests
     outputs:
       image_repo: ${{ steps.meta.outputs.repo }}
       image_tag: ${{ steps.meta.outputs.tag }}
@@ -255,7 +236,7 @@ jobs:
   migrate:
     name: Run migrations
     runs-on: ubuntu-24.04-arm
-    needs: test
+    needs: tests
     environment: ${{ inputs.environment }}
     steps:
       - name: Checkout
