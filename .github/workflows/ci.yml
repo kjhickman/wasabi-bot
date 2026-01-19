@@ -21,9 +21,13 @@ env:
   TARGET_ENV: staging
 
 jobs:
-  test:
-    name: Run tests
+  tests:
+    name: Run ${{ matrix.suite }} tests
     runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [unit, integration]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -43,10 +47,15 @@ jobs:
         run: dotnet restore WasabiBot.slnx
 
       - name: Test
-        run: dotnet run --project test/WasabiBot.UnitTests/WasabiBot.UnitTests.csproj -c Release --no-restore
+        run: |
+          if [ "${{ matrix.suite }}" = "unit" ]; then
+            dotnet run --project test/WasabiBot.UnitTests/WasabiBot.UnitTests.csproj -c Release --no-restore
+          else
+            dotnet test test/WasabiBot.IntegrationTests/WasabiBot.IntegrationTests.csproj -c Release --no-restore
+          fi
 
       - name: Summarize tests
-        run: echo "::notice title=CI Tests::Unit test suite completed"
+        run: echo "::notice title=CI Tests::${{ matrix.suite }} test suite completed"
 
   terraform-plan:
     name: Terraform plan
