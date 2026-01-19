@@ -29,13 +29,9 @@ jobs:
           fetch-depth: 1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: fast-actions/setup-dotnet@v1
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-          cache: true
-          cache-dependency-path: |
-            **/*.csproj
-            **/*.props
+          sdk-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore
         run: dotnet restore WasabiBot.slnx

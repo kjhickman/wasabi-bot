@@ -266,9 +266,9 @@ jobs:
           echo "ConnectionStrings__wasabi-db=$conn" >> "$GITHUB_ENV"
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: fast-actions/setup-dotnet@v1
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          sdk-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore (migrations project)
         run: dotnet restore WasabiBot.slnx
