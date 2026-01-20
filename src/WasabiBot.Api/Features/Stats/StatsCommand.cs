@@ -17,13 +17,21 @@ internal sealed class StatsCommand
 
     public async Task ExecuteAsync(ICommandContext ctx)
     {
-        _logger.LogInformation("Stats command invoked by user {User} ({UserId}) in channel {ChannelId}",
-            ctx.UserDisplayName, ctx.UserId, ctx.ChannelId);
+        try
+        {
+            _logger.LogInformation("Stats command invoked by user {User} ({UserId}) in channel {ChannelId}",
+                ctx.UserDisplayName, ctx.UserId, ctx.ChannelId);
 
-        var stats = await _statsService.GetStatsAsync((long)ctx.ChannelId, (long)ctx.InteractionId);
+            var stats = await _statsService.GetStatsAsync((long)ctx.ChannelId, (long)ctx.InteractionId);
 
-        var message = BuildStatsMessage(stats);
-        await ctx.RespondAsync(message, ephemeral: true);
+            var message = BuildStatsMessage(stats);
+            await ctx.RespondAsync(message, ephemeral: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Stats command failed for user {User}", ctx.UserDisplayName);
+            await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
+        }
     }
 
     private static string BuildStatsMessage(StatsData stats)

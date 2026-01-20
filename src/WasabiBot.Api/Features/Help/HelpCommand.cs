@@ -15,11 +15,19 @@ internal sealed class HelpCommand
 
     public async Task ExecuteAsync(ICommandContext ctx)
     {
-        _logger.LogInformation("Help command invoked by user {User} ({UserId})",
-            ctx.UserDisplayName, ctx.UserId);
+        try
+        {
+            _logger.LogInformation("Help command invoked by user {User} ({UserId})",
+                ctx.UserDisplayName, ctx.UserId);
 
-        var helpMessage = BuildHelpMessage();
-        await ctx.RespondAsync(helpMessage, ephemeral: true);
+            var helpMessage = BuildHelpMessage();
+            await ctx.RespondAsync(helpMessage, ephemeral: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Help command failed for user {User}", ctx.UserDisplayName);
+            await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
+        }
     }
 
     private static string BuildHelpMessage()

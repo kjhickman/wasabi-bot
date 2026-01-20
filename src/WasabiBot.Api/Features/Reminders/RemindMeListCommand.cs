@@ -19,23 +19,31 @@ internal sealed class RemindMeListCommand
 
     public async Task ExecuteAsync(ICommandContext ctx)
     {
-        var userDisplayName = ctx.UserDisplayName;
-        var userId = ctx.UserId;
-
-        _logger.LogInformation(
-            "Reminder list command invoked by user {User} ({UserId})",
-            userDisplayName,
-            userId);
-
-        var reminders = await _reminderService.GetAllByUserId((long)userId);
-        if (reminders.Count == 0)
+        try
         {
-            await ctx.RespondAsync("You have no scheduled reminders.", ephemeral: true);
-            return;
-        }
+            var userDisplayName = ctx.UserDisplayName;
+            var userId = ctx.UserId;
 
-        var response = BuildReminderListResponse(reminders);
-        await ctx.RespondAsync(response, ephemeral: true);
+            _logger.LogInformation(
+                "Reminder list command invoked by user {User} ({UserId})",
+                userDisplayName,
+                userId);
+
+            var reminders = await _reminderService.GetAllByUserId((long)userId);
+            if (reminders.Count == 0)
+            {
+                await ctx.RespondAsync("You have no scheduled reminders.", ephemeral: true);
+                return;
+            }
+
+            var response = BuildReminderListResponse(reminders);
+            await ctx.RespondAsync(response, ephemeral: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Reminder list command failed for user {User}", ctx.UserDisplayName);
+            await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
+        }
     }
 
     private static string BuildReminderListResponse(IReadOnlyCollection<ReminderEntity> reminders)

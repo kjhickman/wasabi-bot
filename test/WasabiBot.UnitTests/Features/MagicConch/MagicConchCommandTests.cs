@@ -59,14 +59,20 @@ public class MagicConchCommandTests
             .GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromException<ChatResponse>(new InvalidOperationException("outage")));
 
-        var command = CreateCommand(chatClient);
+        var tool = Substitute.For<IMagicConchTool>();
+        tool.GetMagicConchResponse(Arg.Any<string>()).Returns("Tool says fallback");
+
+        var command = CreateCommand(chatClient, tool);
         var context = new FakeCommandContext();
 
         await command.ExecuteAsync(context, "Is anyone there?");
 
-        var ephemerals = context.EphemeralMessages;
-        await Assert.That(ephemerals.Count).IsEqualTo(1);
-        await Assert.That(ephemerals.Single()).IsEqualTo("The magic conch is silent right now. Please try again later.");
+        tool.Received(1).GetMagicConchResponse(Arg.Any<string>());
+
+        await Assert.That(context.Messages.Count).IsEqualTo(1);
+        var (message, ephemeral) = context.Messages.Single();
+        await Assert.That(ephemeral).IsFalse();
+        await Assert.That(message.Contains("Tool says fallback")).IsTrue();
     }
 }
 

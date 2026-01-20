@@ -26,49 +26,57 @@ internal sealed class ChooseCommand
         string? option6 = null,
         string? option7 = null)
     {
-        using var span = _tracer.StartActiveSpan("choose.execute");
-
-        var userDisplayName = ctx.UserDisplayName;
-        var channelId = ctx.ChannelId;
-
-        _logger.LogInformation(
-            "Choose command invoked by user {User} in channel {ChannelId}",
-            userDisplayName,
-            channelId);
-
-        var options = new[] { option1, option2, option3, option4, option5, option6, option7 }
-            .Where(o => !string.IsNullOrWhiteSpace(o))
-            .Select(o => o!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        switch (options.Count)
+        try
         {
-            case < 2:
-                _logger.LogWarning(
-                    "Choose command received insufficient options ({Count}) from user {User}",
-                    options.Count,
-                    userDisplayName);
-                await ctx.SendEphemeralAsync("Please provide at least 3 distinct options.");
-                return;
-            case > 7:
-                _logger.LogWarning(
-                    "Choose command received too many options ({Count}) from user {User}",
-                    options.Count,
-                    userDisplayName);
-                await ctx.SendEphemeralAsync("Please limit to at most 7 options.");
-                return;
+            using var span = _tracer.StartActiveSpan("choose.execute");
+
+            var userDisplayName = ctx.UserDisplayName;
+            var channelId = ctx.ChannelId;
+
+            _logger.LogInformation(
+                "Choose command invoked by user {User} in channel {ChannelId}",
+                userDisplayName,
+                channelId);
+
+            var options = new[] { option1, option2, option3, option4, option5, option6, option7 }
+                .Where(o => !string.IsNullOrWhiteSpace(o))
+                .Select(o => o!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            switch (options.Count)
+            {
+                case < 2:
+                    _logger.LogWarning(
+                        "Choose command received insufficient options ({Count}) from user {User}",
+                        options.Count,
+                        userDisplayName);
+                    await ctx.SendEphemeralAsync("Please provide at least 3 distinct options.");
+                    return;
+                case > 7:
+                    _logger.LogWarning(
+                        "Choose command received too many options ({Count}) from user {User}",
+                        options.Count,
+                        userDisplayName);
+                    await ctx.SendEphemeralAsync("Please limit to at most 7 options.");
+                    return;
+            }
+
+            var chosen = ChooseOption(options);
+            var displayOptions = string.Join(", ", options);
+            var response = $"Options: {displayOptions}\nAnd the choice is... **{chosen}**";
+
+            _logger.LogInformation(
+                "Choose command selected '{Chosen}' for user {User}",
+                chosen,
+                userDisplayName);
+            await ctx.RespondAsync(response);
         }
-
-        var chosen = ChooseOption(options);
-        var displayOptions = string.Join(", ", options);
-        var response = $"Options: {displayOptions}\nAnd the choice is... **{chosen}**";
-
-        _logger.LogInformation(
-            "Choose command selected '{Chosen}' for user {User}",
-            chosen,
-            userDisplayName);
-        await ctx.RespondAsync(response);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Choose command failed for user {User}", ctx.UserDisplayName);
+            await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
+        }
     }
 
     internal static string ChooseOption(IReadOnlyList<string> options, Random? random = null)

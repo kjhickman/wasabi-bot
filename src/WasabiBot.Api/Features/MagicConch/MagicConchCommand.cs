@@ -65,11 +65,24 @@ internal sealed class MagicConchCommand
         catch (Exception ex)
         {
             span.RecordException(ex);
-            _logger.LogError(
-                ex,
-                "Magic conch failed to process question for user {User}",
-                userDisplayName);
-            await ctx.SendEphemeralAsync("The magic conch is silent right now. Please try again later.");
+            _logger.LogWarning(ex, "Magic conch LLM call failed, falling back to tool for user {User}", userDisplayName);
+
+            try
+            {
+                var fallback = _magicConchTool.GetMagicConchResponse(question);
+                var response = $"""
+                                 {userDisplayName} asked: *{question}*
+                                 The Magic Conch says... {fallback}
+                                 """;
+
+                await ctx.RespondAsync(response);
+            }
+            catch (Exception fallbackEx)
+            {
+                span.RecordException(fallbackEx);
+                _logger.LogError(fallbackEx, "Magic conch tool fallback failed for user {User}", userDisplayName);
+                await ctx.SendEphemeralAsync("The magic conch is silent right now. Please try again later.");
+            }
         }
     }
 }

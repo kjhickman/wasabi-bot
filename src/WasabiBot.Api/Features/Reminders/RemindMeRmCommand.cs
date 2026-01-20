@@ -20,42 +20,50 @@ internal sealed class RemindMeRmCommand
         ICommandContext ctx,
         int reminderId)
     {
-        var userDisplayName = ctx.UserDisplayName;
-        var userId = ctx.UserId;
-
-        _logger.LogInformation(
-            "Reminder delete command invoked by user {User} ({UserId}) for reminder {ReminderId}",
-            userDisplayName,
-            userId,
-            reminderId);
-
-        // First, check if the reminder exists and belongs to the user
-        var reminder = await _reminderService.GetByIdAsync(reminderId);
-
-        if (reminder == null)
+        try
         {
-            await ctx.RespondAsync($"❌ Reminder `{reminderId}` does not exist.", ephemeral: true);
-            return;
+            var userDisplayName = ctx.UserDisplayName;
+            var userId = ctx.UserId;
+
+            _logger.LogInformation(
+                "Reminder delete command invoked by user {User} ({UserId}) for reminder {ReminderId}",
+                userDisplayName,
+                userId,
+                reminderId);
+
+            // First, check if the reminder exists and belongs to the user
+            var reminder = await _reminderService.GetByIdAsync(reminderId);
+
+            if (reminder == null)
+            {
+                await ctx.RespondAsync($"❌ Reminder `{reminderId}` does not exist.", ephemeral: true);
+                return;
+            }
+
+            if (reminder.UserId != (long)userId)
+            {
+                await ctx.RespondAsync($"❌ You may only delete your own reminders.", ephemeral: true);
+                _logger.LogWarning("User {UserId} attempted to delete reminder {ReminderId} owned by user {OwnerId}",
+                    userId, reminderId, reminder.UserId);
+                return;
+            }
+
+            var deleted = await _reminderService.DeleteByIdAsync(reminderId);
+
+            if (deleted)
+            {
+                await ctx.RespondAsync($"✅ Reminder `{reminderId}` has been deleted.", ephemeral: true);
+                _logger.LogInformation("User {UserId} deleted reminder {ReminderId}", userId, reminderId);
+            }
+            else
+            {
+                await ctx.RespondAsync($"❌ Failed to delete reminder `{reminderId}`. Please try again.", ephemeral: true);
+            }
         }
-
-        if (reminder.UserId != (long)userId)
+        catch (Exception ex)
         {
-            await ctx.RespondAsync($"❌ You may only delete your own reminders.", ephemeral: true);
-            _logger.LogWarning("User {UserId} attempted to delete reminder {ReminderId} owned by user {OwnerId}",
-                userId, reminderId, reminder.UserId);
-            return;
-        }
-
-        var deleted = await _reminderService.DeleteByIdAsync(reminderId);
-
-        if (deleted)
-        {
-            await ctx.RespondAsync($"✅ Reminder `{reminderId}` has been deleted.", ephemeral: true);
-            _logger.LogInformation("User {UserId} deleted reminder {ReminderId}", userId, reminderId);
-        }
-        else
-        {
-            await ctx.RespondAsync($"❌ Failed to delete reminder `{reminderId}`. Please try again.", ephemeral: true);
+            _logger.LogError(ex, "Reminder delete command failed for user {User}", ctx.UserDisplayName);
+            await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
         }
     }
 }
