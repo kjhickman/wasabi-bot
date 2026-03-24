@@ -6,15 +6,15 @@ var configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .Build();
 
-var connectionString = configuration.GetConnectionString("wasabi-db");
+var connectionString = configuration.GetConnectionString("wasabi-db")
+                       ?? configuration.GetConnectionString("wasabi_db");
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    throw new InvalidOperationException("Connection string 'wasabi-db' not found.");
+    throw new InvalidOperationException("Connection string 'wasabi-db' or 'wasabi_db' not found.");
 }
 
 MigrationRunner.Run(connectionString);
-
 
 
 

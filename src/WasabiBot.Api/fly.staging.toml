@@ -1,28 +1,28 @@
-app = "wasabi-bot-staging"
-primary_region = "dfw"
+app = 'wasabi-bot-staging'
+primary_region = 'dfw'
 
 [build]
-  dockerfile = "src/WasabiBot.Api/Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  ASPNETCORE_ENVIRONMENT = "Staging"
+  ASPNETCORE_ENVIRONMENT = 'Staging'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "off"
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
-  processes = ["app"]
+  processes = ['app']
 
   [[http_service.checks]]
-    interval = "15s"
-    timeout = "5s"
-    grace_period = "30s"
-    method = "GET"
-    path = "/health"
+    interval = '15s'
+    timeout = '5s'
+    grace_period = '30s'
+    method = 'GET'
+    path = '/health'
 
-[vm]
-  cpu_kind = "shared"
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
   cpus = 1
-  memory = "512mb"
