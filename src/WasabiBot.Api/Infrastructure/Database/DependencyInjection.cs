@@ -9,7 +9,10 @@ public static class DependencyInjection
     {
         builder.Services.AddDbContext<WasabiBotContext>(options =>
         {
-            options.UseNpgsql(builder.Configuration.GetConnectionString("wasabi-db"));
+            var connectionString = builder.Configuration.GetConnectionString("wasabi-db")
+                                   ?? builder.Configuration.GetConnectionString("wasabi_db");
+
+            options.UseNpgsql(connectionString);
         });
     }
 }
