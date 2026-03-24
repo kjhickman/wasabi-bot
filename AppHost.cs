@@ -1,4 +1,16 @@
+#:sdk Aspire.AppHost.Sdk@13.2.0
+#:package Aspire.Hosting.PostgreSQL
+#:property UserSecretsId=e740d40c-c13c-443b-a0cf-73ed8ab1c695
+
+using Microsoft.Extensions.Configuration;
+
 var builder = DistributedApplication.CreateBuilder(args);
+
+builder.Configuration.AddInMemoryCollection(
+[
+    new KeyValuePair<string, string?>("Logging:LogLevel:Microsoft.AspNetCore", "Warning"),
+    new KeyValuePair<string, string?>("Logging:LogLevel:Aspire.Hosting.Dcp", "Warning")
+]);
 
 var discordClientId = builder.AddParameter("discord-client-id")
     .WithDescription("Discord OAuth2 Client ID");
@@ -19,11 +31,12 @@ postgres.WithPgWeb(pgWeb => pgWeb.WithParentRelationship(postgres));
 
 var database = postgres.AddDatabase("wasabi-db");
 
-var migrations = builder.AddProject<Projects.WasabiBot_Migrations>("migrations")
+var migrations = builder.AddProject("migrations", "src/WasabiBot.Migrations/WasabiBot.Migrations.csproj")
     .WithReference(database)
-    .WaitFor(database).WithParentRelationship(postgres);
+    .WaitFor(database)
+    .WithParentRelationship(postgres);
 
-var api = builder.AddProject<Projects.WasabiBot_Api>("wasabi-bot")
+var api = builder.AddProject("wasabi-bot", "src/WasabiBot.Api/WasabiBot.Api.csproj")
     .WithReference(database)
     .WaitFor(database)
     .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
