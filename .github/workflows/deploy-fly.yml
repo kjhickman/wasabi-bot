@@ -15,11 +15,42 @@ on:
 permissions:
   contents: read
 
+env:
+  DOTNET_VERSION: 10.0.x
+
 jobs:
   tests:
     uses: ./.github/workflows/tests.yml
     with:
       dotnet-version: 10.0.x
+
+  migrate:
+    name: Run migrations for ${{ inputs.environment }}
+    runs-on: ubuntu-24.04-arm
+    needs: tests
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Export connection string
+        run: echo "ConnectionStrings__wasabi_db=${{ secrets.DB_CONNECTION_STRING }}" >> "$GITHUB_ENV"
+
+      - name: Setup .NET
+        uses: fast-actions/setup-dotnet@v1
+        with:
+          sdk-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore migrations project
+        run: dotnet restore WasabiBot.slnx
+
+      - name: Build migrations project
+        run: dotnet build src/WasabiBot.Migrations/WasabiBot.Migrations.csproj --configuration Release --no-restore
+
+      - name: Apply migrations
+        run: dotnet run --project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj --configuration Release --no-build
 
   deploy:
     name: Deploy ${{ inputs.environment }} to Fly
@@ -39,6 +70,6 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy app
-        run: flyctl deploy --remote-only --config "${{ inputs.fly-config }}"
+        run: flyctl deploy . --remote-only --config "${{ inputs.fly-config }}"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
