@@ -3,7 +3,7 @@
 ## Goals
 
 - Move application hosting from AWS to Fly.io.
-- Move PostgreSQL hosting from Neon to Fly.io Managed Postgres.
+- Move PostgreSQL hosting from Neon to a single self-managed Postgres instance on Fly.io.
 - Use one Fly Postgres instance with two logical databases:
   - `wasabi_bot_prod`
   - `wasabi_bot_staging`
@@ -41,7 +41,7 @@ Single-instance deployment is recommended at first because the app includes an i
 
 ### Database
 
-- One Fly Managed Postgres cluster/instance
+- One self-managed Postgres instance on Fly.io
 - Two logical databases on that instance:
   - `wasabi_bot_prod`
   - `wasabi_bot_staging`
@@ -51,7 +51,7 @@ Single-instance deployment is recommended at first because the app includes an i
 
 Each Fly app should have its own secrets/config for:
 
-- `ConnectionStrings__wasabi-db`
+- `ConnectionStrings__wasabi_db`
 - `Discord__Token`
 - `Authentication__Discord__ClientId`
 - `Authentication__Discord__ClientSecret`
@@ -69,7 +69,7 @@ This is the best fit for the current codebase because:
 - It preserves the current app pattern of environment separation via connection string.
 - It avoids adding EF Core schema-selection logic.
 - It avoids schema-specific migration complexity.
-- It should have roughly the same Fly Postgres cost profile as a single database on the same instance, since the main cost is the instance/plan itself.
+- It keeps cost down by sharing one Postgres instance across both environments.
 - It provides cleaner isolation between prod and staging than shared schemas.
 
 Using one database with two schemas is possible, but it would add avoidable migration and maintenance complexity for this project.
@@ -79,7 +79,7 @@ Using one database with two schemas is possible, but it would add avoidable migr
 We will treat this as a fresh infrastructure migration, not a data migration.
 
 - No Neon data import.
-- Fresh Fly Postgres databases.
+- Fresh databases on the Fly-hosted Postgres instance.
 - Fresh migrations applied into each Fly-hosted database.
 - Traffic cut over from AWS to Fly.io after validation.
 
@@ -95,6 +95,7 @@ We will treat this as a fresh infrastructure migration, not a data migration.
 - Keep machine count at `1` for each environment initially.
 - Add GitHub Actions workflows for Fly deployments.
 - During migration, allow Fly staging deployment automation from both `main` and `flyio` so the migration branch can be exercised before merge.
+- Configure Fly GitHub Actions workflows to run migrations before `flyctl deploy`.
 
 ### Expected Repo Changes
 
@@ -112,11 +113,11 @@ Recommended behavior:
 - Fly prod deploys remain manual
 - Existing AWS deploy workflows should not be expanded to `flyio` unless we explicitly want to keep deploying the migration branch to AWS too
 
-## Phase 2: Provision Fly Managed Postgres
+## Phase 2: Provision Postgres on Fly
 
 ### Tasks
 
-- Create one Fly Managed Postgres cluster in the chosen region.
+- Create one Postgres instance on Fly in the chosen region.
 - Create database `wasabi_bot_prod`.
 - Create database `wasabi_bot_staging`.
 - Generate separate connection strings for prod and staging.
@@ -134,13 +135,11 @@ Recommended behavior:
 - Inventory secrets currently sourced from AWS SSM.
 - Load equivalent secrets into Fly for staging.
 - Load equivalent secrets into Fly for prod.
-- Verify all application configuration values resolve correctly without AWS Systems Manager.
+- Verify all application configuration values resolve correctly from environment variables and Fly secrets.
 
 ### Important App Consideration
 
-`src/WasabiBot.Api/Program.cs` currently loads AWS Systems Manager config outside development. During the Fly migration, production hosting should no longer depend on AWS SSM.
-
-That means we should update runtime configuration so Fly-hosted environments rely on Fly secrets/environment variables instead of calling AWS Systems Manager at startup.
+`src/WasabiBot.Api/Program.cs` no longer depends on AWS Systems Manager, so Fly-hosted environments can rely on normal environment variables and Fly secrets.
 
 ## Phase 4: Deploy and Validate Staging on Fly.io
 
@@ -251,7 +250,7 @@ This rollback is much easier because there is no cross-provider production data 
 ## Main Risks
 
 - Fly deployment config may need iteration during first deployment.
-- Runtime config currently assumes AWS Systems Manager outside development.
+- Running Postgres yourself on Fly means backups, upgrades, and failover are your responsibility.
 - Discord auth/callback configuration may need updates for Fly-hosted URLs.
 - The reminder processor should remain single-instance until redesigned for distributed coordination.
 - DNS cutover can take time depending on TTL and DNS provider behavior.
@@ -259,7 +258,7 @@ This rollback is much easier because there is no cross-provider production data 
 ## Recommended Order of Work
 
 1. Add Fly deployment config.
-2. Remove runtime dependency on AWS Systems Manager for hosted environments.
+2. Configure Fly environment variables and secrets for hosted environments.
 3. Create one Fly Postgres instance with two logical databases.
 4. Move staging to Fly and validate it.
 5. Move prod to Fly and validate it on the Fly hostname.
@@ -272,8 +271,8 @@ This rollback is much easier because there is no cross-provider production data 
 
 - Fly app configuration for prod and staging
 - Fly deployment workflow in GitHub Actions
-- Fly Managed Postgres cluster
-- Two logical databases on the Fly Postgres instance
+- One Fly-hosted Postgres instance
+- Two logical databases on that Postgres instance
 - Fly secrets for both environments
 - Updated runtime config to stop depending on AWS SSM in Fly
 - DNS updates for `wasabibot.com` and `staging.wasabibot.com`
@@ -284,7 +283,7 @@ This rollback is much easier because there is no cross-provider production data 
 Chosen approach:
 
 - Hosting: Fly.io
-- Database host: Fly Managed Postgres
+- Database host: self-managed Postgres on Fly.io
 - Database topology: one Fly Postgres instance with two logical databases
 - Environment model: separate staging and prod apps, separate connection strings, separate logical databases
 - Data migration: none
