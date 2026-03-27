@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
 ARG BUILD_CONFIGURATION=Release
-ARG TARGET_RUNTIME=linux-arm64
 WORKDIR /src
 
 COPY ["Directory.Build.props", "."]
@@ -16,14 +15,14 @@ COPY ["src/WasabiBot.Api.Generators/WasabiBot.Api.Generators.csproj", "src/Wasab
 COPY ["src/WasabiBot.DataAccess/WasabiBot.DataAccess.csproj", "src/WasabiBot.DataAccess/"]
 COPY ["src/WasabiBot.ServiceDefaults/WasabiBot.ServiceDefaults.csproj", "src/WasabiBot.ServiceDefaults/"]
 
-RUN dotnet restore "src/WasabiBot.Api/WasabiBot.Api.csproj" -r ${TARGET_RUNTIME}
+RUN dotnet restore "src/WasabiBot.Api/WasabiBot.Api.csproj"
 
 COPY src/WasabiBot.Api/ src/WasabiBot.Api/
 COPY src/WasabiBot.Api.Generators/ src/WasabiBot.Api.Generators/
 COPY src/WasabiBot.DataAccess/ src/WasabiBot.DataAccess/
 COPY src/WasabiBot.ServiceDefaults/ src/WasabiBot.ServiceDefaults/
 
-RUN dotnet publish "src/WasabiBot.Api/WasabiBot.Api.csproj" -c ${BUILD_CONFIGURATION} -r ${TARGET_RUNTIME} -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "src/WasabiBot.Api/WasabiBot.Api.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
