@@ -38,6 +38,32 @@ jobs:
       - name: Export connection string
         run: echo "ConnectionStrings__wasabi_db=${{ secrets.DB_CONNECTION_STRING }}" >> "$GITHUB_ENV"
 
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Start Fly Postgres proxy
+        run: flyctl proxy 15432:5432 -a wasabi-db > /tmp/fly-proxy.log 2>&1 &
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Wait for Fly Postgres proxy
+        run: |
+          python3 - <<'PY'
+          import socket
+          import time
+
+          deadline = time.time() + 30
+          while time.time() < deadline:
+              try:
+                  with socket.create_connection(("127.0.0.1", 15432), timeout=1):
+                      print("proxy ready")
+                      break
+              except OSError:
+                  time.sleep(1)
+          else:
+              raise SystemExit("Fly Postgres proxy did not become ready in time")
+          PY
+
       - name: Setup .NET
         uses: fast-actions/setup-dotnet@v1
         with:
