@@ -78,6 +78,10 @@ jobs:
       - name: Apply migrations
         run: dotnet run --project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj --configuration Release --no-build
 
+      - name: Show Fly proxy log on failure
+        if: failure()
+        run: cat /tmp/fly-proxy.log
+
   deploy:
     name: Deploy ${{ inputs.environment }} to Fly
     runs-on: ubuntu-latest

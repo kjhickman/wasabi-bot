@@ -14,7 +14,6 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("Connection string 'wasabi-db' or 'wasabi_db' not found.");
 }
 
-MigrationRunner.Run(connectionString);
-
+return MigrationRunner.Run(connectionString);
 
 
