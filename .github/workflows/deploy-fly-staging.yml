@@ -2,7 +2,7 @@ name: Deploy Fly Staging
 
 on:
   push:
-    branches: [ main, flyio ]
+    branches: [ main ]
     paths:
       - "src/**"
       - ".github/workflows/**"
