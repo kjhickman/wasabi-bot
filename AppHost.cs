@@ -29,7 +29,7 @@ var postgres = builder.AddPostgres("postgres")
 
 postgres.WithPgWeb(pgWeb => pgWeb.WithParentRelationship(postgres));
 
-var database = postgres.AddDatabase("wasabi-db");
+var database = postgres.AddDatabase("wasabi_db");
 
 var migrations = builder.AddProject("migrations", "src/WasabiBot.Migrations/WasabiBot.Migrations.csproj")
     .WithReference(database)
