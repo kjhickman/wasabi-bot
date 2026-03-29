@@ -60,6 +60,7 @@ artifacts/
 # Visual Studio code coverage results
 *.coverage
 *.coveragexml
+TestResults/
 
 # JetBrains Rider
 .idea/
