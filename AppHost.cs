@@ -1,4 +1,4 @@
-#:sdk Aspire.AppHost.Sdk@13.2.0
+#:sdk Aspire.AppHost.Sdk@13.2.1
 #:package Aspire.Hosting.PostgreSQL
 #:property UserSecretsId=e740d40c-c13c-443b-a0cf-73ed8ab1c695
 
