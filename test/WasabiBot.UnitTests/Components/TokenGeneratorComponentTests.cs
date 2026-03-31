@@ -1,9 +1,5 @@
 using Bunit;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.Extensions.DependencyInjection;
 using WasabiBot.Api.Components.Pages;
-using WasabiBot.UnitTests.Builders;
 
 namespace WasabiBot.UnitTests.Components;
 
@@ -11,57 +7,35 @@ public class TokenGeneratorComponentTests : IDisposable
 {
     private readonly BunitContext _context = new();
 
-    public TokenGeneratorComponentTests()
+    [Test]
+    public async Task Render_ShowsGenerateAndCopyButton()
     {
-        _context.Services.AddSingleton(ComponentTestHelpers.CreateTokenFactory());
+        var cut = _context.Render<TokenGenerator>();
+
+        await Assert.That(cut.Find("#generate-token-button").TextContent.Trim()).IsEqualTo("Generate and copy token");
+        await Assert.That(cut.Find("#generate-token-button").GetAttribute("data-token-endpoint")).IsEqualTo("/api/v1/token");
+        await Assert.That(cut.Find("#generate-token-button").GetAttribute("data-tooltip")).IsEqualTo("Generate and copy");
     }
 
     [Test]
-    public async Task Submit_WithValidUser_DisplaysTokenAndExpiry()
+    public async Task Render_DoesNotRenderTokenOrStatusText()
     {
-        var user = ClaimsPrincipalBuilder.Create()
-            .AsApiUser("123456789", "testuser")
-            .Build();
-        var authState = new AuthenticationState(user);
+        var cut = _context.Render<TokenGenerator>();
 
-        var cut = RenderWithAuthentication<TokenGenerator>(authState);
-
-        cut.Find("form").Submit();
-
-        await Assert.That(cut.Find("#token-output").TextContent.Trim()).IsNotEmpty();
-        await Assert.That(cut.Markup).Contains("Expires at:");
-        await Assert.That(cut.FindAll(".error-message").Count).IsEqualTo(0);
-    }
-
-    [Test]
-    public async Task Submit_WithMissingUserId_ShowsErrorAndNoToken()
-    {
-        var user = ClaimsPrincipalBuilder.Create()
-            .AsUnauthenticatedUser()
-            .WithName("testuser")
-            .Build();
-        var authState = new AuthenticationState(user);
-
-        var cut = RenderWithAuthentication<TokenGenerator>(authState);
-
-        cut.Find("form").Submit();
-
-        await Assert.That(cut.Find(".error-message").TextContent).Contains("Unable to generate token");
         await Assert.That(cut.FindAll("#token-output").Count).IsEqualTo(0);
+        await Assert.That(cut.FindAll("#token-feedback").Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Render_ShowsApiDocsLink()
+    {
+        var cut = _context.Render<TokenGenerator>();
+
+        await Assert.That(cut.Find("#docs-link").GetAttribute("href")).IsEqualTo("/scalar/v1");
     }
 
     public void Dispose()
     {
         _context.Dispose();
-    }
-
-    private IRenderedComponent<TComponent> RenderWithAuthentication<TComponent>(AuthenticationState authState)
-        where TComponent : IComponent
-    {
-        var wrapper = _context.Render<CascadingValue<Task<AuthenticationState>>>(parameters => parameters
-            .Add(parameter => parameter.Value, Task.FromResult(authState))
-            .AddChildContent<TComponent>());
-
-        return wrapper.FindComponent<TComponent>();
     }
 }

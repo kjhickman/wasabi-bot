@@ -4,28 +4,43 @@
 
 @if (!IsAuthenticated)
 {
-    <section id="unauthenticated" aria-labelledby="unauthenticated-heading">
-        <article>
-            <header>
-                <h1 id="unauthenticated-heading">Wasabi Bot</h1>
-            </header>
-            <p>Connect your Discord account to generate a token for the Wasabi Bot API. Once you have a token, you can use it to authenticate API requests.</p>
-            <footer>
-                <a id="login-link" href="/auth/login-discord" role="button" class="secondary" autofocus>Sign in with Discord</a>
-            </footer>
-        </article>
+    <section id="unauthenticated" class="landing-signin" aria-labelledby="unauthenticated-heading">
+        <div class="landing-signin__content stack-md">
+            <h1 id="unauthenticated-heading">Sign in to Wasabi Bot</h1>
+            <p class="section-copy">Generate API tokens and manage upcoming bot features from one place.</p>
+            <p>
+                <a id="login-link" href="/auth/login-discord" role="button" autofocus>Sign in with Discord</a>
+            </p>
+        </div>
     </section>
 }
 else
 {
-    <section id="authenticated">
-        <article>
-            <hgroup>
-                <h2>Hello, <span id="user-greeting">@DisplayName</span></h2>
-            </hgroup>
+    <section id="authenticated" class="dashboard-stack" aria-labelledby="authenticated-heading">
+        <header class="page-heading">
+            <h1 id="authenticated-heading">Hello, <span id="user-greeting">@DisplayName</span></h1>
+        </header>
+
+        <div class="dashboard-grid">
             <TokenGenerator />
-            <p>Use your token to authenticate API requests. You can explore all available endpoints and test them in the <a href="/scalar/v1" target="_blank" rel="noopener noreferrer">interactive API documentation</a>.</p>
-        </article>
+
+            <article class="surface-card placeholder-card stack-md" aria-labelledby="music-heading">
+                <header class="stack-sm">
+                    <p class="eyebrow">Soon</p>
+                    <h2 id="music-heading">Music</h2>
+                </header>
+                <p>Queue management, now playing state, and player controls can slot in here without changing the shell again.</p>
+                <p class="placeholder-card__status">Coming soon</p>
+            </article>
+
+            <article class="surface-card placeholder-card stack-md" aria-labelledby="stats-heading">
+                <header class="stack-sm">
+                    <p class="eyebrow">Soon</p>
+                    <h2 id="stats-heading">Stats</h2>
+                </header>
+                <p>Interaction counts, activity summaries, and quick operational views can live here once the data surface expands.</p>
+                <p class="placeholder-card__status">Coming soon</p>
+            </article>
+        </div>
     </section>
 }
-

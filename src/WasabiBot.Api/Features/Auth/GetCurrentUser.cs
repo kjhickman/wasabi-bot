@@ -17,7 +17,8 @@ public static class GetCurrentUser
         var globalName = user.FindFirst("urn:discord:user:global_name")?.Value
             ?? user.FindFirst("urn:discord:user:globalname")?.Value;
         var discriminator = user.FindFirst("urn:discord:user:discriminator")?.Value;
-        var avatarHash = user.FindFirst("urn:discord:user:avatar")?.Value;
+        var avatarHash = user.FindFirst("urn:discord:avatar:hash")?.Value
+            ?? user.FindFirst("urn:discord:user:avatar")?.Value;
 
         string? avatarUrl = null;
         if (!string.IsNullOrWhiteSpace(avatarHash))

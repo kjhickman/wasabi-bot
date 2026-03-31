@@ -1,65 +1,94 @@
-<section aria-label="Token Generator">
-    <p>Generate a short-lived token to authenticate with the Wasabi Bot API (lasts 1 hour)</p>
+<article class="surface-card surface-card--accent stack-md" aria-labelledby="token-generator-heading">
+    <header class="stack-sm">
+        <p class="eyebrow">Access</p>
+        <h2 id="token-generator-heading">Token Generator</h2>
+        <p>Generate a short-lived token for the Wasabi Bot API. Tokens currently last 1 hour.</p>
+    </header>
 
-    @if (!string.IsNullOrEmpty(ErrorMessage))
-    {
-        <article class="error-message">
-            <p>@ErrorMessage</p>
-        </article>
-    }
-
-    <form method="post" data-enhance @formname="tokenForm" @onsubmit="GenerateToken">
-        <AntiforgeryToken />
-        <button type="submit" class="primary token-action-button">
-            Generate Token
+    <section class="token-panel stack-sm">
+        <button id="generate-token-button"
+                type="button"
+                class="token-action-button"
+                data-token-endpoint="/api/v1/token"
+                data-tooltip="Generate and copy"
+                data-placement="bottom"
+                onclick="window.generateAndCopyToken(this)">
+            Generate and copy token
         </button>
-    </form>
 
-    @if (!string.IsNullOrEmpty(GeneratedToken))
-    {
-        <div id="token-panel" data-tooltip="Click to copy" data-placement="bottom">
-            <p class="token-label">Your token:</p>
-            <pre id="token-output"
-                 role="button"
-                 tabindex="0"
-                 aria-label="Copy token"
-                 onclick="window.copyToken()"
-                 onkeydown="(e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.copyToken(); } }">@GeneratedToken</pre>
-            @if (TokenExpiresAt.HasValue)
-            {
-                <p class="token-expiry"><small>Expires at: @TokenExpiresAt.Value.ToString("u")</small></p>
-            }
-        </div>
-    }
-</section>
+        <p class="token-help">Need the endpoint reference? <a id="docs-link" href="/scalar/v1" target="_blank" rel="noopener noreferrer">Open API docs</a>.</p>
+    </section>
+</article>
 
 <script>
-    window.copyToken = async function() {
-        const tokenOutput = document.getElementById('token-output');
-        if (!tokenOutput) return;
-        
-        const tokenPanel = document.getElementById('token-panel');
-        const text = tokenOutput.textContent?.trim();
-        if (!text) return;
+    if (!window.generateAndCopyToken) {
+        window.generateAndCopyToken = async function(button) {
+            if (!button) {
+                return;
+            }
 
-        try {
-            await navigator.clipboard.writeText(text);
-            
-            if (tokenPanel) {
-                const originalTooltip = tokenPanel.getAttribute('data-tooltip');
-                tokenPanel.setAttribute('data-tooltip', 'Copied!');
-                setTimeout(() => {
-                    tokenPanel.setAttribute('data-tooltip', originalTooltip || 'Click to copy');
-                }, 1500);
+            const endpoint = button.getAttribute('data-token-endpoint');
+            const originalTooltip = button.getAttribute('data-tooltip') || 'Generate and copy';
+            const originalText = button.textContent;
+
+            const restoreTooltip = function(delay) {
+                window.setTimeout(function() {
+                    button.setAttribute('data-tooltip', originalTooltip);
+                }, delay);
+            };
+
+            const getToken = function() {
+                return fetch(endpoint, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }).then(async function(response) {
+                    const payload = await response.json().catch(function() {
+                        return null;
+                    });
+
+                    if (!response.ok || !payload || !payload.token) {
+                        throw new Error(payload && payload.error ? payload.error : 'token_request_failed');
+                    }
+
+                    return payload.token;
+                });
+            };
+
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            button.textContent = 'Generating...';
+            button.setAttribute('data-tooltip', 'Generating...');
+
+            try {
+                if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({
+                            'text/plain': getToken().then(function(token) {
+                                return new Blob([token], { type: 'text/plain' });
+                            })
+                        })
+                    ]);
+                } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                    const token = await getToken();
+                    await navigator.clipboard.writeText(token);
+                } else {
+                    throw new Error('clipboard_unavailable');
+                }
+
+                button.setAttribute('data-tooltip', 'Copied!');
+                restoreTooltip(1600);
+            } catch (error) {
+                console.error('Failed to generate token:', error);
+                button.setAttribute('data-tooltip', 'Copy failed');
+                restoreTooltip(2200);
+            } finally {
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+                button.textContent = originalText;
             }
-        } catch (error) {
-            console.error('Failed to copy:', error);
-            if (tokenPanel) {
-                tokenPanel.setAttribute('data-tooltip', 'Failed to copy');
-                setTimeout(() => {
-                    tokenPanel.setAttribute('data-tooltip', 'Click to copy');
-                }, 2000);
-            }
-        }
-    };
+        };
+    }
 </script>
