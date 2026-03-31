@@ -4,6 +4,7 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="bunit" Version="2.7.2" />
     <PackageVersion Include="Amazon.Extensions.Configuration.SystemsManager" Version="7.1.0" />
     <PackageVersion Include="AWSSDK.Core" Version="4.0.3.10" />
     <PackageVersion Include="Azure.Identity" Version="1.17.1" />
