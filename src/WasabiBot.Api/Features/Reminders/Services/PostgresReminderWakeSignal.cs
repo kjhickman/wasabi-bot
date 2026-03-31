@@ -1,5 +1,4 @@
 using System.Data;
-using Microsoft.Extensions.Configuration;
 using Npgsql;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 

@@ -1,4 +1,3 @@
-using TUnit.Core;
 using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.IntegrationTests.Infrastructure;

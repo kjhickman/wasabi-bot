@@ -1,9 +1,7 @@
-using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using WasabiBot.Api.Features.Interactions;
-using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.UnitTests.Builders;
 
 namespace WasabiBot.UnitTests.Features.Interactions;

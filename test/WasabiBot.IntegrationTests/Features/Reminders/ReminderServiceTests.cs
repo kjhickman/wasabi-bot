@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Trace;
-using TUnit.Core;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Features.Reminders.Services;
 using WasabiBot.Api.Persistence.Entities;

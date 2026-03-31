@@ -1,5 +1,4 @@
 using OpenTelemetry.Trace;
-using TUnit.Core;
 using WasabiBot.Api.Features.Interactions;
 using WasabiBot.IntegrationTests.Infrastructure;
 using WasabiBot.TestShared.Builders;

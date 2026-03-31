@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using TUnit.Core;
 using WasabiBot.Api.Persistence;
 using WasabiBot.Api.Persistence.Entities;
 

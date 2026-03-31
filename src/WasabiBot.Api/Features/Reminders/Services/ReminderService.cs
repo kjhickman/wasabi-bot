@@ -171,8 +171,8 @@ public sealed class ReminderService : IReminderService
                 RETURNING r."Id", r."UserId", r."ChannelId", r."ReminderMessage", r."DueAt", r."CreatedAt", r."Status", r."ClaimedAt", r."SentAt", r."AttemptCount", r."LastError";
                 """;
 
-            AddParameter(command, "processingStatus", ReminderStatus.Processing.ToString());
-            AddParameter(command, "pendingStatus", ReminderStatus.Pending.ToString());
+            AddParameter(command, "processingStatus", nameof(ReminderStatus.Processing));
+            AddParameter(command, "pendingStatus", nameof(ReminderStatus.Pending));
             AddParameter(command, "claimedAt", now);
             AddParameter(command, "now", now);
             AddParameter(command, "batchSize", batchSize);
