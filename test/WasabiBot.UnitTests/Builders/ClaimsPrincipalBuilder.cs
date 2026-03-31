@@ -65,6 +65,7 @@ public sealed class ClaimsPrincipalBuilder
 
     public ClaimsPrincipalBuilder WithDiscordAvatar(string avatarHash)
     {
+        _claims.Add(new Claim("urn:discord:avatar:hash", avatarHash));
         _claims.Add(new Claim("urn:discord:user:avatar", avatarHash));
         return this;
     }

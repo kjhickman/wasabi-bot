@@ -1,22 +1,63 @@
 @inherits LayoutComponentBase
 
-<div class="page">
-    <div class="container">
-        <AuthorizeView>
-            <Authorized>
-                <header class="main-header">
-                    <nav class="header-nav">
-                        <h1>Wasabi Bot</h1>
-                        <form action="/auth/logout" method="post" class="logout-form">
-                            <button id="logout-button" type="submit" class="contrast">Log out</button>
-                        </form>
-                    </nav>
-                </header>
-            </Authorized>
-        </AuthorizeView>
-        
-        <main>
+<div class="app-shell">
+    <header class="shell-header">
+        <div class="shell-header__inner container">
+            <a class="brand-link" href="/" aria-label="Wasabi Bot home">
+                <strong class="brand-link__title">Wasabi Bot</strong>
+            </a>
+
+            <AuthorizeView>
+                <Authorized Context="authState">
+                    @{ 
+                        var displayName = authState.User.DisplayName;
+                        var avatarUrl = authState.User.DiscordAvatarUrl;
+                        var avatarInitial = displayName[..1].ToUpperInvariant();
+                    }
+
+                    <div class="account-menu">
+                        <button id="account-menu-button"
+                                type="button"
+                                class="account-summary"
+                                aria-label="Signed in user menu"
+                                aria-expanded="false"
+                                aria-controls="account-menu-panel"
+                                onclick="window.wasabiToggleAccountMenu(this)">
+                            @if (!string.IsNullOrWhiteSpace(avatarUrl))
+                            {
+                                <img id="header-user-avatar" class="account-avatar" src="@avatarUrl" alt="" />
+                            }
+                            else
+                            {
+                                <span id="header-user-avatar-fallback" class="account-avatar account-avatar--fallback" aria-hidden="true">@avatarInitial</span>
+                            }
+
+                            <span class="account-summary__name" id="header-user-name">@displayName</span>
+                        </button>
+
+                        <div id="account-menu-panel" class="account-menu__panel" data-account-menu-panel hidden>
+                            <label class="theme-menu" for="theme-select">
+                                <span class="theme-menu__label">Theme</span>
+                                <select id="theme-select" data-theme-select onchange="window.wasabiThemeApply(this.value)">
+                                    <option value="system" selected>System</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                </select>
+                            </label>
+
+                            <form action="/auth/logout" method="post" class="logout-form">
+                                <button id="logout-button" type="submit" class="secondary outline">Log out</button>
+                            </form>
+                        </div>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </header>
+
+    <main class="shell-main">
+        <div class="container shell-main__inner">
             @Body
-        </main>
-    </div>
+        </div>
+    </main>
 </div>

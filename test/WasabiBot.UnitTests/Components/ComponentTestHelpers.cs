@@ -1,3 +1,6 @@
+using Bunit;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using WasabiBot.Api.Infrastructure.Auth;
 
@@ -12,5 +15,17 @@ internal static class ComponentTestHelpers
         var signingKey = new SymmetricSecurityKey(key);
         var options = new ApiTokenOptions(signingKey, lifetime ?? TimeSpan.FromHours(1));
         return new ApiTokenFactory(options);
+    }
+
+    public static IRenderedComponent<TComponent> RenderWithAuthentication<TComponent>(
+        this BunitContext context,
+        AuthenticationState authState)
+        where TComponent : IComponent
+    {
+        var wrapper = context.Render<CascadingValue<Task<AuthenticationState>>>(parameters => parameters
+            .Add(parameter => parameter.Value, Task.FromResult(authState))
+            .AddChildContent<TComponent>());
+
+        return wrapper.FindComponent<TComponent>();
     }
 }

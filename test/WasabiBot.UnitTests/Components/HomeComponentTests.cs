@@ -1,8 +1,6 @@
 using System.Security.Claims;
 using Bunit;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.Extensions.DependencyInjection;
 using WasabiBot.Api.Components.Pages;
 using WasabiBot.UnitTests.Builders;
 
@@ -17,10 +15,12 @@ public class HomeComponentTests : IDisposable
     {
         var authState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
 
-        var cut = RenderWithAuthentication<Home>(authState);
+        var cut = _context.RenderWithAuthentication<Home>(authState);
 
         await Assert.That(cut.Find("#login-link").GetAttribute("href")).IsEqualTo("/auth/login-discord");
-        await Assert.That(cut.Markup).Contains("Sign in with Discord");
+        await Assert.That(cut.Markup).Contains("Sign in to Wasabi Bot");
+        await Assert.That(cut.FindAll("article").Count).IsEqualTo(0);
+        await Assert.That(cut.Markup).DoesNotContain("Browse API docs");
         await Assert.That(cut.FindAll("#authenticated").Count).IsEqualTo(0);
     }
 
@@ -32,27 +32,20 @@ public class HomeComponentTests : IDisposable
             .WithDiscordGlobalName("Kyle")
             .Build();
         var authState = new AuthenticationState(user);
-        _context.Services.AddSingleton(ComponentTestHelpers.CreateTokenFactory());
 
-        var cut = RenderWithAuthentication<Home>(authState);
+        var cut = _context.RenderWithAuthentication<Home>(authState);
 
         await Assert.That(cut.Find("#user-greeting").TextContent.Trim()).IsEqualTo("Kyle");
         await Assert.That(cut.Markup).Contains("Token Generator");
+        await Assert.That(cut.Markup).Contains("Music");
+        await Assert.That(cut.Markup).Contains("Stats");
+        await Assert.That(cut.Find("#docs-link").GetAttribute("href")).IsEqualTo("/scalar/v1");
+        await Assert.That(cut.Markup).DoesNotContain("Generate a fresh token or jump into the next parts of the bot UI as they land.");
         await Assert.That(cut.FindAll("#login-link").Count).IsEqualTo(0);
     }
 
     public void Dispose()
     {
         _context.Dispose();
-    }
-
-    private IRenderedComponent<TComponent> RenderWithAuthentication<TComponent>(AuthenticationState authState)
-        where TComponent : IComponent
-    {
-        var wrapper = _context.Render<CascadingValue<Task<AuthenticationState>>>(parameters => parameters
-            .Add(parameter => parameter.Value, Task.FromResult(authState))
-            .AddChildContent<TComponent>());
-
-        return wrapper.FindComponent<TComponent>();
     }
 }
