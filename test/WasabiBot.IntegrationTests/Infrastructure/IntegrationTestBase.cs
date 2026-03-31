@@ -1,5 +1,5 @@
 using TUnit.Core;
-using WasabiBot.DataAccess;
+using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.IntegrationTests.Infrastructure;
 

@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using WasabiBot.DataAccess;
+using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.Migrations;
 
@@ -20,7 +20,8 @@ public static class MigrationRunner
         try
         {
             var services = new ServiceCollection();
-            services.AddDbContext<WasabiBotContext>(o => o.UseNpgsql(connectionString));
+            services.AddDbContext<WasabiBotContext>(o =>
+                o.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly("WasabiBot.Migrations")));
 
             using var provider = services.BuildServiceProvider();
             using var scope = provider.CreateScope();

@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TUnit.Core;
-using WasabiBot.DataAccess;
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence;
+using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.IntegrationTests.Infrastructure;
 

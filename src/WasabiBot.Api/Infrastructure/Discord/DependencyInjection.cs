@@ -4,12 +4,11 @@ using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services.ApplicationCommands;
 using WasabiBot.Api.Features.CaptionThis.Abstractions;
 using WasabiBot.Api.Features.CaptionThis.Services;
+using WasabiBot.Api.Features.Interactions;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Features.Reminders.Services;
 using WasabiBot.Api.Features.Stats;
 using WasabiBot.Api.Infrastructure.Discord.EventHandlers;
-using WasabiBot.DataAccess.Abstractions;
-using WasabiBot.DataAccess.Services;
 
 namespace WasabiBot.Api.Infrastructure.Discord;
 
@@ -36,7 +35,6 @@ internal static class DependencyInjection
         // Scans and registers all [CommandHandler] classes
         services.AddDiscordCommandHandlers();
 
-        // Services used for commands
         services.AddScoped<IInteractionService, InteractionService>();
         services.AddScoped<ITimeParsingService, TimeParsingService>();
         services.AddScoped<IReminderService, ReminderService>();

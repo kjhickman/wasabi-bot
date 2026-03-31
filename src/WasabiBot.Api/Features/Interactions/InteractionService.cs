@@ -1,11 +1,11 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Trace;
-using WasabiBot.DataAccess.Abstractions;
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence;
+using WasabiBot.Api.Persistence.Entities;
 
-namespace WasabiBot.DataAccess.Services;
+namespace WasabiBot.Api.Features.Interactions;
 
 public sealed class InteractionService(WasabiBotContext context, Tracer tracer) : IInteractionService
 {
@@ -52,11 +52,9 @@ public sealed class InteractionService(WasabiBotContext context, Tracer tracer) 
             ? query.OrderByDescending(i => i.CreatedAt).ThenByDescending(i => i.Id)
             : query.OrderBy(i => i.CreatedAt).ThenBy(i => i.Id);
 
-        // Take limit + 1 to determine if there are more results
         query = query.Take(request.Limit + 1);
 
         return await query.ToArrayAsync();
-
     }
 
     public async Task<bool> CreateAsync(InteractionEntity interaction)

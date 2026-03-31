@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using NSubstitute;
 using WasabiBot.Api.Features.Interactions;
-using WasabiBot.DataAccess.Abstractions;
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.UnitTests.Builders;
 
 namespace WasabiBot.UnitTests.Features.Interactions;

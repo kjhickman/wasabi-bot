@@ -4,7 +4,7 @@ using NSubstitute;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Features.Reminders.Services;
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.UnitTests.Features.Reminders;
 

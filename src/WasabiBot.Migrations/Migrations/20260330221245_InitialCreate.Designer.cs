@@ -5,14 +5,14 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using WasabiBot.DataAccess;
+using WasabiBot.Api.Persistence;
 
 #nullable disable
 
-namespace WasabiBot.DataAccess.Migrations
+namespace WasabiBot.Migrations.Migrations
 {
     [DbContext(typeof(WasabiBotContext))]
-    [Migration("20251015221257_InitialCreate")]
+    [Migration("20260330221245_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -20,12 +20,12 @@ namespace WasabiBot.DataAccess.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.9")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("WasabiBot.DataAccess.Entities.InteractionEntity", b =>
+            modelBuilder.Entity("WasabiBot.Api.Persistence.Entities.InteractionEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
@@ -40,7 +40,7 @@ namespace WasabiBot.DataAccess.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Data")
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("GlobalName")
                         .HasColumnType("text");
@@ -60,12 +60,42 @@ namespace WasabiBot.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GuildId")
-                        .HasFilter("\"GuildId\" IS NOT NULL");
-
-                    b.HasIndex("UserId");
-
                     b.ToTable("Interactions");
+                });
+
+            modelBuilder.Entity("WasabiBot.Api.Persistence.Entities.ReminderEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ChannelId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsReminderSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("RemindAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReminderMessage")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reminders", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 #pragma warning restore 612, 618
         }

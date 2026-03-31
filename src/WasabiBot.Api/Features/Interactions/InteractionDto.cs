@@ -1,7 +1,7 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using WasabiBot.Api.Core.Extensions;
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Interactions;
 

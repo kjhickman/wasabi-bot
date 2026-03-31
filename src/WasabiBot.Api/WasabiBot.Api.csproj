@@ -12,15 +12,17 @@
       <PackageReference Include="DictionaryEntry" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
       <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" />
       <PackageReference Include="Microsoft.Extensions.AI" />
       <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+      <PackageReference Include="OpenTelemetry.Api" />
       <PackageReference Include="AspNet.Security.OAuth.Discord" />
       <PackageReference Include="NetCord.Hosting.Services" />
       <PackageReference Include="Scalar.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" />
       <ProjectReference Include="..\WasabiBot.ServiceDefaults\WasabiBot.ServiceDefaults.csproj" />
     </ItemGroup>
 

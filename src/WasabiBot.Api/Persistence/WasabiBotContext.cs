@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using WasabiBot.DataAccess.Entities;
+using Microsoft.EntityFrameworkCore;
+using WasabiBot.Api.Persistence.Entities;
 
-namespace WasabiBot.DataAccess;
+namespace WasabiBot.Api.Persistence;
 
 public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options) : DbContext(options)
 {
@@ -11,19 +11,13 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<InteractionEntity>(builder =>
         {
-            builder.HasIndex(e => e.UserId);
-            builder.HasIndex(e => e.GuildId).HasFilter("\"GuildId\" IS NOT NULL");
             builder.Property(e => e.Data).HasColumnType("jsonb");
         });
 
-        modelBuilder.Entity<ReminderEntity>(builder =>
-        {
-            builder.HasIndex(r => r.RemindAt).HasFilter("\"IsReminderSent\" = FALSE");
-        });
+        modelBuilder.Entity<ReminderEntity>()
+            .ToTable("Reminders", tableBuilder => tableBuilder.ExcludeFromMigrations());
     }
 }
-
-// Adding a new migration:
-// dotnet ef migrations add <MigrationName> --project src/WasabiBot.DataAccess

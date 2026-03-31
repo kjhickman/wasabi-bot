@@ -1,4 +1,4 @@
-﻿namespace WasabiBot.DataAccess.Entities;
+namespace WasabiBot.Api.Persistence.Entities;
 
 public class ReminderEntity
 {

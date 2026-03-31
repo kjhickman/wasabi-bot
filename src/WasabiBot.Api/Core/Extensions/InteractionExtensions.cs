@@ -1,8 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using NetCord;
 using NetCord.JsonModels;
 using WasabiBot.Api.Core.Serialization;
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Core.Extensions;
 

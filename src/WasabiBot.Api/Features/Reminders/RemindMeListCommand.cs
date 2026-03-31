@@ -1,7 +1,7 @@
 using WasabiBot.Api.Features.Reminders.Abstractions;
+using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
-using WasabiBot.DataAccess.Entities;
 
 namespace WasabiBot.Api.Features.Reminders;
 
@@ -87,4 +87,3 @@ internal sealed class RemindMeListCommand
         return message.Substring(0, maxLength - 3) + "...";
     }
 }
-

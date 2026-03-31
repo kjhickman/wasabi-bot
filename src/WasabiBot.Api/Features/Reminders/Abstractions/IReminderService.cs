@@ -1,4 +1,4 @@
-﻿using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Reminders.Abstractions;
 
@@ -11,4 +11,3 @@ public interface IReminderService
     Task<IReadOnlyCollection<long>> SendRemindersAsync(IEnumerable<ReminderEntity> reminders, CancellationToken ct = default);
     Task<bool> DeleteByIdAsync(long reminderId, CancellationToken ct = default);
 }
-

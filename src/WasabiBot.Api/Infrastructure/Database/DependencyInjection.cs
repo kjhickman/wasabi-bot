@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using WasabiBot.DataAccess;
+using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.Api.Infrastructure.Database;
 
@@ -8,6 +8,8 @@ public static class DependencyInjection
     public static void AddDbContext(this IHostApplicationBuilder builder)
     {
         builder.Services.AddDbContext<WasabiBotContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("wasabi_db")));
+            options.UseNpgsql(
+                builder.Configuration.GetConnectionString("wasabi_db"),
+                npgsql => npgsql.MigrationsAssembly("WasabiBot.Migrations")));
     }
 }

@@ -1,7 +1,6 @@
-﻿using WasabiBot.DataAccess.Entities;
-using WasabiBot.DataAccess.Services;
+using WasabiBot.Api.Persistence.Entities;
 
-namespace WasabiBot.DataAccess.Abstractions;
+namespace WasabiBot.Api.Features.Interactions;
 
 public interface IInteractionService
 {

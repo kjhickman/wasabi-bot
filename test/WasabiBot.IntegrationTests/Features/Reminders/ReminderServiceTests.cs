@@ -5,7 +5,7 @@ using OpenTelemetry.Trace;
 using TUnit.Core;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Features.Reminders.Services;
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.IntegrationTests.Infrastructure;
 using WasabiBot.TestShared.Builders;
 

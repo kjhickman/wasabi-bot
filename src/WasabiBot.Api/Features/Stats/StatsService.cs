@@ -1,7 +1,7 @@
 using System.Text.Json;
 using DictionaryEntry;
 using Microsoft.EntityFrameworkCore;
-using WasabiBot.DataAccess;
+using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.Api.Features.Stats;
 

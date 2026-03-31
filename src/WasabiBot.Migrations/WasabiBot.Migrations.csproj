@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" />
+      <ProjectReference Include="..\WasabiBot.Api\WasabiBot.Api.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -22,7 +22,10 @@
       <PackageReference Include="Microsoft.Extensions.Configuration" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
       <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" PrivateAssets="all" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     </ItemGroup>
 
 </Project>

@@ -5,7 +5,6 @@
   <Folder Name="/src/">
     <Project Path="src\WasabiBot.Api.Generators\WasabiBot.Api.Generators.csproj" Type="C#" />
     <Project Path="src\WasabiBot.Api\WasabiBot.Api.csproj" Type="C#" />
-    <Project Path="src\WasabiBot.DataAccess\WasabiBot.DataAccess.csproj" Type="C#" />
     <Project Path="src\WasabiBot.Migrations\WasabiBot.Migrations.csproj" Type="C#" />
     <Project Path="src\WasabiBot.ServiceDefaults\WasabiBot.ServiceDefaults.csproj" Type="C#" />
   </Folder>

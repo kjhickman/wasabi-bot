@@ -1,4 +1,4 @@
-﻿using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Reminders.Abstractions;
 
@@ -11,4 +11,3 @@ public interface IReminderStore
     void RemoveById(long id);
     Task WaitForEarlierAsync(CancellationToken ct);
 }
-

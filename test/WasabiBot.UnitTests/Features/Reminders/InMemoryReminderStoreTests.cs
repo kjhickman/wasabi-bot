@@ -1,6 +1,6 @@
 using NSubstitute;
 using WasabiBot.Api.Features.Reminders.Services;
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.UnitTests.Features.Reminders;
 

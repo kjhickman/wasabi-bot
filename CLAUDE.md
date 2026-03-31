@@ -5,8 +5,7 @@ Wasabi Bot is a .NET 10 Discord bot built with NetCord. Keep this file short and
 ## What This Repo Contains
 
 - `src/WasabiBot.Api`: main ASP.NET Core app for the bot and API surface
-- `src/WasabiBot.DataAccess`: EF Core data access layer
-- `src/WasabiBot.Migrations`: database migration runner
+- `src/WasabiBot.Migrations`: EF Core migrations and database migration runner
 - `src/WasabiBot.ServiceDefaults`: shared Aspire, telemetry, and service wiring
 - `src/WasabiBot.Api.Generators`: source generators used by the API project
 - `test/WasabiBot.UnitTests`, `test/WasabiBot.IntegrationTests`, `test/WasabiBot.TestShared`: automated tests and shared test helpers

@@ -29,15 +29,17 @@ var postgres = builder.AddPostgres("postgres")
 
 postgres.WithPgWeb(pgWeb => pgWeb.WithParentRelationship(postgres));
 
-var database = postgres.AddDatabase("wasabi_db");
+var database = postgres.AddDatabase("wasabi-db", "wasabi_db");
 
 var migrations = builder.AddProject("migrations", "src/WasabiBot.Migrations/WasabiBot.Migrations.csproj")
     .WithReference(database)
+    .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
     .WaitFor(database)
     .WithParentRelationship(postgres);
 
 var api = builder.AddProject("wasabi-bot", "src/WasabiBot.Api/WasabiBot.Api.csproj")
     .WithReference(database)
+    .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
     .WaitFor(database)
     .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
     .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)

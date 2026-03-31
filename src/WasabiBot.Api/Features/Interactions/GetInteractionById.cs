@@ -1,5 +1,3 @@
-﻿using WasabiBot.DataAccess.Abstractions;
-
 namespace WasabiBot.Api.Features.Interactions;
 
 public static class GetInteractionById

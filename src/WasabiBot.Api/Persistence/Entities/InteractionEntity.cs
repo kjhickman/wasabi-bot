@@ -1,5 +1,5 @@
 // ReSharper disable EntityFramework.ModelValidation.UnlimitedStringLength
-namespace WasabiBot.DataAccess.Entities;
+namespace WasabiBot.Api.Persistence.Entities;
 
 using System.ComponentModel.DataAnnotations.Schema;
 

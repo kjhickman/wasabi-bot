@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace WasabiBot.DataAccess.Migrations
+namespace WasabiBot.Migrations.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -23,24 +23,13 @@ namespace WasabiBot.DataAccess.Migrations
                     Username = table.Column<string>(type: "text", nullable: false),
                     GlobalName = table.Column<string>(type: "text", nullable: true),
                     Nickname = table.Column<string>(type: "text", nullable: true),
-                    Data = table.Column<string>(type: "text", nullable: true),
+                    Data = table.Column<string>(type: "jsonb", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Interactions", x => x.Id);
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Interactions_GuildId",
-                table: "Interactions",
-                column: "GuildId",
-                filter: "\"GuildId\" IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Interactions_UserId",
-                table: "Interactions",
-                column: "UserId");
         }
 
         /// <inheritdoc />

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Respawn;
 using Testcontainers.PostgreSql;
-using WasabiBot.DataAccess;
+using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.IntegrationTests.Infrastructure;
 
@@ -28,7 +28,7 @@ public sealed class PostgresTestFixture
     public WasabiBotContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<WasabiBotContext>()
-            .UseNpgsql(ConnectionString)
+            .UseNpgsql(ConnectionString, npgsql => npgsql.MigrationsAssembly("WasabiBot.Migrations"))
             .Options;
 
         return new WasabiBotContext(options);

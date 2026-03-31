@@ -1,4 +1,4 @@
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.TestShared.Builders;
 

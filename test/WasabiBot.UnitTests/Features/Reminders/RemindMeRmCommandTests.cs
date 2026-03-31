@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using WasabiBot.Api.Features.Reminders;
 using WasabiBot.Api.Features.Reminders.Abstractions;
-using WasabiBot.DataAccess.Entities;
+using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.UnitTests.Infrastructure.Discord;
 
 namespace WasabiBot.UnitTests.Features.Reminders;

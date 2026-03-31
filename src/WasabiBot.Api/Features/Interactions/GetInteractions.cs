@@ -1,8 +1,6 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using WasabiBot.DataAccess.Abstractions;
-using WasabiBot.DataAccess.Services;
 
 namespace WasabiBot.Api.Features.Interactions;
 
