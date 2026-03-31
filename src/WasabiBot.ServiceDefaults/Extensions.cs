@@ -51,10 +51,14 @@ public static class Extensions
     {
         builder.Logging.ClearProviders();
 
+        var minimumLevel = LogEventLevel.Information;
+
         var loggerConfig = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Is(minimumLevel)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Information)
             .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
+            .MinimumLevel.Override("WasabiBot", builder.Environment.IsDevelopment() ? LogEventLevel.Debug : LogEventLevel.Information)
             .MinimumLevel.Override("NetCord", LogEventLevel.Information)
             .Enrich.FromLogContext()
             .Enrich.With(new ActivityEnricher())

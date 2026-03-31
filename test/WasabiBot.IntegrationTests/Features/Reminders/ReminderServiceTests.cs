@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Trace;
 using TUnit.Core;
+using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Features.Reminders.Services;
 using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.IntegrationTests.Infrastructure;
@@ -17,15 +18,21 @@ namespace WasabiBot.IntegrationTests.Features.Reminders;
 /// </summary>
 public class ReminderServiceTests : IntegrationTestBase
 {
-    private ReminderService CreateService()
+    private ReminderService CreateService(IReminderChangeNotifier? changeNotifier = null)
     {
         var context = CreateContext();
         return new ReminderService(
             context,
             null!, // RestClient is sealed and not needed for database tests
+            changeNotifier ?? new NoOpReminderChangeNotifier(),
             NullLogger<ReminderService>.Instance,
             TracerProvider.Default.GetTracer("test"),
             TimeProvider.System);
+    }
+
+    private sealed class NoOpReminderChangeNotifier : IReminderChangeNotifier
+    {
+        public Task NotifyReminderChangedAsync(CancellationToken ct = default) => Task.CompletedTask;
     }
 
     [Test]

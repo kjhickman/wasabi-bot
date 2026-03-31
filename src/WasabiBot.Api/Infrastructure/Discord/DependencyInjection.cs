@@ -37,9 +37,11 @@ internal static class DependencyInjection
 
         services.AddScoped<IInteractionService, InteractionService>();
         services.AddScoped<ITimeParsingService, TimeParsingService>();
+        services.AddSingleton<IReminderWakeSignal, PostgresReminderWakeSignal>();
+        services.AddHostedService(sp => (PostgresReminderWakeSignal)sp.GetRequiredService<IReminderWakeSignal>());
+        services.AddScoped<IReminderChangeNotifier, PostgresReminderChangeNotifier>();
         services.AddScoped<IReminderService, ReminderService>();
-        services.AddSingleton<IReminderStore, InMemoryReminderStore>();
-        services.AddHostedService<ReminderProcessor>();
+        services.AddHostedService<ReminderDispatcher>();
         services.AddScoped<IImageRetrievalService, HttpClientImageRetrievalService>();
         services.AddScoped<IStatsService, StatsService>();
     }

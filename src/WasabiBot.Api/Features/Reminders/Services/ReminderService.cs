@@ -13,15 +13,17 @@ public sealed class ReminderService : IReminderService
 {
     private readonly WasabiBotContext _ctx;
     private readonly RestClient _discordClient;
+    private readonly IReminderChangeNotifier _changeNotifier;
     private readonly ILogger<ReminderService> _logger;
     private readonly Tracer _tracer;
     private readonly TimeProvider _timeProvider;
 
-    public ReminderService(WasabiBotContext ctx, RestClient discordClient,
+    public ReminderService(WasabiBotContext ctx, RestClient discordClient, IReminderChangeNotifier changeNotifier,
         ILogger<ReminderService> logger, Tracer tracer, TimeProvider timeProvider)
     {
         _ctx = ctx;
         _discordClient = discordClient;
+        _changeNotifier = changeNotifier;
         _logger = logger;
         _tracer = tracer;
         _timeProvider = timeProvider;
@@ -43,6 +45,7 @@ public sealed class ReminderService : IReminderService
 
         _ctx.Reminders.Add(entity);
         await _ctx.SaveChangesAsync();
+        await _changeNotifier.NotifyReminderChangedAsync();
 
         return entity.Id > 0;
     }
@@ -127,6 +130,7 @@ public sealed class ReminderService : IReminderService
             return false;
         }
 
+        await _changeNotifier.NotifyReminderChangedAsync(ct);
         _logger.LogInformation("Canceled reminder {ReminderId}", reminderId);
         return true;
     }
@@ -214,12 +218,19 @@ public sealed class ReminderService : IReminderService
             return 0;
         }
 
-        return await _ctx.Reminders
+        var updated = await _ctx.Reminders
             .Where(r => ids.Contains(r.Id) && r.Status == ReminderStatus.Processing)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(r => r.Status, ReminderStatus.Sent)
                 .SetProperty(r => r.SentAt, sentAt)
                 .SetProperty(r => r.LastError, (string?)null), ct);
+
+        if (updated > 0)
+        {
+            await _changeNotifier.NotifyReminderChangedAsync(ct);
+        }
+
+        return updated;
     }
 
     public async Task<bool> MarkFailedAsync(long reminderId, string? error, CancellationToken ct = default)
@@ -232,6 +243,11 @@ public sealed class ReminderService : IReminderService
                 .SetProperty(r => r.Status, ReminderStatus.Failed)
                 .SetProperty(r => r.LastError, error)
                 .SetProperty(r => r.ClaimedAt, (DateTimeOffset?)null), ct);
+
+        if (updated > 0)
+        {
+            await _changeNotifier.NotifyReminderChangedAsync(ct);
+        }
 
         return updated > 0;
     }
@@ -248,6 +264,11 @@ public sealed class ReminderService : IReminderService
                 .SetProperty(r => r.LastError, error)
                 .SetProperty(r => r.ClaimedAt, (DateTimeOffset?)null)
                 .SetProperty(r => r.SentAt, (DateTimeOffset?)null), ct);
+
+        if (updated > 0)
+        {
+            await _changeNotifier.NotifyReminderChangedAsync(ct);
+        }
 
         return updated > 0;
     }
