@@ -34,6 +34,13 @@ public class ReminderServiceTests : IntegrationTestBase
         public Task NotifyReminderChangedAsync(CancellationToken ct = default) => Task.CompletedTask;
     }
 
+    private static DateTime ToUtcInstant(DateTimeOffset value)
+    {
+        var utcTicks = value.UtcDateTime.Ticks;
+        var truncatedTicks = utcTicks - (utcTicks % 10);
+        return new DateTime(truncatedTicks, DateTimeKind.Utc);
+    }
+
     [Test]
     public async Task ScheduleAsync_ShouldInsertReminderIntoDatabase()
     {
@@ -344,7 +351,8 @@ public class ReminderServiceTests : IntegrationTestBase
         await using var assertContext = CreateContext();
         var reminder = await assertContext.Reminders.SingleAsync(r => r.Id == 1);
         await Assert.That(reminder.Status).IsEqualTo(ReminderStatus.Sent);
-        await Assert.That(reminder.SentAt).IsEqualTo(sentAt);
+        await Assert.That(reminder.SentAt).IsNotNull();
+        await Assert.That(ToUtcInstant(reminder.SentAt!.Value)).IsEqualTo(ToUtcInstant(sentAt));
     }
 
     [Test]
@@ -366,7 +374,7 @@ public class ReminderServiceTests : IntegrationTestBase
         await using var assertContext = CreateContext();
         var reminder = await assertContext.Reminders.SingleAsync(r => r.Id == 1);
         await Assert.That(reminder.Status).IsEqualTo(ReminderStatus.Pending);
-        await Assert.That(reminder.DueAt).IsEqualTo(nextDue);
+        await Assert.That(ToUtcInstant(reminder.DueAt)).IsEqualTo(ToUtcInstant(nextDue));
         await Assert.That(reminder.LastError).IsEqualTo("retrying");
     }
 
@@ -384,6 +392,7 @@ public class ReminderServiceTests : IntegrationTestBase
 
         var nextDue = await service.GetNextDueTimeAsync();
 
-        await Assert.That(nextDue).IsEqualTo(now.AddHours(1));
+        await Assert.That(nextDue).IsNotNull();
+        await Assert.That(ToUtcInstant(nextDue!.Value)).IsEqualTo(ToUtcInstant(now.AddHours(1)));
     }
 }
