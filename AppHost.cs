@@ -48,7 +48,7 @@ var api = builder.AddProject("wasabi-bot", "src/WasabiBot.Api/WasabiBot.Api.cspr
     .WithUrlForEndpoint("http", url => url.DisplayText = "Frontend")
     .WithUrlForEndpoint("http", _ => new ResourceUrlAnnotation
     {
-        Url = "/scalar",
+        Url = "/scalar/v1",
         DisplayText = "API Reference"
     });
 
