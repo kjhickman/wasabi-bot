@@ -13,9 +13,9 @@ public class InMemoryReminderStoreTests
             UserId = 123,
             ChannelId = 456,
             ReminderMessage = $"reminder-{id}",
-            RemindAt = remindAt,
+            DueAt = remindAt,
             CreatedAt = remindAt.AddMinutes(-1),
-            IsReminderSent = isSent,
+            Status = isSent ? ReminderStatus.Sent : ReminderStatus.Pending,
         };
 
     [Test]
@@ -120,7 +120,7 @@ public class InMemoryReminderStoreTests
         store.RemoveById(first.Id);
 
         await waitTask;
-        await Assert.That(store.GetNextDueTime()).IsEqualTo(second.RemindAt);
+        await Assert.That(store.GetNextDueTime()).IsEqualTo(second.DueAt);
     }
 
     [Test]
@@ -143,6 +143,6 @@ public class InMemoryReminderStoreTests
         store.Insert(earlier);
 
         await waitTask;
-        await Assert.That(store.GetNextDueTime()).IsEqualTo(earlier.RemindAt);
+        await Assert.That(store.GetNextDueTime()).IsEqualTo(earlier.DueAt);
     }
 }

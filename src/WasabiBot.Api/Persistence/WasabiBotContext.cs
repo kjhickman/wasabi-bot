@@ -17,7 +17,14 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
             builder.Property(e => e.Data).HasColumnType("jsonb");
         });
 
-        modelBuilder.Entity<ReminderEntity>()
-            .ToTable("Reminders", tableBuilder => tableBuilder.ExcludeFromMigrations());
+        modelBuilder.Entity<ReminderEntity>(builder =>
+        {
+            builder.ToTable("Reminders");
+            builder.Property(e => e.ReminderMessage).HasColumnType("text");
+            builder.Property(e => e.Status).HasConversion<string>();
+            builder.Property(e => e.LastError).HasColumnType("text");
+            builder.HasIndex(e => new { e.Status, e.DueAt });
+            builder.HasIndex(e => new { e.UserId, e.Status, e.DueAt });
+        });
     }
 }

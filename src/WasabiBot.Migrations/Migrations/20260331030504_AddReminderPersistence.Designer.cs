@@ -12,8 +12,8 @@ using WasabiBot.Api.Persistence;
 namespace WasabiBot.Migrations.Migrations
 {
     [DbContext(typeof(WasabiBotContext))]
-    [Migration("20260330221245_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260331030504_AddReminderPersistence")]
+    partial class AddReminderPersistence
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -71,19 +71,32 @@ namespace WasabiBot.Migrations.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
                     b.Property<long>("ChannelId")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("ClaimedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsReminderSent")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset>("RemindAt")
+                    b.Property<DateTimeOffset>("DueAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
                     b.Property<string>("ReminderMessage")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -92,10 +105,11 @@ namespace WasabiBot.Migrations.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Reminders", null, t =>
-                        {
-                            t.ExcludeFromMigrations();
-                        });
+                    b.HasIndex("Status", "DueAt");
+
+                    b.HasIndex("UserId", "Status", "DueAt");
+
+                    b.ToTable("Reminders", (string)null);
                 });
 #pragma warning restore 612, 618
         }

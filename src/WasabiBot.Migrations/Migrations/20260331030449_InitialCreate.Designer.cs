@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WasabiBot.Api.Persistence;
@@ -11,9 +12,11 @@ using WasabiBot.Api.Persistence;
 namespace WasabiBot.Migrations.Migrations
 {
     [DbContext(typeof(WasabiBotContext))]
-    partial class WasabiBotContextModelSnapshot : ModelSnapshot
+    [Migration("20260331030449_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -58,55 +61,6 @@ namespace WasabiBot.Migrations.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Interactions");
-                });
-
-            modelBuilder.Entity("WasabiBot.Api.Persistence.Entities.ReminderEntity", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<int>("AttemptCount")
-                        .HasColumnType("integer");
-
-                    b.Property<long>("ChannelId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTimeOffset?>("ClaimedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("DueAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastError")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ReminderMessage")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("SentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Status", "DueAt");
-
-                    b.HasIndex("UserId", "Status", "DueAt");
-
-                    b.ToTable("Reminders", (string)null);
                 });
 #pragma warning restore 612, 618
         }

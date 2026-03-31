@@ -47,9 +47,9 @@ public class RemindMeListCommandTests
                 UserId = 42,
                 ChannelId = 1001,
                 ReminderMessage = "Buy groceries",
-                RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+                DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
                 CreatedAt = DateTimeOffset.UtcNow,
-                IsReminderSent = false
+                Status = ReminderStatus.Pending
             },
             new()
             {
@@ -57,9 +57,9 @@ public class RemindMeListCommandTests
                 UserId = 42,
                 ChannelId = 1002,
                 ReminderMessage = "Call mom",
-                RemindAt = new DateTimeOffset(2024, 1, 16, 10, 0, 0, TimeSpan.Zero),
+                DueAt = new DateTimeOffset(2024, 1, 16, 10, 0, 0, TimeSpan.Zero),
                 CreatedAt = DateTimeOffset.UtcNow,
-                IsReminderSent = false
+                Status = ReminderStatus.Pending
             }
         };
 
@@ -99,9 +99,9 @@ public class RemindMeListCommandTests
                 UserId = 42,
                 ChannelId = 1001,
                 ReminderMessage = longMessage,
-                RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+                DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
                 CreatedAt = DateTimeOffset.UtcNow,
-                IsReminderSent = false
+                Status = ReminderStatus.Pending
             }
         };
 
@@ -133,9 +133,9 @@ public class RemindMeListCommandTests
                 UserId = 42,
                 ChannelId = 1001,
                 ReminderMessage = shortMessage,
-                RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+                DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
                 CreatedAt = DateTimeOffset.UtcNow,
-                IsReminderSent = false
+                Status = ReminderStatus.Pending
             }
         };
 
@@ -164,9 +164,9 @@ public class RemindMeListCommandTests
                 UserId = 42,
                 ChannelId = 1001,
                 ReminderMessage = "Test reminder",
-                RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+                DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
                 CreatedAt = DateTimeOffset.UtcNow,
-                IsReminderSent = false
+                Status = ReminderStatus.Pending
             }
         };
 

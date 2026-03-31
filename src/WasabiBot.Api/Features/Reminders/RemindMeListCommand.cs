@@ -55,7 +55,7 @@ internal sealed class RemindMeListCommand
         foreach (var reminder in reminders)
         {
             var message = TruncateMessage(reminder.ReminderMessage, 80);
-            var timestamp = FormatDiscordTimestamp(reminder.RemindAt);
+            var timestamp = FormatDiscordTimestamp(reminder.DueAt);
             var channel = FormatChannelMention(reminder.ChannelId);
 
             sb.AppendLine($"**ID {reminder.Id}** - {timestamp} in {channel}");

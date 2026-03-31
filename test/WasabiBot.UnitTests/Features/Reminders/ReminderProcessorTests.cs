@@ -16,9 +16,9 @@ public class ReminderProcessorTests
         UserId = 42,
         ChannelId = 9001,
         ReminderMessage = $"test-{id}",
-        RemindAt = remindAt,
+        DueAt = remindAt,
         CreatedAt = remindAt.AddMinutes(-5),
-        IsReminderSent = false,
+        Status = ReminderStatus.Pending,
     };
 
     private static ServiceProvider BuildProvider(IReminderService reminderService, Tracer tracer)

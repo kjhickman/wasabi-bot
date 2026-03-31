@@ -11,8 +11,9 @@ public static class ReminderEntityBuilder
         long userId = 111,
         long channelId = 222,
         string? reminderMessage = null,
-        DateTimeOffset? remindAt = null,
-        bool isReminderSent = false)
+        DateTimeOffset? dueAt = null,
+        ReminderStatus status = ReminderStatus.Pending,
+        int attemptCount = 0)
     {
         return new ReminderEntity
         {
@@ -20,8 +21,10 @@ public static class ReminderEntityBuilder
             UserId = userId,
             ChannelId = channelId,
             ReminderMessage = reminderMessage ?? "Test reminder",
-            RemindAt = remindAt ?? DateTimeOffset.UtcNow.AddDays(1),
-            IsReminderSent = isReminderSent
+            DueAt = dueAt ?? DateTimeOffset.UtcNow.AddDays(1),
+            CreatedAt = DateTimeOffset.UtcNow,
+            Status = status,
+            AttemptCount = attemptCount
         };
     }
 }

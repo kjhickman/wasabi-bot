@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using NSubstitute;
 using OpenTelemetry.Trace;
 using TUnit.Core;
-using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Features.Reminders.Services;
 using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.IntegrationTests.Infrastructure;
@@ -19,14 +17,11 @@ namespace WasabiBot.IntegrationTests.Features.Reminders;
 /// </summary>
 public class ReminderServiceTests : IntegrationTestBase
 {
-    private IReminderStore CreateMockStore() => Substitute.For<IReminderStore>();
-
-    private ReminderService CreateService(IReminderStore? store = null)
+    private ReminderService CreateService()
     {
         var context = CreateContext();
         return new ReminderService(
             context,
-            store ?? CreateMockStore(),
             null!, // RestClient is sealed and not needed for database tests
             NullLogger<ReminderService>.Instance,
             TracerProvider.Default.GetTracer("test"),
@@ -37,8 +32,7 @@ public class ReminderServiceTests : IntegrationTestBase
     public async Task ScheduleAsync_ShouldInsertReminderIntoDatabase()
     {
         // Arrange
-        var store = CreateMockStore();
-        var service = CreateService(store: store);
+        var service = CreateService();
         var remindAt = DateTimeOffset.UtcNow.AddHours(1);
 
         // Act
@@ -48,7 +42,6 @@ public class ReminderServiceTests : IntegrationTestBase
         await Assert.That(result).IsTrue();
         await using var assertContext = CreateContext();
         await TestAssertions.AssertReminderExistsAsync(assertContext, 123, 456);
-        store.Received(1).Insert(Arg.Any<ReminderEntity>());
     }
 
     [Test]
@@ -69,7 +62,7 @@ public class ReminderServiceTests : IntegrationTestBase
         await Assert.That(reminder!.UserId).IsEqualTo(111);
         await Assert.That(reminder.ChannelId).IsEqualTo(222);
         await Assert.That(reminder.ReminderMessage).IsEqualTo(message);
-        await Assert.That(reminder.IsReminderSent).IsFalse();
+        await Assert.That(reminder.Status).IsEqualTo(ReminderStatus.Pending);
     }
 
     [Test]
@@ -111,9 +104,9 @@ public class ReminderServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, isReminderSent: false));
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, isReminderSent: false));
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 3, isReminderSent: true));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, status: ReminderStatus.Pending));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, status: ReminderStatus.Pending));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 3, status: ReminderStatus.Sent));
         await context.SaveChangesAsync();
 
         var service = CreateService();
@@ -125,7 +118,7 @@ public class ReminderServiceTests : IntegrationTestBase
         await Assert.That(results.Count).IsEqualTo(2);
         foreach (var reminder in results)
         {
-            await Assert.That(reminder.IsReminderSent).IsFalse();
+            await Assert.That(reminder.Status).IsEqualTo(ReminderStatus.Pending);
         }
     }
 
@@ -134,8 +127,8 @@ public class ReminderServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, isReminderSent: true));
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, isReminderSent: true));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, status: ReminderStatus.Sent));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, status: ReminderStatus.Sent));
         await context.SaveChangesAsync();
 
         var service = CreateService();
@@ -148,14 +141,14 @@ public class ReminderServiceTests : IntegrationTestBase
     }
 
     [Test]
-    public async Task GetAllUnsent_ShouldOrderByRemindAtAscending()
+    public async Task GetAllUnsent_ShouldOrderByDueAtAscending()
     {
         // Arrange
         await using var context = CreateContext();
         var baseTime = DateTimeOffset.UtcNow;
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, remindAt: baseTime.AddHours(3)));
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, remindAt: baseTime.AddHours(1)));
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 3, remindAt: baseTime.AddHours(2)));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, dueAt: baseTime.AddHours(3)));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, dueAt: baseTime.AddHours(1)));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 3, dueAt: baseTime.AddHours(2)));
         await context.SaveChangesAsync();
 
         var service = CreateService();
@@ -197,8 +190,8 @@ public class ReminderServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, userId: 111, isReminderSent: false));
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, userId: 111, isReminderSent: true));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, userId: 111, status: ReminderStatus.Pending));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, userId: 111, status: ReminderStatus.Sent));
         await context.SaveChangesAsync();
 
         var service = CreateService();
@@ -229,14 +222,14 @@ public class ReminderServiceTests : IntegrationTestBase
     }
 
     [Test]
-    public async Task GetAllByUserId_ShouldOrderByRemindAtAscending()
+    public async Task GetAllByUserId_ShouldOrderByDueAtAscending()
     {
         // Arrange
         await using var context = CreateContext();
         var baseTime = DateTimeOffset.UtcNow;
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, userId: 111, remindAt: baseTime.AddHours(3)));
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, userId: 111, remindAt: baseTime.AddHours(1)));
-        context.Reminders.Add(ReminderEntityBuilder.Create(id: 3, userId: 111, remindAt: baseTime.AddHours(2)));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, userId: 111, dueAt: baseTime.AddHours(3)));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, userId: 111, dueAt: baseTime.AddHours(1)));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 3, userId: 111, dueAt: baseTime.AddHours(2)));
         await context.SaveChangesAsync();
 
         var service = CreateService();
@@ -258,8 +251,7 @@ public class ReminderServiceTests : IntegrationTestBase
         context.Reminders.Add(ReminderEntityBuilder.Create(id: 1));
         await context.SaveChangesAsync();
 
-        var store = CreateMockStore();
-        var service = CreateService(store: store);
+        var service = CreateService();
 
         // Act
         var result = await service.DeleteByIdAsync(1);
@@ -267,24 +259,21 @@ public class ReminderServiceTests : IntegrationTestBase
         // Assert
         await Assert.That(result).IsTrue();
         await using var assertContext = CreateContext();
-        var count = await TestAssertions.CountRemindersAsync(assertContext);
-        await Assert.That(count).IsEqualTo(0);
-        store.Received(1).RemoveById(1);
+        var reminder = await assertContext.Reminders.SingleAsync(r => r.Id == 1);
+        await Assert.That(reminder.Status).IsEqualTo(ReminderStatus.Canceled);
     }
 
     [Test]
     public async Task DeleteByIdAsync_ShouldReturnFalseForNonExistentId()
     {
         // Arrange
-        var store = CreateMockStore();
-        var service = CreateService(store: store);
+        var service = CreateService();
 
         // Act
         var result = await service.DeleteByIdAsync(99999);
 
         // Assert
         await Assert.That(result).IsFalse();
-        store.DidNotReceive().RemoveById(Arg.Any<long>());
     }
 
     [Test]
@@ -304,12 +293,91 @@ public class ReminderServiceTests : IntegrationTestBase
 
         // Assert
         await using var assertContext = CreateContext();
-        var count = await TestAssertions.CountRemindersAsync(assertContext);
-        await Assert.That(count).IsEqualTo(2);
+        var canceled = await assertContext.Reminders.SingleAsync(r => r.Id == 2);
+        await Assert.That(canceled.Status).IsEqualTo(ReminderStatus.Canceled);
+        var active = await assertContext.Reminders.Where(r => r.Status != ReminderStatus.Canceled).ToListAsync();
+        await Assert.That(active.Select(r => r.Id)).Contains(1L);
+        await Assert.That(active.Select(r => r.Id)).Contains(3L);
+    }
 
-        var remaining = await assertContext.Reminders.ToListAsync();
-        await Assert.That(remaining.Select(r => r.Id)).Contains(1L);
-        await Assert.That(remaining.Select(r => r.Id)).Contains(3L);
-        await Assert.That(remaining.Select(r => r.Id)).DoesNotContain(2L);
+    [Test]
+    public async Task ClaimDueBatchAsync_ClaimsPendingRemindersInOrder()
+    {
+        await using var context = CreateContext();
+        var now = DateTimeOffset.UtcNow;
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, dueAt: now.AddMinutes(-10), status: ReminderStatus.Pending));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, dueAt: now.AddMinutes(-5), status: ReminderStatus.Pending));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 3, dueAt: now.AddMinutes(5), status: ReminderStatus.Pending));
+        await context.SaveChangesAsync();
+
+        var service = CreateService();
+
+        var claimed = await service.ClaimDueBatchAsync(10, now);
+
+        await Assert.That(claimed.Select(r => r.Id).ToArray()).IsEquivalentTo([1L, 2L]);
+
+        await using var assertContext = CreateContext();
+        var claimedEntities = await assertContext.Reminders.Where(r => r.Id == 1 || r.Id == 2).OrderBy(r => r.Id).ToListAsync();
+        await Assert.That(claimedEntities.All(r => r.Status == ReminderStatus.Processing)).IsTrue();
+        await Assert.That(claimedEntities.All(r => r.AttemptCount == 1)).IsTrue();
+    }
+
+    [Test]
+    public async Task MarkSentAsync_TransitionsProcessingRemindersToSent()
+    {
+        await using var context = CreateContext();
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, status: ReminderStatus.Processing, attemptCount: 1));
+        await context.SaveChangesAsync();
+
+        var service = CreateService();
+        var sentAt = DateTimeOffset.UtcNow;
+
+        var updated = await service.MarkSentAsync([1L], sentAt);
+
+        await Assert.That(updated).IsEqualTo(1);
+        await using var assertContext = CreateContext();
+        var reminder = await assertContext.Reminders.SingleAsync(r => r.Id == 1);
+        await Assert.That(reminder.Status).IsEqualTo(ReminderStatus.Sent);
+        await Assert.That(reminder.SentAt).IsEqualTo(sentAt);
+    }
+
+    [Test]
+    public async Task MarkFailedAndRequeue_UpdateReminderState()
+    {
+        await using var context = CreateContext();
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, status: ReminderStatus.Processing, attemptCount: 2));
+        await context.SaveChangesAsync();
+
+        var service = CreateService();
+
+        var markFailed = await service.MarkFailedAsync(1, "discord exploded");
+        await Assert.That(markFailed).IsTrue();
+
+        var nextDue = DateTimeOffset.UtcNow.AddMinutes(10);
+        var requeued = await service.RequeueAsync(1, nextDue, "retrying");
+        await Assert.That(requeued).IsTrue();
+
+        await using var assertContext = CreateContext();
+        var reminder = await assertContext.Reminders.SingleAsync(r => r.Id == 1);
+        await Assert.That(reminder.Status).IsEqualTo(ReminderStatus.Pending);
+        await Assert.That(reminder.DueAt).IsEqualTo(nextDue);
+        await Assert.That(reminder.LastError).IsEqualTo("retrying");
+    }
+
+    [Test]
+    public async Task GetNextDueTimeAsync_ReturnsEarliestPendingReminder()
+    {
+        await using var context = CreateContext();
+        var now = DateTimeOffset.UtcNow;
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 1, dueAt: now.AddHours(3), status: ReminderStatus.Pending));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 2, dueAt: now.AddHours(1), status: ReminderStatus.Pending));
+        context.Reminders.Add(ReminderEntityBuilder.Create(id: 3, dueAt: now.AddMinutes(30), status: ReminderStatus.Canceled));
+        await context.SaveChangesAsync();
+
+        var service = CreateService();
+
+        var nextDue = await service.GetNextDueTimeAsync();
+
+        await Assert.That(nextDue).IsEqualTo(now.AddHours(1));
     }
 }

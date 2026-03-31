@@ -43,9 +43,9 @@ public class RemindMeRmCommandTests
             UserId = 999, // Different user
             ChannelId = 1001,
             ReminderMessage = "Someone else's reminder",
-            RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+            DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
             CreatedAt = DateTimeOffset.UtcNow,
-            IsReminderSent = false
+            Status = ReminderStatus.Pending
         };
 
         var reminderService = Substitute.For<IReminderService>();
@@ -72,9 +72,9 @@ public class RemindMeRmCommandTests
             UserId = 42,
             ChannelId = 1001,
             ReminderMessage = "Buy groceries",
-            RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+            DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
             CreatedAt = DateTimeOffset.UtcNow,
-            IsReminderSent = false
+            Status = ReminderStatus.Pending
         };
 
         var reminderService = Substitute.For<IReminderService>();
@@ -104,9 +104,9 @@ public class RemindMeRmCommandTests
             UserId = 42,
             ChannelId = 1001,
             ReminderMessage = "Buy groceries",
-            RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+            DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
             CreatedAt = DateTimeOffset.UtcNow,
-            IsReminderSent = false
+            Status = ReminderStatus.Pending
         };
 
         var reminderService = Substitute.For<IReminderService>();
@@ -136,9 +136,9 @@ public class RemindMeRmCommandTests
             UserId = 42,
             ChannelId = 1001,
             ReminderMessage = "Test",
-            RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+            DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
             CreatedAt = DateTimeOffset.UtcNow,
-            IsReminderSent = false
+            Status = ReminderStatus.Pending
         };
 
         var reminderService = Substitute.For<IReminderService>();
@@ -165,9 +165,9 @@ public class RemindMeRmCommandTests
             UserId = 42,
             ChannelId = 1001,
             ReminderMessage = "Test",
-            RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+            DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
             CreatedAt = DateTimeOffset.UtcNow,
-            IsReminderSent = false
+            Status = ReminderStatus.Pending
         };
 
         var reminderService = Substitute.For<IReminderService>();
@@ -214,9 +214,9 @@ public class RemindMeRmCommandTests
             UserId = 999, // Different user
             ChannelId = 1001,
             ReminderMessage = "Someone else's reminder",
-            RemindAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
+            DueAt = new DateTimeOffset(2024, 1, 15, 15, 0, 0, TimeSpan.Zero),
             CreatedAt = DateTimeOffset.UtcNow,
-            IsReminderSent = false
+            Status = ReminderStatus.Pending
         };
 
         var reminderService = Substitute.For<IReminderService>();

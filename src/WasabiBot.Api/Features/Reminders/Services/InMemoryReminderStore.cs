@@ -20,7 +20,7 @@ public sealed class InMemoryReminderStore : IReminderStore
     {
         lock (_lock)
         {
-            return _sorted.Min?.RemindAt;
+            return _sorted.Min?.DueAt;
         }
     }
 
@@ -29,13 +29,13 @@ public sealed class InMemoryReminderStore : IReminderStore
         var earliestChanged = false;
         lock (_lock)
         {
-            var previousEarliest = _sorted.Min?.RemindAt;
-            foreach (var r in reminders.Where(x => !x.IsReminderSent).OrderBy(r => r.RemindAt).ThenBy(r => r.Id))
+            var previousEarliest = _sorted.Min?.DueAt;
+            foreach (var r in reminders.Where(x => x.Status == ReminderStatus.Pending).OrderBy(r => r.DueAt).ThenBy(r => r.Id))
             {
                 if (!_sorted.Add(r)) continue;
 
                 _byId[r.Id] = r;
-                var newEarliest = _sorted.Min?.RemindAt;
+                var newEarliest = _sorted.Min?.DueAt;
                 earliestChanged = previousEarliest == null || newEarliest < previousEarliest;
             }
         }
@@ -48,17 +48,17 @@ public sealed class InMemoryReminderStore : IReminderStore
 
     public void Insert(ReminderEntity entity)
     {
-        if (entity.IsReminderSent) return;
+        if (entity.Status != ReminderStatus.Pending) return;
         bool earliestChanged;
         lock (_lock)
         {
-            var previousEarliest = _sorted.Min?.RemindAt;
+            var previousEarliest = _sorted.Min?.DueAt;
 
             if (_sorted.Add(entity))
             {
                 _byId[entity.Id] = entity;
             }
-            var newEarliest = _sorted.Min?.RemindAt;
+            var newEarliest = _sorted.Min?.DueAt;
             earliestChanged = previousEarliest == null || newEarliest < previousEarliest;
         }
 
@@ -76,7 +76,7 @@ public sealed class InMemoryReminderStore : IReminderStore
             var list = new List<ReminderEntity>();
             foreach (var r in _sorted)
             {
-                if (r.RemindAt <= _timeProvider.GetUtcNow()) list.Add(r); else break;
+                if (r.DueAt <= _timeProvider.GetUtcNow()) list.Add(r); else break;
             }
             return list;
         }
@@ -88,10 +88,10 @@ public sealed class InMemoryReminderStore : IReminderStore
         lock (_lock)
         {
             if (!_byId.TryGetValue(id, out var entity)) return;
-            var previousEarliest = _sorted.Min?.RemindAt;
+            var previousEarliest = _sorted.Min?.DueAt;
             _sorted.Remove(entity);
             _byId.Remove(id);
-            var newEarliest = _sorted.Min?.RemindAt;
+            var newEarliest = _sorted.Min?.DueAt;
             earliestChanged = previousEarliest != newEarliest;
         }
         if (earliestChanged) SignalEarlier();
@@ -122,7 +122,7 @@ public sealed class InMemoryReminderStore : IReminderStore
         public int Compare(ReminderEntity? x, ReminderEntity? y)
         {
             if (x == null || y == null) return x == y ? 0 : x == null ? -1 : 1;
-            var cmp = x.RemindAt.CompareTo(y.RemindAt);
+            var cmp = x.DueAt.CompareTo(y.DueAt);
             return cmp != 0 ? cmp : x.Id.CompareTo(y.Id);
         }
     }
