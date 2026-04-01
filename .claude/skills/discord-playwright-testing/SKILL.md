@@ -46,7 +46,7 @@ Open the configured channel in a visible persistent browser:
 
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-playwright-cli open "$DISCORD_TEST_SERVER_URL" --headed --persistent --profile "$REPO_ROOT/.playwright-cli/profile"
+playwright-cli open "$DISCORD_TEST_SERVER_URL" --persistent --profile "$REPO_ROOT/.playwright-cli/profile"
 ```
 
 Save storage state inside the workspace after login:
@@ -78,8 +78,8 @@ playwright-cli press Enter
 1. Ensure the local bot is already running and connected to Discord.
 2. Check `DISCORD_TEST_SERVER_URL`.
 3. If it is missing, ask the user for the target Discord channel URL and set the variable.
-4. Open Discord with `playwright-cli open ... --headed --persistent --profile ...`.
-5. If Discord is not authenticated, have the user log in manually in the opened browser window.
+4. Open Discord with `playwright-cli open ... --persistent --profile ...`.
+5. If Discord is not authenticated, have the user log in manually. You'll need to open the window with `--headed` to allow interaction.
 6. Save storage state to `.playwright-cli/discord-state.json` after authentication.
 7. Confirm the page title and URL match the expected Discord guild/channel before issuing commands.
 8. Type the slash command into the message composer for the current channel.

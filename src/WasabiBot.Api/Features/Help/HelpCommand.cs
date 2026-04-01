@@ -49,6 +49,7 @@ internal sealed class HelpCommand(ILogger<HelpCommand> logger)
 
         // Utility commands
         sb.AppendLine("### Utility");
+        sb.AppendLine("• `/ask` - Ask any question");
         sb.AppendLine("• `/stats` - Show bot usage statistics");
         sb.AppendLine("• `/help` - Shows this help message");
 
