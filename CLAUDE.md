@@ -17,6 +17,7 @@ Wasabi Bot is a .NET 10 Discord bot built with NetCord. Keep this file short and
 - Start the app from the repo root with `aspire start`
 - Use the `aspire` skill when running or debugging the local distributed app
 - Use the `discord-playwright-testing` skill when verifying bot behavior through Discord web with `playwright-cli`
+- Use the `frontend-playwright-debugging` skill when debugging the local frontend with `playwright-cli`
 - The local app topology lives in `AppHost.cs`; it provisions PostgreSQL and wires Discord/OpenRouter parameters into the API
 - Run all tests with `dotnet test`
 
