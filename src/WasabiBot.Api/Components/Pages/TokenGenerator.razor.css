@@ -8,21 +8,21 @@
     min-width: 13.5rem;
     justify-content: center;
     border-radius: 999px;
-}
 
-.token-action-button:focus {
-    outline: none;
-}
+    &:focus {
+        outline: none;
+    }
 
-.token-action-button:focus-visible {
-    box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-primary-focus);
+    &:focus-visible {
+        box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-primary-focus);
+    }
 }
 
 .token-help {
     margin: 0;
     color: var(--pico-muted-color);
-}
 
-.token-help a {
-    margin: 0;
+    & a {
+        margin: 0;
+    }
 }
