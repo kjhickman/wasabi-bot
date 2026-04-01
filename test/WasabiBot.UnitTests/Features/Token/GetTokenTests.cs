@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using WasabiBot.Api.Features.Token;
 using WasabiBot.Api.Infrastructure.Auth;
@@ -277,5 +279,42 @@ public class GetTokenTests
         // Verify response has required properties
         await Assert.That(response.Token).IsNotNull();
         await Assert.That(response.ExpiresAt).IsGreaterThan(DateTimeOffset.UtcNow);
+    }
+
+    [Test]
+    public async Task Handle_AddsNoStoreHeadersToSuccessfulResponses()
+    {
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsApiUser("123456789", "testuser")
+            .Build();
+        var tokenFactory = CreateTokenFactory();
+        var httpContext = new DefaultHttpContext();
+        httpContext.RequestServices = new ServiceCollection().BuildServiceProvider();
+
+        var result = GetToken.Handle(httpContext, user, tokenFactory);
+
+        await Assert.That(httpContext.Response.Headers.CacheControl.ToString()).IsEqualTo("no-store, no-cache, max-age=0");
+        await Assert.That(httpContext.Response.Headers.Pragma.ToString()).IsEqualTo("no-cache");
+        await Assert.That(httpContext.Response.Headers.Expires.ToString()).IsEqualTo("0");
+        await Assert.That(result).IsTypeOf<Ok<TokenResponse>>();
+    }
+
+    [Test]
+    public async Task Handle_AddsNoStoreHeadersToErrorResponses()
+    {
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsUnauthenticatedUser()
+            .WithName("testuser")
+            .Build();
+        var tokenFactory = CreateTokenFactory();
+        var httpContext = new DefaultHttpContext();
+        httpContext.RequestServices = new ServiceCollection().BuildServiceProvider();
+
+        var result = GetToken.Handle(httpContext, user, tokenFactory);
+
+        await Assert.That(httpContext.Response.Headers.CacheControl.ToString()).IsEqualTo("no-store, no-cache, max-age=0");
+        await Assert.That(httpContext.Response.Headers.Pragma.ToString()).IsEqualTo("no-cache");
+        await Assert.That(httpContext.Response.Headers.Expires.ToString()).IsEqualTo("0");
+        await Assert.That(result.GetType().Name).Contains("BadRequest");
     }
 }

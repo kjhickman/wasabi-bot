@@ -11,44 +11,44 @@ public static class ClaimsExtensions
         /// Tries global name first, then username, then standard Name claim, with a fallback to "User".
         /// </summary>
         public string DisplayName => 
-            user.FindFirst("urn:discord:user:global_name")?.Value
-            ?? user.FindFirst("urn:discord:user:globalname")?.Value
-            ?? user.FindFirst("urn:discord:user:username")?.Value
-            ?? user.FindFirst(ClaimTypes.Name)?.Value
+            GetClaimValue(user, "urn:discord:user:global_name")
+            ?? GetClaimValue(user, "urn:discord:user:globalname")
+            ?? GetClaimValue(user, "urn:discord:user:username")
+            ?? GetClaimValue(user, ClaimTypes.Name)
             ?? "User";
 
         /// <summary>
         /// Gets the Discord user ID from claims.
         /// </summary>
         public string? DiscordUserId =>
-            user.FindFirst("urn:discord:user:id")?.Value
-            ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            GetClaimValue(user, "urn:discord:user:id")
+            ?? GetClaimValue(user, ClaimTypes.NameIdentifier);
 
         /// <summary>
         /// Gets the Discord username from claims.
         /// </summary>
         public string? DiscordUsername =>
-            user.FindFirst("urn:discord:user:username")?.Value;
+            GetClaimValue(user, "urn:discord:user:username");
 
         /// <summary>
         /// Gets the Discord global name from claims.
         /// </summary>
         public string? DiscordGlobalName =>
-            user.FindFirst("urn:discord:user:global_name")?.Value
-            ?? user.FindFirst("urn:discord:user:globalname")?.Value;
+            GetClaimValue(user, "urn:discord:user:global_name")
+            ?? GetClaimValue(user, "urn:discord:user:globalname");
 
         /// <summary>
         /// Gets the Discord discriminator from claims.
         /// </summary>
         public string? DiscordDiscriminator =>
-            user.FindFirst("urn:discord:user:discriminator")?.Value;
+            GetClaimValue(user, "urn:discord:user:discriminator");
 
         /// <summary>
         /// Gets the Discord avatar hash from claims.
         /// </summary>
         public string? DiscordAvatarHash =>
-            user.FindFirst("urn:discord:avatar:hash")?.Value
-            ?? user.FindFirst("urn:discord:user:avatar")?.Value;
+            GetClaimValue(user, "urn:discord:avatar:hash")
+            ?? GetClaimValue(user, "urn:discord:user:avatar");
 
         /// <summary>
         /// Gets the Discord avatar URL when both user ID and avatar hash are available.
@@ -91,5 +91,11 @@ public static class ClaimsExtensions
         }
 
         return (int)((snowflake >> 22) % 6);
+    }
+
+    private static string? GetClaimValue(ClaimsPrincipal user, string claimType)
+    {
+        var value = user.FindFirst(claimType)?.Value;
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 }

@@ -1,6 +1,8 @@
-﻿using WasabiBot.Api.Features.Auth;
+﻿using System.Security.Claims;
+using WasabiBot.Api.Features.Auth;
 using WasabiBot.Api.Features.Interactions;
 using WasabiBot.Api.Features.Token;
+using WasabiBot.Api.Infrastructure.Auth;
 
 namespace WasabiBot.Api.Features.Routing;
 
@@ -26,7 +28,7 @@ public static class Routes
         var v1 = app.MapGroup("/api/v1")
             .WithTags("API v1");
 
-        v1.MapGet("/token", GetToken.Handle)
+        v1.MapPost("/token", (HttpContext httpContext, ClaimsPrincipal user, ApiTokenFactory tokenFactory) => GetToken.Handle(httpContext, user, tokenFactory))
             .WithDisplayName("API Token")
             .WithDescription("Generates a new API token for the authenticated user.")
             .RequireAuthorization("DiscordGuildMember")
