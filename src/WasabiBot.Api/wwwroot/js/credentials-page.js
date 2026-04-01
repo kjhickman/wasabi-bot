@@ -44,6 +44,126 @@ function setHidden(element, hidden) {
     }
 }
 
+function getCreateModal(page) {
+    const modal = page.querySelector('[data-credentials-create-modal]');
+    return modal instanceof HTMLDialogElement ? modal : null;
+}
+
+function getConfirmModal(page) {
+    const modal = page.querySelector('[data-credentials-confirm-modal]');
+    return modal instanceof HTMLDialogElement ? modal : null;
+}
+
+function getSecretModal(page) {
+    const modal = page.querySelector('[data-credentials-secret-modal]');
+    return modal instanceof HTMLDialogElement ? modal : null;
+}
+
+function getNameInput(page) {
+    const input = page.querySelector('[data-credentials-name-input]');
+    return input instanceof HTMLInputElement ? input : null;
+}
+
+function getCreateButton(page) {
+    const button = page.querySelector('[data-credentials-create-button]');
+    return button instanceof HTMLButtonElement ? button : null;
+}
+
+function resetCreateForm(page) {
+    const input = getNameInput(page);
+    if (input) {
+        input.value = '';
+    }
+
+    setFormError(page, '');
+    updateCreateFormState(page);
+}
+
+function openCreateModal(page) {
+    const modal = getCreateModal(page);
+    const input = getNameInput(page);
+    if (!modal) {
+        return;
+    }
+
+    resetCreateForm(page);
+
+    if (typeof modal.showModal === 'function' && !modal.open) {
+        modal.showModal();
+    }
+
+    window.setTimeout(function() {
+        input?.focus();
+    }, 0);
+}
+
+function closeCreateModal(page) {
+    const modal = getCreateModal(page);
+    if (!modal) {
+        return;
+    }
+
+    if (modal.open) {
+        modal.close();
+    }
+
+    resetCreateForm(page);
+}
+
+function closeConfirmModal(page) {
+    const modal = getConfirmModal(page);
+    if (!modal) {
+        return;
+    }
+
+    if (modal.open) {
+        modal.close();
+    }
+
+    delete page.dataset.confirmAction;
+    delete page.dataset.confirmCredentialId;
+}
+
+function closeSecretModal(page) {
+    const modal = getSecretModal(page);
+    if (!modal) {
+        return;
+    }
+
+    if (modal.open) {
+        modal.close();
+    }
+}
+
+function openConfirmModal(page, action, credentialId) {
+    const modal = getConfirmModal(page);
+    const title = page.querySelector('[data-credentials-confirm-title]');
+    const message = page.querySelector('[data-credentials-confirm-message]');
+    const confirmButton = page.querySelector('[data-credentials-confirm-button]');
+    if (!modal || !(title instanceof HTMLElement) || !(message instanceof HTMLElement) || !(confirmButton instanceof HTMLButtonElement)) {
+        return;
+    }
+
+    page.dataset.confirmAction = action;
+    page.dataset.confirmCredentialId = String(credentialId);
+
+    if (action === 'delete') {
+        title.textContent = 'Delete credential';
+        message.textContent = 'Delete this credential? Existing access tokens will keep working until they expire.';
+        confirmButton.textContent = 'Delete';
+        confirmButton.className = 'contrast';
+    } else {
+        title.textContent = 'Regenerate secret';
+        message.textContent = 'Regenerate this secret? The current secret will stop working immediately.';
+        confirmButton.textContent = 'Regenerate';
+        confirmButton.className = '';
+    }
+
+    if (typeof modal.showModal === 'function' && !modal.open) {
+        modal.showModal();
+    }
+}
+
 function setFormError(page, message) {
     const errorElement = page.querySelector('[data-credentials-form-error]');
     if (!errorElement) {
@@ -55,9 +175,9 @@ function setFormError(page, message) {
 }
 
 function updateCreateFormState(page) {
-    const input = page.querySelector('[data-credentials-name-input]');
-    const button = page.querySelector('[data-credentials-create-button]');
-    if (!(input instanceof HTMLInputElement) || !(button instanceof HTMLButtonElement)) {
+    const input = getNameInput(page);
+    const button = getCreateButton(page);
+    if (!input || !button) {
         return;
     }
 
@@ -85,98 +205,80 @@ function createActionButton(label, datasetKey, datasetValue, variant) {
     button.type = 'button';
     button.textContent = label;
     button.dataset[datasetKey] = datasetValue;
-    if (variant) {
-        button.className = variant;
-    }
+    button.className = variant || '';
+    button.setAttribute('aria-label', label);
     return button;
 }
 
-function renderCredentialCard(credential) {
-    const card = document.createElement('article');
-    card.className = 'credentials-card';
-
-    const header = document.createElement('header');
-    header.className = 'credentials-card__header';
-
-    const title = document.createElement('h3');
-    title.className = 'credentials-card__title';
-    title.textContent = credential.name;
-    header.appendChild(title);
-
-    const status = document.createElement('p');
-    status.className = 'credentials-card__status';
-    status.textContent = credential.revoked_at ? 'Revoked' : 'Active';
-    header.appendChild(status);
-
-    const clientIdLabel = document.createElement('span');
-    clientIdLabel.className = 'credentials-label';
-    clientIdLabel.textContent = 'Client ID';
-
-    const clientId = document.createElement('code');
-    clientId.className = 'credentials-card__client-id';
-    clientId.textContent = credential.client_id;
-
-    const metadata = document.createElement('dl');
-    metadata.className = 'credentials-card__meta';
-    metadata.appendChild(createMetaItem('Created', formatTimestamp(credential.created_at)));
-    metadata.appendChild(createMetaItem('Last used', formatTimestamp(credential.last_used_at)));
-
-    if (credential.revoked_at) {
-        metadata.appendChild(createMetaItem('Revoked', formatTimestamp(credential.revoked_at)));
+function createTableCell(content) {
+    const cell = document.createElement('td');
+    if (content instanceof Node) {
+        cell.appendChild(content);
+    } else {
+        cell.textContent = content;
     }
 
-    const actions = document.createElement('div');
-    actions.className = 'credentials-card__actions';
-    actions.appendChild(createActionButton('Copy client ID', 'copyClientId', credential.client_id, 'secondary outline'));
-
-    if (!credential.revoked_at) {
-        actions.appendChild(createActionButton('Regenerate secret', 'regenerateCredentialId', String(credential.id), 'secondary'));
-        actions.appendChild(createActionButton('Delete credential', 'deleteCredentialId', String(credential.id), 'contrast outline'));
-    }
-
-    card.appendChild(header);
-    card.appendChild(clientIdLabel);
-    card.appendChild(clientId);
-    card.appendChild(metadata);
-    card.appendChild(actions);
-    return card;
+    return cell;
 }
 
-function createMetaItem(label, value) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'credentials-card__meta-item';
+function renderCredentialRow(credential) {
+    const row = document.createElement('tr');
 
-    const term = document.createElement('dt');
-    term.textContent = label;
+    row.appendChild(createTableCell(credential.name));
 
-    const description = document.createElement('dd');
-    description.textContent = value;
+    const clientId = document.createElement('code');
+    clientId.className = 'credentials-table__client-id';
+    clientId.textContent = credential.client_id;
+    row.appendChild(createTableCell(clientId));
 
-    wrapper.appendChild(term);
-    wrapper.appendChild(description);
-    return wrapper;
+    row.appendChild(createTableCell(formatTimestamp(credential.created_at)));
+    row.appendChild(createTableCell(formatTimestamp(credential.last_used_at)));
+
+    const actions = document.createElement('div');
+    actions.className = 'credentials-table__actions';
+
+    const regenerateButton = createActionButton('Regenerate', 'regenerateCredentialId', String(credential.id), 'secondary outline');
+    actions.appendChild(regenerateButton);
+
+    const deleteButton = createActionButton('Delete', 'deleteCredentialId', String(credential.id), 'contrast outline');
+    actions.appendChild(deleteButton);
+
+    row.appendChild(createTableCell(actions));
+
+    return row;
+}
+
+function renderEmptyState(container, message) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 5;
+    cell.className = 'credentials-table__empty';
+    cell.textContent = message;
+    row.appendChild(cell);
+    container.appendChild(row);
 }
 
 function renderCredentials(page, credentials) {
     const container = page.querySelector('[data-credentials-list]');
     const feedback = page.querySelector('[data-credentials-list-feedback]');
-    if (!(container instanceof HTMLElement) || !(feedback instanceof HTMLElement)) {
+    if (!(container instanceof HTMLTableSectionElement) || !(feedback instanceof HTMLElement)) {
         return;
     }
 
     container.replaceChildren();
 
     if (!Array.isArray(credentials) || credentials.length === 0) {
-        feedback.textContent = 'No credentials yet. Create one to start exchanging for API tokens.';
+        feedback.textContent = 'No credentials yet.';
+        renderEmptyState(container, 'Create credentials to start exchanging for API tokens.');
         return;
     }
 
     feedback.textContent = credentials.length === 1
-        ? '1 credential'
-        : `${credentials.length} credentials`;
+        ? '1 active credential'
+        : `${credentials.length} active credentials`;
 
     for (const credential of credentials) {
-        container.appendChild(renderCredentialCard(credential));
+        container.appendChild(renderCredentialRow(credential));
     }
 }
 
@@ -201,7 +303,7 @@ async function loadCredentials(page) {
             cache: 'no-store',
             credentials: 'same-origin',
             headers: {
-                'Accept': 'application/json'
+                Accept: 'application/json'
             }
         });
 
@@ -218,16 +320,19 @@ async function loadCredentials(page) {
 }
 
 function showIssuedSecret(page, payload) {
-    const panel = page.querySelector('[data-credentials-secret-panel]');
+    const modal = getSecretModal(page);
     const clientId = page.querySelector('[data-credentials-issued-client-id]');
     const clientSecret = page.querySelector('[data-credentials-issued-client-secret]');
-    if (!payload || !payload.credential || !panel || !clientId || !clientSecret) {
+    if (!payload || !payload.credential || !modal || !clientId || !clientSecret) {
         return;
     }
 
     setText(clientId, payload.credential.client_id || '');
     setText(clientSecret, payload.client_secret || '');
-    setHidden(panel, false);
+
+    if (typeof modal.showModal === 'function' && !modal.open) {
+        modal.showModal();
+    }
 }
 
 async function copyText(text, button, successText) {
@@ -258,9 +363,9 @@ async function copyText(text, button, successText) {
 
 async function createCredential(page) {
     const endpoint = page.dataset.createEndpoint;
-    const input = page.querySelector('[data-credentials-name-input]');
-    const button = page.querySelector('[data-credentials-create-button]');
-    if (!endpoint || !(input instanceof HTMLInputElement) || !(button instanceof HTMLButtonElement)) {
+    const input = getNameInput(page);
+    const button = getCreateButton(page);
+    if (!endpoint || !input || !button) {
         return;
     }
 
@@ -282,7 +387,7 @@ async function createCredential(page) {
             cache: 'no-store',
             credentials: 'same-origin',
             headers: {
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ name: input.value.trim() })
@@ -294,12 +399,12 @@ async function createCredential(page) {
         }
 
         showIssuedSecret(page, payload);
-        input.value = '';
-        setFormError(page, '');
+        closeCreateModal(page);
         await loadCredentials(page);
     } catch (error) {
         console.error('Failed to create credential:', error);
         setFormError(page, error instanceof Error ? error.message : 'Could not create credential.');
+        updateCreateFormState(page);
     } finally {
         button.textContent = originalText;
         updateCreateFormState(page);
@@ -318,7 +423,7 @@ async function regenerateSecret(page, credentialId) {
             cache: 'no-store',
             credentials: 'same-origin',
             headers: {
-                'Accept': 'application/json'
+                Accept: 'application/json'
             }
         });
 
@@ -340,18 +445,13 @@ async function deleteCredential(page, credentialId) {
         return;
     }
 
-    const confirmed = window.confirm('Delete this credential? Existing access tokens will keep working until they expire.');
-    if (!confirmed) {
-        return;
-    }
-
     try {
         const response = await fetch(buildUrl(template, credentialId), {
             method: 'DELETE',
             cache: 'no-store',
             credentials: 'same-origin',
             headers: {
-                'Accept': 'application/json'
+                Accept: 'application/json'
             }
         });
 
@@ -362,6 +462,25 @@ async function deleteCredential(page, credentialId) {
         await loadCredentials(page);
     } catch (error) {
         console.error('Failed to delete credential:', error);
+    }
+}
+
+async function runConfirmedAction(page) {
+    const action = page.dataset.confirmAction;
+    const credentialId = page.dataset.confirmCredentialId;
+    if (!action || !credentialId) {
+        return;
+    }
+
+    closeConfirmModal(page);
+
+    if (action === 'delete') {
+        await deleteCredential(page, credentialId);
+        return;
+    }
+
+    if (action === 'regenerate') {
+        await regenerateSecret(page, credentialId);
     }
 }
 
@@ -378,6 +497,25 @@ export function initializeCredentialsPage() {
     page.dataset.initialized = 'true';
     updateCreateFormState(page);
     void loadCredentials(page);
+
+    const modal = getCreateModal(page);
+    modal?.addEventListener('close', function() {
+        resetCreateForm(page);
+    });
+
+    const confirmModal = getConfirmModal(page);
+    confirmModal?.addEventListener('close', function() {
+        delete page.dataset.confirmAction;
+        delete page.dataset.confirmCredentialId;
+    });
+
+    const secretModal = getSecretModal(page);
+    secretModal?.addEventListener('close', function() {
+        const clientId = page.querySelector('[data-credentials-issued-client-id]');
+        const clientSecret = page.querySelector('[data-credentials-issued-client-secret]');
+        setText(clientId, '');
+        setText(clientSecret, '');
+    });
 
     page.addEventListener('input', function(event) {
         const target = event.target;
@@ -405,6 +543,41 @@ export function initializeCredentialsPage() {
             return;
         }
 
+        const openModalButton = target.closest('[data-credentials-open-modal]');
+        if (openModalButton instanceof HTMLButtonElement) {
+            event.preventDefault();
+            openCreateModal(page);
+            return;
+        }
+
+        const closeModalButton = target.closest('[data-credentials-close-modal]');
+        if (closeModalButton instanceof HTMLButtonElement) {
+            event.preventDefault();
+            closeCreateModal(page);
+            return;
+        }
+
+        const closeConfirmButton = target.closest('[data-credentials-close-confirm-modal]');
+        if (closeConfirmButton instanceof HTMLButtonElement) {
+            event.preventDefault();
+            closeConfirmModal(page);
+            return;
+        }
+
+        const closeSecretButton = target.closest('[data-credentials-close-secret-modal]');
+        if (closeSecretButton instanceof HTMLButtonElement) {
+            event.preventDefault();
+            closeSecretModal(page);
+            return;
+        }
+
+        const confirmButton = target.closest('[data-credentials-confirm-button]');
+        if (confirmButton instanceof HTMLButtonElement) {
+            event.preventDefault();
+            void runConfirmedAction(page);
+            return;
+        }
+
         const refreshButton = target.closest('[data-credentials-refresh-button]');
         if (refreshButton instanceof HTMLButtonElement) {
             event.preventDefault();
@@ -412,24 +585,17 @@ export function initializeCredentialsPage() {
             return;
         }
 
-        const copyClientIdButton = target.closest('[data-copy-client-id]');
-        if (copyClientIdButton instanceof HTMLButtonElement) {
-            event.preventDefault();
-            void copyText(copyClientIdButton.dataset.copyClientId || '', copyClientIdButton, 'Copied client ID');
-            return;
-        }
-
         const regenerateButton = target.closest('[data-regenerate-credential-id]');
         if (regenerateButton instanceof HTMLButtonElement) {
             event.preventDefault();
-            void regenerateSecret(page, regenerateButton.dataset.regenerateCredentialId);
+            openConfirmModal(page, 'regenerate', regenerateButton.dataset.regenerateCredentialId);
             return;
         }
 
         const deleteButton = target.closest('[data-delete-credential-id]');
         if (deleteButton instanceof HTMLButtonElement) {
             event.preventDefault();
-            void deleteCredential(page, deleteButton.dataset.deleteCredentialId);
+            openConfirmModal(page, 'delete', deleteButton.dataset.deleteCredentialId);
             return;
         }
 
