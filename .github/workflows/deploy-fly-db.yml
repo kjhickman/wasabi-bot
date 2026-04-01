@@ -29,7 +29,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Detect database config changes
         id: changes
@@ -51,7 +51,14 @@ jobs:
           if git diff --quiet "$range" -- "${{ inputs.fly-config }}"; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
+            status=$?
+
+            if [[ "$status" -eq 1 ]]; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Failed to diff database config changes for range '$range'" >&2
+              exit "$status"
+            fi
           fi
 
       - name: Setup Flyctl
