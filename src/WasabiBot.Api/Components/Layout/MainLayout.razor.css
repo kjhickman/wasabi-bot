@@ -1,5 +1,5 @@
 .app-shell {
-    min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .shell-header {
@@ -25,9 +25,19 @@
     text-decoration: none;
 }
 
-.brand-link:hover,
+.brand-link:hover {
+    text-decoration: none;
+}
+
 .brand-link:focus {
     text-decoration: none;
+    outline: none;
+}
+
+.brand-link:focus-visible {
+    outline: var(--pico-outline-width) solid var(--pico-primary-border);
+    outline-offset: 0.25rem;
+    border-radius: 0.35rem;
 }
 
 .brand-link__title {
@@ -59,10 +69,19 @@ button.account-summary {
     box-shadow: none;
 }
 
-button.account-summary:hover,
-button.account-summary:focus {
+button.account-summary:hover {
     border-color: var(--wasabi-surface-border-strong);
     background-color: var(--wasabi-pill-background-hover);
+}
+
+button.account-summary:focus {
+    outline: none;
+}
+
+button.account-summary:focus-visible {
+    border-color: var(--wasabi-surface-border-strong);
+    background-color: var(--wasabi-pill-background-hover);
+    box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-primary-focus);
 }
 
 button.account-summary[aria-expanded="true"] {
@@ -126,10 +145,27 @@ button.account-summary[aria-expanded="true"] {
     box-shadow: none;
 }
 
-#logout-button:hover,
-#logout-button:focus {
+#logout-button:hover {
     border-color: var(--wasabi-surface-border-strong);
     background: var(--wasabi-soft-button-background-hover);
+}
+
+#logout-button:focus {
+    outline: none;
+}
+
+#logout-button:focus-visible {
+    border-color: var(--wasabi-surface-border-strong);
+    background: var(--wasabi-soft-button-background-hover);
+    box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-primary-focus);
+}
+
+.theme-menu select:focus {
+    outline: none;
+}
+
+.theme-menu select:focus-visible {
+    box-shadow: 0 0 0 var(--pico-outline-width) var(--pico-primary-focus);
 }
 
 .theme-menu {
