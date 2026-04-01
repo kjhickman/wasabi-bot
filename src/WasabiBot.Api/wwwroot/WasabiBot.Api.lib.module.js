@@ -1,5 +1,4 @@
-import { initializeTheme, syncTheme } from '/js/theme.js';
-import { initializeAccountMenu } from '/js/account-menu.js';
+import { initializeTheme, initializeThemeControls, syncTheme } from '/js/theme.js';
 import { initializeTokenGenerator } from '/js/token-generator.js';
 
 let initialized = false;
@@ -10,7 +9,7 @@ export function beforeWebStart() {
 
 export function afterWebStarted(blazor) {
     if (!initialized) {
-        initializeAccountMenu();
+        initializeThemeControls();
         initializeTokenGenerator();
         initialized = true;
     }

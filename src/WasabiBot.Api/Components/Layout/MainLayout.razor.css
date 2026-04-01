@@ -97,9 +97,7 @@ button.account-summary[aria-expanded="true"] {
 }
 
 .account-menu__panel {
-    position: absolute;
-    top: calc(100% + 0.45rem);
-    right: 0;
+    position: fixed;
     z-index: 10;
     width: min(16rem, calc(100vw - 2rem));
     padding: 0.85rem;
@@ -110,8 +108,15 @@ button.account-summary[aria-expanded="true"] {
     backdrop-filter: blur(0.8rem);
 }
 
-.account-menu__panel[hidden] {
+.account-menu__panel:not(:popover-open) {
     display: none;
+}
+
+.account-menu__panel:popover-open {
+    inset: auto;
+    position-area: block-end span-inline-end;
+    margin-block-start: 0.45rem;
+    margin: 0;
 }
 
 .account-avatar {
@@ -208,8 +213,6 @@ button.account-summary[aria-expanded="true"] {
     }
 
     .account-menu__panel {
-        right: auto;
-        left: 50%;
-        transform: translateX(-50%);
+        position-area: block-end center;
     }
 }

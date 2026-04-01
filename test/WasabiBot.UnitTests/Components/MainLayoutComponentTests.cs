@@ -39,6 +39,7 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.Find("#header-user-avatar").GetAttribute("src")).Contains("cdn.discordapp.com/avatars/123456789/avatarhash.png?size=128");
         await Assert.That(cut.Find("#account-menu-button").GetAttribute("aria-controls")).IsEqualTo("account-menu-panel");
         await Assert.That(cut.Find("#account-menu-button").GetAttribute("aria-expanded")).IsEqualTo("false");
+        await Assert.That(cut.Find("#account-menu-button").GetAttribute("popovertarget")).IsEqualTo("account-menu-panel");
         await Assert.That(cut.Find("#theme-select").GetAttribute("data-theme-select")).IsEmpty();
         await Assert.That(cut.FindAll("#theme-select option").Count).IsEqualTo(3);
         await Assert.That(cut.Find("#logout-button").TextContent.Trim()).IsEqualTo("Log out");
