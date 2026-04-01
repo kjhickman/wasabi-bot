@@ -394,4 +394,24 @@ public class ApiTokenFactoryTests
         await Assert.That(nameClaim).IsNotNull();
         await Assert.That(nameClaim!.Value).IsEqualTo("preferred-username");
     }
+
+    [Test]
+    public async Task CreateToken_WithValidatedCredential_IncludesCredentialClaims()
+    {
+        var signingKey = CreateTestSigningKey();
+        var options = new ApiTokenOptions(signingKey, TimeSpan.FromHours(1));
+        var factory = new ApiTokenFactory(options);
+        var credential = new ApiCredentialValidationResult(42, 123456789, "wb_client_123", "CLI integration");
+
+        var token = factory.CreateToken(credential);
+        var handler = new JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadToken(token) as JwtSecurityToken;
+
+        await Assert.That(jwtToken).IsNotNull();
+        await Assert.That(jwtToken!.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value).IsEqualTo("123456789");
+        await Assert.That(jwtToken.Claims.First(c => c.Type == JwtRegisteredClaimNames.Sub).Value).IsEqualTo("123456789");
+        await Assert.That(jwtToken.Claims.First(c => c.Type == "client_id").Value).IsEqualTo("wb_client_123");
+        await Assert.That(jwtToken.Claims.First(c => c.Type == "credential_id").Value).IsEqualTo("42");
+        await Assert.That(jwtToken.Claims.First(c => c.Type == "grant_type").Value).IsEqualTo("client_credentials");
+    }
 }

@@ -17,6 +17,23 @@ public sealed class ApiTokenFactory
 
     public TimeSpan Lifetime => _options.Lifetime;
 
+    public string CreateToken(ApiCredentialValidationResult credential)
+    {
+        ArgumentNullException.ThrowIfNull(credential);
+
+        List<Claim> claims =
+        [
+            new(ClaimTypes.NameIdentifier, credential.OwnerDiscordUserId.ToString()),
+            new(JwtRegisteredClaimNames.Sub, credential.OwnerDiscordUserId.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("client_id", credential.ClientId),
+            new("credential_id", credential.CredentialId.ToString()),
+            new("grant_type", "client_credentials")
+        ];
+
+        return WriteToken(claims);
+    }
+
     public bool TryCreateToken(ClaimsPrincipal user, out string token)
     {
         token = string.Empty;
@@ -40,6 +57,12 @@ public sealed class ApiTokenFactory
             claims.Add(new Claim(ClaimTypes.Name, usernameClaim.Value));
         }
 
+        token = WriteToken(claims);
+        return true;
+    }
+
+    private string WriteToken(IEnumerable<Claim> claims)
+    {
         var now = DateTime.UtcNow;
         var jwt = new JwtSecurityToken(
             claims: claims,
@@ -48,7 +71,6 @@ public sealed class ApiTokenFactory
             signingCredentials: new SigningCredentials(_options.SigningKey, SecurityAlgorithms.HmacSha256)
         );
 
-        token = TokenHandler.WriteToken(jwt);
-        return true;
+        return TokenHandler.WriteToken(jwt);
     }
 }
