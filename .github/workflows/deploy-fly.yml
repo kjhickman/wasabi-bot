@@ -11,6 +11,13 @@ on:
         description: Fly config file to deploy.
         required: true
         type: string
+    secrets:
+      FLY_API_TOKEN:
+        description: Fly API token used for Fly deployments.
+        required: true
+      DB_CONNECTION_STRING:
+        description: Database connection string for migrations.
+        required: true
 
 permissions:
   contents: read
@@ -30,7 +37,8 @@ jobs:
     with:
       fly-config: src/WasabiBot.Api/fly.db.toml
       fly-image: flyio/postgres-flex:17.2
-    secrets: inherit
+    secrets:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
   migrate:
     name: Run migrations for ${{ inputs.environment }}

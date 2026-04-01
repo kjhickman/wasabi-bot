@@ -13,6 +13,10 @@ on:
         required: false
         default: flyio/postgres-flex:17.2
         type: string
+    secrets:
+      FLY_API_TOKEN:
+        description: Fly API token used for database config deployment.
+        required: true
 
 permissions:
   contents: read
@@ -57,6 +61,8 @@ jobs:
       - name: Validate database config
         if: steps.changes.outputs.changed == 'true'
         run: flyctl config validate -c "${{ inputs.fly-config }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy database config
         if: steps.changes.outputs.changed == 'true'
