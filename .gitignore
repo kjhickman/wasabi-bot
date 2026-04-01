@@ -112,3 +112,6 @@ Thumbs.db
 # Ignore any local environment files
 .env
 .envrc
+
+# Local Playwright Discord session artifacts
+.playwright-cli/
