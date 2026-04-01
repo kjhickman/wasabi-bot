@@ -21,4 +21,6 @@ jobs:
     with:
       environment: staging
       fly-config: src/WasabiBot.Api/fly.staging.toml
-    secrets: inherit
+    secrets:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
