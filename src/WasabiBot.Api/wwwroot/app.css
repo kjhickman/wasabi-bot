@@ -320,8 +320,14 @@ button.account-summary[aria-expanded="true"] {
     margin: 0;
     border: 1px solid var(--wasabi-surface-border);
     border-radius: 1rem;
+    overflow: clip;
     background: var(--wasabi-surface-background);
     box-shadow: 0 1rem 2.5rem -2rem var(--wasabi-elevation-shadow-color);
+}
+
+.surface-card > header,
+.surface-card > footer {
+    background: transparent;
 }
 
 .surface-card > :last-child {
