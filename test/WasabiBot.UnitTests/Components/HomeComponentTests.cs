@@ -36,7 +36,8 @@ public class HomeComponentTests : IDisposable
         var cut = _context.RenderWithAuthentication<Home>(authState);
 
         await Assert.That(cut.Find("#user-greeting").TextContent.Trim()).IsEqualTo("Kyle");
-        await Assert.That(cut.Markup).Contains("My api creds");
+        await Assert.That(cut.Markup).Contains("Get API Access");
+        await Assert.That(cut.Markup).Contains("Create or manage credentials to gain access to the Wasabi Bot API.");
         await Assert.That(cut.Markup).Contains("Music");
         await Assert.That(cut.Markup).Contains("Stats");
         await Assert.That(cut.Find("#docs-link").GetAttribute("href")).IsEqualTo("/scalar/v1");

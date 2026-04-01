@@ -33,11 +33,15 @@ public class CredentialsComponentTests : IDisposable
         var cut = _context.RenderWithAuthentication<Credentials>(authState);
 
         await Assert.That(cut.Find("#credentials-page").GetAttribute("data-list-endpoint")).IsEqualTo("/api/v1/creds");
+        await Assert.That(cut.Find("#credentials-create-open-button").TextContent.Trim()).IsEqualTo("Create");
         await Assert.That(cut.Find("#credential-name-input").GetAttribute("maxlength")).IsEqualTo("100");
-        await Assert.That(cut.Find("#credentials-secret-panel").HasAttribute("hidden")).IsTrue();
+        await Assert.That(cut.Find("#credential-name-input").GetAttribute("placeholder")).IsEqualTo("My api creds");
+        await Assert.That(cut.Find("#credentials-secret-modal").HasAttribute("data-credentials-secret-modal")).IsTrue();
+        await Assert.That(cut.Find("#credentials-table").TextContent).Contains("Name");
+        await Assert.That(cut.Find("#credentials-table").TextContent).Contains("Client ID");
+        await Assert.That(cut.Find("#credentials-table").TextContent).Contains("Last Used");
         await Assert.That(cut.Markup).Contains("Create a credential");
-        await Assert.That(cut.Markup).Contains("Your credentials");
-        await Assert.That(cut.Markup).Contains("/oauth/token");
+        await Assert.That(cut.Markup).Contains("Your API Credentials");
     }
 
     public void Dispose()

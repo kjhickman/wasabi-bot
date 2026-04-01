@@ -54,7 +54,7 @@ public class ApiCredentialServiceTests
     }
 
     [Test]
-    public async Task ListAsync_ShouldReturnOnlyCredentialsForOwner()
+    public async Task ListAsync_ShouldReturnOnlyActiveCredentialsForOwner()
     {
         await using var context = CreateContext();
         context.ApiCredentials.AddRange(
@@ -81,6 +81,7 @@ public class ApiCredentialServiceTests
                 ClientId = "wb_two",
                 SecretHash = "hash-3",
                 CreatedAt = DateTimeOffset.UtcNow,
+                RevokedAt = DateTimeOffset.UtcNow,
             });
         await context.SaveChangesAsync();
 
@@ -88,9 +89,8 @@ public class ApiCredentialServiceTests
 
         var credentials = await service.ListAsync(7);
 
-        await Assert.That(credentials.Length).IsEqualTo(2);
-        await Assert.That(credentials[0].ClientId).IsEqualTo("wb_two");
-        await Assert.That(credentials[1].ClientId).IsEqualTo("wb_one");
+        await Assert.That(credentials.Length).IsEqualTo(1);
+        await Assert.That(credentials[0].ClientId).IsEqualTo("wb_one");
     }
 
     [Test]

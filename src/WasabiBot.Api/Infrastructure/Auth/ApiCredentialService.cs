@@ -13,7 +13,7 @@ public sealed class ApiCredentialService(WasabiBotContext context, IApiCredentia
     {
         return await context.ApiCredentials
             .AsNoTracking()
-            .Where(c => c.OwnerDiscordUserId == ownerDiscordUserId)
+            .Where(c => c.OwnerDiscordUserId == ownerDiscordUserId && c.RevokedAt == null)
             .OrderByDescending(c => c.CreatedAt)
             .ThenByDescending(c => c.Id)
             .Select(c => ToSummary(c))
