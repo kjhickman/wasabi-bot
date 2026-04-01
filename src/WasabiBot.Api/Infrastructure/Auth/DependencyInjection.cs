@@ -41,8 +41,24 @@ public static class DependencyInjection
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSigningKey));
         var apiTokenOptions = new ApiTokenOptions(signingKey, TimeSpan.FromMinutes(tokenLifetimeMinutes));
 
+        var apiCredentialSection = configuration.GetSection("Authentication:ApiCredentials");
+        var apiCredentialPepper = apiCredentialSection["Pepper"];
+        if (builder.Environment.IsDevelopment())
+        {
+            apiCredentialPepper ??= "DevelopmentApiCredentialPepperMustBe32Chars!";
+        }
+        if (apiCredentialPepper.IsNullOrWhiteSpace() || apiCredentialPepper.Length < 32)
+        {
+            throw new InvalidOperationException("API credential secret configuration is missing or invalid.");
+        }
+
+        var apiCredentialSecretOptions = new ApiCredentialSecretOptions(apiCredentialPepper);
+
         services.AddSingleton(apiTokenOptions);
+        services.AddSingleton(apiCredentialSecretOptions);
         services.AddSingleton<ApiTokenFactory>();
+        services.AddSingleton<IApiCredentialSecretService, ApiCredentialSecretService>();
+        services.AddScoped<IApiCredentialService, ApiCredentialService>();
 
         services
             .AddAuthentication(options =>
