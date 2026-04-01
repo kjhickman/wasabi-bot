@@ -24,10 +24,18 @@ jobs:
     with:
       dotnet-version: 10.0.x
 
+  db-config:
+    needs: tests
+    uses: ./.github/workflows/deploy-fly-db.yml
+    with:
+      fly-config: src/WasabiBot.Api/fly.db.toml
+      fly-image: flyio/postgres-flex:17.2
+    secrets: inherit
+
   migrate:
     name: Run migrations for ${{ inputs.environment }}
     runs-on: ubuntu-24.04-arm
-    needs: tests
+    needs: db-config
     environment: ${{ inputs.environment }}
     steps:
       - name: Checkout
@@ -85,7 +93,7 @@ jobs:
   deploy:
     name: Deploy ${{ inputs.environment }} to Fly
     runs-on: ubuntu-latest
-    needs: tests
+    needs: db-config
     environment: ${{ inputs.environment }}
     concurrency:
       group: deploy-fly-${{ inputs.environment }}

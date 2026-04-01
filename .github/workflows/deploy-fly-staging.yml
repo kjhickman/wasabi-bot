@@ -8,6 +8,7 @@ on:
       - ".github/workflows/**"
       - "Directory.Build.props"
       - "Directory.Packages.props"
+      - "src/WasabiBot.Api/fly.db.toml"
       - "src/WasabiBot.Api/fly.staging.toml"
   workflow_dispatch:
 
