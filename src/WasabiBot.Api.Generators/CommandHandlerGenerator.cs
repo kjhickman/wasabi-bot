@@ -11,7 +11,8 @@ namespace WasabiBot.Api.Generators;
 [Generator(LanguageNames.CSharp)]
 public sealed class CommandHandlerGenerator : IIncrementalGenerator
 {
-    private const string AttributeMetadataName = "WasabiBot.Api.Infrastructure.Discord.Interactions.CommandHandlerAttribute";
+    private const string SlashAttributeMetadataName = "WasabiBot.Api.Infrastructure.Discord.Interactions.CommandHandlerAttribute";
+    private const string MessageAttributeMetadataName = "WasabiBot.Api.Infrastructure.Discord.Interactions.MessageCommandHandlerAttribute";
 
     private static readonly SymbolDisplayFormat TypeDisplayFormat = new(
         globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Included,
@@ -30,19 +31,37 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor InvalidEntryPointSignature = new(
         id: "WB0002",
         title: "Command handler entry point has an invalid signature",
-        messageFormat: "Command handler entry point '{1}' on '{0}' must declare WasabiBot.Api.Infrastructure.Discord.Abstractions.ICommandContext as its first parameter",
+        messageFormat: "Command handler entry point '{1}' on '{0}' must declare {2} as its first parameter",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor InvalidMessageCommandParameters = new(
+        id: "WB0003",
+        title: "Message command handler entry point has unsupported parameters",
+        messageFormat: "Message command handler entry point '{1}' on '{0}' must declare no parameters or a single NetCord.Rest.RestMessage parameter",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var handlerResults = context.SyntaxProvider
+        var slashHandlerResults = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                AttributeMetadataName,
+                SlashAttributeMetadataName,
                 static (node, _) => node is ClassDeclarationSyntax,
-                static (ctx, _) => CreateCommandHandlerInfo(ctx))
+                static (ctx, _) => CreateCommandHandlerInfo(ctx, CommandKind.Slash))
             .Collect();
+
+        var messageHandlerResults = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                MessageAttributeMetadataName,
+                static (node, _) => node is ClassDeclarationSyntax,
+                static (ctx, _) => CreateCommandHandlerInfo(ctx, CommandKind.Message))
+            .Collect();
+
+        var handlerResults = slashHandlerResults.Combine(messageHandlerResults)
+            .Select(static (pair, _) => pair.Left.AddRange(pair.Right));
 
         var handlersWithCompilation = context.CompilationProvider.Combine(handlerResults);
 
@@ -91,7 +110,24 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
             builder.AppendLine("    {");
             foreach (var info in infos)
             {
-                var commandNameLiteral = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(info.CommandName, quote: true);
+                AppendRegistration(builder, info);
+            }
+            builder.AppendLine("        return app;");
+            builder.AppendLine("    }");
+            builder.AppendLine("}");
+
+            spc.AddSource("CommandHandlerRegistry.g.cs", builder.ToString());
+        });
+    }
+
+    private static void AppendRegistration(StringBuilder builder, CommandHandlerInfo info)
+    {
+        var commandNameLiteral = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(info.CommandName, quote: true);
+
+        switch (info.Kind)
+        {
+            case CommandKind.Slash:
+            {
                 var descriptionLiteral = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(info.Description, quote: true);
 
                 var lambdaParameters = new List<string>
@@ -104,15 +140,16 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
 
                 foreach (var parameter in info.Parameters.Skip(1))
                 {
-                    var attributePrefix = parameter.Attributes.Length > 0 
-                        ? string.Join(" ", parameter.Attributes) + " " 
+                    var attributePrefix = parameter.Attributes.Length > 0
+                        ? string.Join(" ", parameter.Attributes) + " "
                         : string.Empty;
-                    
+
                     var paramDeclaration = $"{attributePrefix}{parameter.TypeName} {parameter.Name}";
                     if (parameter.HasNullDefault)
                     {
                         paramDeclaration += " = null";
                     }
+
                     lambdaParameters.Add(paramDeclaration);
                     callArguments.Add(parameter.Name);
                 }
@@ -133,16 +170,33 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
                     .AppendLine(");");
                 builder.AppendLine("        });");
                 builder.AppendLine();
+                break;
             }
-            builder.AppendLine("        return app;");
-            builder.AppendLine("    }");
-            builder.AppendLine("}");
-
-            spc.AddSource("CommandHandlerRegistry.g.cs", builder.ToString());
-        });
+            case CommandKind.Message:
+                builder.Append("        app.AddMessageCommand(")
+                    .Append(commandNameLiteral)
+                    .Append(info.Parameters.Length == 0
+                        ? ", async () =>"
+                        : ", async (global::NetCord.Rest.RestMessage message) =>")
+                    .AppendLine();
+                builder.AppendLine("        {");
+                builder.AppendLine("            await using var scope = app.Services.CreateAsyncScope();");
+                builder.Append("            var handler = scope.ServiceProvider.GetRequiredService<")
+                    .Append(info.TypeName)
+                    .AppendLine(">();");
+                builder.Append("            return await handler.")
+                    .Append(info.EntryPoint)
+                    .Append(info.Parameters.Length == 0 ? "()" : "(message)")
+                    .AppendLine(";");
+                builder.AppendLine("        });");
+                builder.AppendLine();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(info.Kind), info.Kind, null);
+        }
     }
 
-    private static CommandHandlerResult CreateCommandHandlerInfo(GeneratorAttributeSyntaxContext context)
+    private static CommandHandlerResult CreateCommandHandlerInfo(GeneratorAttributeSyntaxContext context, CommandKind kind)
     {
         if (context.TargetSymbol is not INamedTypeSymbol classSymbol)
         {
@@ -160,7 +214,10 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
             ? attributeSyntax.GetLocation()
             : classSymbol.Locations.FirstOrDefault() ?? Location.None;
 
-        var commandContextType = context.SemanticModel.Compilation.GetTypeByMetadataName("WasabiBot.Api.Infrastructure.Discord.Abstractions.ICommandContext");
+        var commandContextType = context.SemanticModel.Compilation.GetTypeByMetadataName(
+            kind == CommandKind.Slash
+                ? "WasabiBot.Api.Infrastructure.Discord.Abstractions.ICommandContext"
+                : "NetCord.Rest.RestMessage");
         if (commandContextType is null)
         {
             return CommandHandlerResult.Empty;
@@ -171,13 +228,15 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
         var commandName = attribute.ConstructorArguments.Length > 0
             ? attribute.ConstructorArguments[0].Value as string
             : classSymbol.Name;
-        var description = attribute.ConstructorArguments.Length > 1
+        var description = kind == CommandKind.Slash && attribute.ConstructorArguments.Length > 1
             ? attribute.ConstructorArguments[1].Value as string ?? string.Empty
             : string.Empty;
-        var entryPoint = attribute.ConstructorArguments.Length > 2 &&
-                         attribute.ConstructorArguments[2].Value is string entryName
-            ? entryName
-            : "ExecuteAsync";
+        var entryPoint = kind switch
+        {
+            CommandKind.Slash when attribute.ConstructorArguments.Length > 2 && attribute.ConstructorArguments[2].Value is string slashEntryName => slashEntryName,
+            CommandKind.Message when attribute.ConstructorArguments.Length > 1 && attribute.ConstructorArguments[1].Value is string messageEntryName => messageEntryName,
+            _ => "ExecuteAsync"
+        };
 
         var entryMethod = classSymbol.GetMembers()
             .OfType<IMethodSymbol>()
@@ -189,15 +248,36 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
             return CommandHandlerResult.FromDiagnostic(Diagnostic.Create(EntryPointNotFound, attributeLocation, targetTypeName, entryPoint));
         }
 
-        var entryMethodWithContext = entryMethod
-            .Where(m => m.Parameters.Length > 0 && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, commandContextType))
-            .OrderByDescending(m => m.Parameters.Length)
-            .ThenBy(m => m.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))
-            .FirstOrDefault();
+        var entryMethodWithContext = kind == CommandKind.Message
+            ? entryMethod
+                .Where(m => m.Parameters.Length == 0 ||
+                            (m.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, commandContextType)))
+                .OrderByDescending(m => m.Parameters.Length)
+                .ThenBy(m => m.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))
+                .FirstOrDefault()
+            : entryMethod
+                .Where(m => m.Parameters.Length > 0 && SymbolEqualityComparer.Default.Equals(m.Parameters[0].Type, commandContextType))
+                .OrderByDescending(m => m.Parameters.Length)
+                .ThenBy(m => m.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))
+                .FirstOrDefault();
 
         if (entryMethodWithContext is null)
         {
-            return CommandHandlerResult.FromDiagnostic(Diagnostic.Create(InvalidEntryPointSignature, attributeLocation, targetTypeName, entryPoint));
+            return CommandHandlerResult.FromDiagnostic(Diagnostic.Create(
+                InvalidEntryPointSignature,
+                attributeLocation,
+                targetTypeName,
+                entryPoint,
+                commandContextType.ToDisplayString(TypeDisplayFormat)));
+        }
+
+        if (kind == CommandKind.Message && entryMethodWithContext.Parameters.Length > 1)
+        {
+            return CommandHandlerResult.FromDiagnostic(Diagnostic.Create(
+                InvalidMessageCommandParameters,
+                attributeLocation,
+                targetTypeName,
+                entryPoint));
         }
 
         var parameters = entryMethodWithContext.Parameters
@@ -221,6 +301,7 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
             commandName ?? classSymbol.Name,
             description,
             entryMethodWithContext.Name,
+            kind,
             parameters));
     }
 
@@ -326,12 +407,14 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
             string commandName,
             string description,
             string entryPoint,
+            CommandKind kind,
             ImmutableArray<CommandParameterInfo> parameters)
         {
             TypeName = typeName;
             CommandName = commandName;
             Description = description;
             EntryPoint = entryPoint;
+            Kind = kind;
             Parameters = parameters;
         }
 
@@ -339,7 +422,14 @@ public sealed class CommandHandlerGenerator : IIncrementalGenerator
         public string CommandName { get; }
         public string Description { get; }
         public string EntryPoint { get; }
+        public CommandKind Kind { get; }
         public ImmutableArray<CommandParameterInfo> Parameters { get; }
+    }
+
+    private enum CommandKind
+    {
+        Slash,
+        Message
     }
 
     private sealed class CommandParameterInfo

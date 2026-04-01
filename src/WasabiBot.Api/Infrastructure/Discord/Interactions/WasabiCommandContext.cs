@@ -4,16 +4,10 @@ using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 
 namespace WasabiBot.Api.Infrastructure.Discord.Interactions;
 
-public sealed class WasabiCommandContext : ICommandContext
+public sealed class WasabiCommandContext(IApplicationCommandContext inner) : ICommandContext
 {
-    private readonly InteractionResponder _responder;
-    private readonly Interaction _interaction;
-
-    public WasabiCommandContext(ApplicationCommandContext inner)
-    {
-        _responder = InteractionResponder.Create(inner, TimeProvider.System);
-        _interaction = inner.Interaction;
-    }
+    private readonly InteractionResponder _responder = InteractionResponder.Create(inner, TimeProvider.System);
+    private readonly Interaction _interaction = inner.Interaction;
 
     public ulong ChannelId => _interaction.Channel.Id;
     public ulong UserId => _interaction.User.Id;

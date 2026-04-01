@@ -75,7 +75,7 @@ public sealed class InteractionResponder : IAsyncDisposable
     /// <param name="ctx">The application command context.</param>
     /// <param name="timeProvider"></param>
     /// <returns>A new <see cref="InteractionResponder"/> instance (caller is responsible for disposing).</returns>
-    public static InteractionResponder Create(ApplicationCommandContext ctx, TimeProvider timeProvider, int deferMilliseconds = 2500)
+    public static InteractionResponder Create(IApplicationCommandContext ctx, TimeProvider timeProvider, int deferMilliseconds = 2500)
     {
         var deferCutoff = ctx.Interaction.CreatedAt + TimeSpan.FromMilliseconds(deferMilliseconds);
         var remaining = deferCutoff - timeProvider.GetUtcNow();

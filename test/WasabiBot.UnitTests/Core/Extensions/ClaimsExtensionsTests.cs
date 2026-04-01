@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using WasabiBot.Api.Core.Extensions;
 using WasabiBot.UnitTests.Builders;
 
