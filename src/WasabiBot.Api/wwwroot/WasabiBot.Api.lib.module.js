@@ -1,5 +1,4 @@
 import { initializeTheme, initializeThemeControls, syncTheme } from '/js/theme.js';
-import { initializeCredentialsPage } from '/js/credentials-page.js';
 
 let initialized = false;
 
@@ -13,10 +12,8 @@ export function afterWebStarted(blazor) {
         initialized = true;
     }
 
-    initializeCredentialsPage();
     syncTheme();
     blazor.addEventListener('enhancedload', function() {
-        initializeCredentialsPage();
         syncTheme();
     });
 }
