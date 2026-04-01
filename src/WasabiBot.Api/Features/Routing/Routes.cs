@@ -38,7 +38,7 @@ public static class Routes
         var v1 = app.MapGroup("/api/v1")
             .WithTags("API v1");
 
-        var credentials = v1.MapGroup("/credentials")
+        var credentials = v1.MapGroup("/creds")
             .WithTags("Credentials")
             .RequireAuthorization("DiscordGuildMember");
 
