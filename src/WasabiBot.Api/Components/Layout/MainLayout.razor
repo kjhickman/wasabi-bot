@@ -9,7 +9,7 @@
 
             <AuthorizeView>
                 <Authorized Context="authState">
-                    @{ 
+                    @{
                         var displayName = authState.User.DisplayName;
                         var avatarUrl = authState.User.DiscordAvatarUrl;
                         var avatarInitial = displayName[..1].ToUpperInvariant();
@@ -22,7 +22,7 @@
                                 aria-label="Signed in user menu"
                                 aria-expanded="false"
                                 aria-controls="account-menu-panel"
-                                onclick="window.wasabiToggleAccountMenu(this)">
+                                data-account-menu-toggle>
                             @if (!string.IsNullOrWhiteSpace(avatarUrl))
                             {
                                 <img id="header-user-avatar" class="account-avatar" src="@avatarUrl" alt="" />
@@ -38,7 +38,7 @@
                         <div id="account-menu-panel" class="account-menu__panel" data-account-menu-panel hidden>
                             <label class="theme-menu" for="theme-select">
                                 <span class="theme-menu__label">Theme</span>
-                                <select id="theme-select" data-theme-select onchange="window.wasabiThemeApply(this.value)">
+                                <select id="theme-select" data-theme-select>
                                     <option value="system" selected>System</option>
                                     <option value="dark">Dark</option>
                                     <option value="light">Light</option>

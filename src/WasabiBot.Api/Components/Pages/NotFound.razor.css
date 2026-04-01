@@ -1,0 +1,20 @@
+.empty-state {
+    display: grid;
+    place-items: start;
+}
+
+.empty-state h1 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.02;
+    text-wrap: balance;
+    outline: none;
+}
+
+.empty-state h1:focus {
+    outline: none;
+}
+
+.empty-state p {
+    margin: 0;
+}

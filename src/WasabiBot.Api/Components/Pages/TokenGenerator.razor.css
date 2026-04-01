@@ -1,0 +1,20 @@
+.token-panel {
+    gap: 0.75rem;
+}
+
+.token-action-button {
+    width: auto;
+    margin: 0;
+    min-width: 13.5rem;
+    justify-content: center;
+    border-radius: 999px;
+}
+
+.token-help {
+    margin: 0;
+    color: var(--pico-muted-color);
+}
+
+.token-help a {
+    margin: 0;
+}
