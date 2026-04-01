@@ -5,6 +5,7 @@ namespace WasabiBot.Api.Persistence;
 
 public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options) : DbContext(options)
 {
+    public DbSet<ApiCredentialEntity> ApiCredentials => Set<ApiCredentialEntity>();
     public DbSet<InteractionEntity> Interactions => Set<InteractionEntity>();
     public DbSet<ReminderEntity> Reminders => Set<ReminderEntity>();
 
@@ -15,6 +16,16 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
         modelBuilder.Entity<InteractionEntity>(builder =>
         {
             builder.Property(e => e.Data).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<ApiCredentialEntity>(builder =>
+        {
+            builder.ToTable("ApiCredentials");
+            builder.Property(e => e.Name).HasColumnType("text");
+            builder.Property(e => e.ClientId).HasColumnType("text");
+            builder.Property(e => e.SecretHash).HasColumnType("text");
+            builder.HasIndex(e => e.ClientId).IsUnique();
+            builder.HasIndex(e => e.OwnerDiscordUserId);
         });
 
         modelBuilder.Entity<ReminderEntity>(builder =>
