@@ -22,6 +22,8 @@
                                 aria-label="Signed in user menu"
                                 aria-expanded="false"
                                 aria-controls="account-menu-panel"
+                                popovertarget="account-menu-panel"
+                                popovertargetaction="toggle"
                                 data-account-menu-toggle>
                             @if (!string.IsNullOrWhiteSpace(avatarUrl))
                             {
@@ -35,7 +37,7 @@
                             <span class="account-summary__name" id="header-user-name">@displayName</span>
                         </button>
 
-                        <div id="account-menu-panel" class="account-menu__panel" data-account-menu-panel hidden>
+                        <div id="account-menu-panel" class="account-menu__panel" popover="auto" data-account-menu-panel>
                             <label class="theme-menu" for="theme-select">
                                 <span class="theme-menu__label">Theme</span>
                                 <select id="theme-select" data-theme-select>
