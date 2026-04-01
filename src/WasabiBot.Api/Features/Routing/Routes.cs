@@ -1,5 +1,6 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using WasabiBot.Api.Features.Auth;
+using WasabiBot.Api.Features.Credentials;
 using WasabiBot.Api.Features.Interactions;
 using WasabiBot.Api.Features.Token;
 using WasabiBot.Api.Infrastructure.Auth;
@@ -35,6 +36,33 @@ public static class Routes
             .Produces<TokenResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithTags("Token");
+
+        var credentials = v1.MapGroup("/credentials")
+            .WithTags("Credentials")
+            .RequireAuthorization("DiscordGuildMember");
+
+        credentials.MapGet("/", ListCredentials.Handle)
+            .WithDisplayName("List Credentials")
+            .WithDescription("Lists API credentials for the authenticated user.")
+            .Produces<CredentialResponse[]>();
+
+        credentials.MapPost("/", CreateCredential.Handle)
+            .WithDisplayName("Create Credential")
+            .WithDescription("Creates a new API credential for the authenticated user.")
+            .Produces<CredentialIssueResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        credentials.MapDelete("/{id:long}", DeleteCredential.Handle)
+            .WithDisplayName("Delete Credential")
+            .WithDescription("Revokes an API credential owned by the authenticated user.")
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        credentials.MapPost("/{id:long}/regenerate-secret", RegenerateCredentialSecret.Handle)
+            .WithDisplayName("Regenerate Credential Secret")
+            .WithDescription("Regenerates the secret for an API credential owned by the authenticated user.")
+            .Produces<CredentialIssueResponse>()
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         var interactions = v1.MapGroup("/interactions")
             .WithTags("Interactions");
