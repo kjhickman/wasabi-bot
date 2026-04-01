@@ -2,7 +2,7 @@ using System.Security.Claims;
 using WasabiBot.Api.Features.Auth;
 using WasabiBot.Api.Features.Credentials;
 using WasabiBot.Api.Features.Interactions;
-using WasabiBot.Api.Features.Token;
+using WasabiBot.Api.Features.OAuth;
 using WasabiBot.Api.Infrastructure.Auth;
 
 namespace WasabiBot.Api.Features.Routing;
@@ -25,17 +25,18 @@ public static class Routes
             .WithDescription("Logs the user out of the application.")
             .RequireAuthorization();
 
+        app.MapPost("/oauth/token", GetOAuthToken.Handle)
+            .WithDisplayName("OAuth Token")
+            .WithDescription("Exchanges API client credentials for a short-lived access token.")
+            .AllowAnonymous()
+            .DisableAntiforgery()
+            .Produces<TokenResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithTags("OAuth");
+
         // API v1 endpoints
         var v1 = app.MapGroup("/api/v1")
             .WithTags("API v1");
-
-        v1.MapPost("/token", (HttpContext httpContext, ClaimsPrincipal user, ApiTokenFactory tokenFactory) => GetToken.Handle(httpContext, user, tokenFactory))
-            .WithDisplayName("API Token")
-            .WithDescription("Generates a new API token for the authenticated user.")
-            .RequireAuthorization("DiscordGuildMember")
-            .Produces<TokenResponse>()
-            .ProducesProblem(StatusCodes.Status400BadRequest)
-            .WithTags("Token");
 
         var credentials = v1.MapGroup("/credentials")
             .WithTags("Credentials")
