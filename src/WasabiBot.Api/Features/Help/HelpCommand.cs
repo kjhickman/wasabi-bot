@@ -4,14 +4,9 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 namespace WasabiBot.Api.Features.Help;
 
 [CommandHandler("help", "Shows all available commands and helpful links.")]
-internal sealed class HelpCommand
+internal sealed class HelpCommand(ILogger<HelpCommand> logger)
 {
-    private readonly ILogger<HelpCommand> _logger;
-
-    public HelpCommand(ILogger<HelpCommand> logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<HelpCommand> _logger = logger;
 
     public async Task ExecuteAsync(ICommandContext ctx)
     {
@@ -49,6 +44,7 @@ internal sealed class HelpCommand
         sb.AppendLine("### Fun");
         sb.AppendLine("• `/conch` - Ask the magic conch a yes/no question");
         sb.AppendLine("• `/choose` - Choose randomly from 2-7 options");
+        sb.AppendLine("• `/flip` - Flip a coin");
         sb.AppendLine("• `/caption` - Generate a funny caption for an image");
 
         // Utility commands
@@ -64,4 +60,3 @@ internal sealed class HelpCommand
         return sb.ToString();
     }
 }
-
