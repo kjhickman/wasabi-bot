@@ -1,18 +1,18 @@
 :root {
     --wasabi-shell-max-width: 72rem;
-    --wasabi-surface-border: color-mix(in srgb, var(--pico-primary) 14%, transparent);
-    --wasabi-surface-border-strong: color-mix(in srgb, var(--pico-primary) 28%, transparent);
-    --wasabi-surface-glow: color-mix(in srgb, var(--pico-primary) 12%, transparent);
-    --wasabi-header-background: color-mix(in srgb, var(--pico-background-color) 95%, var(--pico-primary) 5%);
-    --wasabi-surface-background: color-mix(in srgb, var(--pico-card-background-color) 93%, var(--pico-primary) 7%);
-    --wasabi-surface-accent-background: color-mix(in srgb, var(--pico-primary) 10%, var(--pico-card-background-color) 90%);
-    --wasabi-popover-background: color-mix(in srgb, var(--pico-card-background-color) 96%, var(--pico-primary) 4%);
-    --wasabi-pill-background: color-mix(in srgb, var(--pico-card-background-color) 97%, var(--pico-primary) 3%);
-    --wasabi-pill-background-hover: color-mix(in srgb, var(--pico-card-background-color) 94%, var(--pico-primary) 6%);
-    --wasabi-pill-background-active: color-mix(in srgb, var(--pico-card-background-color) 92%, var(--pico-primary) 8%);
-    --wasabi-soft-button-background: color-mix(in srgb, var(--pico-card-background-color) 95%, var(--pico-primary) 5%);
-    --wasabi-soft-button-background-hover: color-mix(in srgb, var(--pico-card-background-color) 91%, var(--pico-primary) 9%);
-    --wasabi-elevation-shadow-color: color-mix(in srgb, black 55%, var(--pico-primary) 45%);
+    --wasabi-surface-border: color-mix(in oklch, var(--pico-primary) 14%, transparent);
+    --wasabi-surface-border-strong: color-mix(in oklch, var(--pico-primary) 28%, transparent);
+    --wasabi-surface-glow: color-mix(in oklch, var(--pico-primary) 12%, transparent);
+    --wasabi-header-background: color-mix(in oklch, var(--pico-background-color) 95%, var(--pico-primary) 5%);
+    --wasabi-surface-background: color-mix(in oklch, var(--pico-card-background-color) 93%, var(--pico-primary) 7%);
+    --wasabi-surface-accent-background: color-mix(in oklch, var(--pico-primary) 10%, var(--pico-card-background-color) 90%);
+    --wasabi-popover-background: color-mix(in oklch, var(--pico-card-background-color) 96%, var(--pico-primary) 4%);
+    --wasabi-pill-background: color-mix(in oklch, var(--pico-card-background-color) 97%, var(--pico-primary) 3%);
+    --wasabi-pill-background-hover: color-mix(in oklch, var(--pico-card-background-color) 94%, var(--pico-primary) 6%);
+    --wasabi-pill-background-active: color-mix(in oklch, var(--pico-card-background-color) 92%, var(--pico-primary) 8%);
+    --wasabi-soft-button-background: color-mix(in oklch, var(--pico-card-background-color) 95%, var(--pico-primary) 5%);
+    --wasabi-soft-button-background-hover: color-mix(in oklch, var(--pico-card-background-color) 91%, var(--pico-primary) 9%);
+    --wasabi-elevation-shadow-color: color-mix(in oklch, black 55%, var(--pico-primary) 45%);
 }
 
 [data-theme="dark"] {
@@ -50,12 +50,12 @@
     --pico-card-sectioning-background-color: #1b231e;
     --pico-dropdown-background-color: #242e28;
     --pico-dropdown-border-color: #39463f;
-    --wasabi-surface-border: color-mix(in srgb, var(--pico-primary) 10%, var(--pico-muted-border-color) 90%);
-    --wasabi-surface-border-strong: color-mix(in srgb, var(--pico-primary) 22%, var(--pico-muted-border-color) 78%);
+    --wasabi-surface-border: color-mix(in oklch, var(--pico-primary) 10%, var(--pico-muted-border-color) 90%);
+    --wasabi-surface-border-strong: color-mix(in oklch, var(--pico-primary) 22%, var(--pico-muted-border-color) 78%);
     --wasabi-surface-glow: transparent;
     --wasabi-header-background: #1d2520;
     --wasabi-surface-background: #222b25;
-    --wasabi-surface-accent-background: color-mix(in srgb, var(--pico-primary) 7%, var(--pico-card-background-color) 93%);
+    --wasabi-surface-accent-background: color-mix(in oklch, var(--pico-primary) 7%, var(--pico-card-background-color) 93%);
     --wasabi-popover-background: #252f29;
     --wasabi-pill-background: #252f29;
     --wasabi-pill-background-hover: #2a352f;
@@ -76,9 +76,7 @@ body {
     margin-inline: auto;
 }
 
-.stack-sm,
-.stack-md,
-.stack-lg {
+:where(.stack-sm, .stack-md, .stack-lg) {
     display: grid;
 }
 
@@ -112,8 +110,7 @@ body {
     box-shadow: 0 1rem 2.5rem -2rem var(--wasabi-elevation-shadow-color);
 }
 
-.surface-card > header,
-.surface-card > footer {
+:where(.surface-card > header, .surface-card > footer) {
     background: transparent;
 }
 

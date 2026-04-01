@@ -7,10 +7,10 @@
 .dashboard-grid {
     display: grid;
     gap: 1rem;
-}
 
-.dashboard-grid > .surface-card {
-    height: 100%;
+    & > .surface-card {
+        height: 100%;
+    }
 }
 
 .page-heading {
@@ -18,21 +18,18 @@
     margin-bottom: 0.5rem;
 }
 
-.page-heading h1,
-.landing-signin h1 {
+:is(.page-heading, .landing-signin) h1 {
     margin: 0;
     font-size: clamp(2rem, 4vw, 3rem);
     line-height: 1.02;
     text-wrap: balance;
 }
 
-.page-heading h1:focus,
-.landing-signin h1:focus {
+:is(.page-heading, .landing-signin) h1:focus {
     outline: none;
 }
 
-.section-copy,
-.placeholder-card__status {
+:where(.section-copy, .placeholder-card__status) {
     margin: 0;
 }
 
@@ -56,11 +53,10 @@
 
 .placeholder-card {
     align-content: space-between;
-}
 
-.placeholder-card h2,
-.placeholder-card p {
-    margin: 0;
+    & :is(h2, p) {
+        margin: 0;
+    }
 }
 
 .placeholder-card__status {
