@@ -22,7 +22,6 @@
     font-size: clamp(2rem, 4vw, 3rem);
     line-height: 1.02;
     text-wrap: balance;
-    outline: none;
 }
 
 .page-heading h1:focus,
@@ -44,7 +43,7 @@
 .landing-signin {
     display: grid;
     place-items: center;
-    min-height: clamp(24rem, 62vh, 34rem);
+    min-height: clamp(24rem, 62dvh, 34rem);
     text-align: center;
 }
 
