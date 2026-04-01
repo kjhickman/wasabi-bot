@@ -48,6 +48,7 @@
                             </label>
 
                             <form action="/auth/logout" method="post" class="logout-form">
+                                <AntiforgeryToken />
                                 <button id="logout-button" type="submit" class="secondary outline">Log out</button>
                             </form>
                         </div>
