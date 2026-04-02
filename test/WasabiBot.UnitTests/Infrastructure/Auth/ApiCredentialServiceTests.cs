@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Auth;
@@ -16,7 +18,7 @@ public class ApiCredentialServiceTests
     {
         await using var context = CreateContext();
         var secretService = CreateSecretService();
-        var service = new ApiCredentialService(context, secretService, Tracer);
+        var service = CreateService(context, secretService);
 
         var result = await service.CreateAsync(123456789, " CLI integration ");
 
@@ -48,7 +50,7 @@ public class ApiCredentialServiceTests
         secretService.CreateClientSecret().Returns("secret-1");
         secretService.HashSecret("secret-1").Returns("hash-secret-1");
 
-        var service = new ApiCredentialService(context, secretService, Tracer);
+        var service = CreateService(context, secretService);
 
         var result = await service.CreateAsync(2, "New credential");
 
@@ -88,12 +90,60 @@ public class ApiCredentialServiceTests
             });
         await context.SaveChangesAsync();
 
-        var service = new ApiCredentialService(context, CreateSecretService(), Tracer);
+        var service = CreateService(context, CreateSecretService());
 
         var credentials = await service.ListAsync(7);
 
         await Assert.That(credentials.Length).IsEqualTo(1);
         await Assert.That(credentials[0].ClientId).IsEqualTo("wb_one");
+    }
+
+    [Test]
+    public async Task ListAsync_ShouldUseCacheAcrossCalls()
+    {
+        await using var context = CreateContext();
+        context.ApiCredentials.Add(new ApiCredentialEntity
+        {
+            OwnerDiscordUserId = 7,
+            Name = "First",
+            ClientId = "wb_one",
+            SecretHash = "hash-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context, CreateSecretService());
+
+        var firstResult = await service.ListAsync(7);
+
+        context.ApiCredentials.Add(new ApiCredentialEntity
+        {
+            OwnerDiscordUserId = 7,
+            Name = "Second",
+            ClientId = "wb_two",
+            SecretHash = "hash-2",
+            CreatedAt = DateTimeOffset.UtcNow.AddSeconds(1),
+        });
+        await context.SaveChangesAsync();
+
+        var secondResult = await service.ListAsync(7);
+
+        await Assert.That(firstResult.Length).IsEqualTo(1);
+        await Assert.That(secondResult.Length).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task CreateAsync_ShouldInvalidateListCache()
+    {
+        await using var context = CreateContext();
+        var service = CreateService(context, CreateSecretService());
+
+        var firstResult = await service.ListAsync(7);
+        await service.CreateAsync(7, "Created later");
+        var secondResult = await service.ListAsync(7);
+
+        await Assert.That(firstResult.Length).IsEqualTo(0);
+        await Assert.That(secondResult.Length).IsEqualTo(1);
     }
 
     [Test]
@@ -111,7 +161,7 @@ public class ApiCredentialServiceTests
         context.ApiCredentials.Add(credential);
         await context.SaveChangesAsync();
 
-        var service = new ApiCredentialService(context, CreateSecretService(), Tracer);
+        var service = CreateService(context, CreateSecretService());
 
         var notOwnedResult = await service.RevokeAsync(99, credential.Id);
         var ownedResult = await service.RevokeAsync(55, credential.Id);
@@ -137,7 +187,7 @@ public class ApiCredentialServiceTests
         await context.SaveChangesAsync();
 
         var secretService = CreateSecretService();
-        var service = new ApiCredentialService(context, secretService, Tracer);
+        var service = CreateService(context, secretService);
 
         var result = await service.RegenerateSecretAsync(55, credential.Id);
 
@@ -162,11 +212,46 @@ public class ApiCredentialServiceTests
         context.ApiCredentials.Add(credential);
         await context.SaveChangesAsync();
 
-        var service = new ApiCredentialService(context, CreateSecretService(), Tracer);
+        var service = CreateService(context, CreateSecretService());
 
         var result = await service.RegenerateSecretAsync(55, credential.Id);
 
         await Assert.That(result).IsNull();
+    }
+
+    [Test]
+    public async Task RegenerateSecretAsync_ShouldNotInvalidateListCache()
+    {
+        await using var context = CreateContext();
+        var credential = new ApiCredentialEntity
+        {
+            OwnerDiscordUserId = 55,
+            Name = "Owned credential",
+            ClientId = "wb_owned",
+            SecretHash = "hash-old",
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        context.ApiCredentials.Add(credential);
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context, CreateSecretService());
+
+        var firstResult = await service.ListAsync(55);
+        await service.RegenerateSecretAsync(55, credential.Id);
+        context.ApiCredentials.Add(new ApiCredentialEntity
+        {
+            OwnerDiscordUserId = 55,
+            Name = "Later credential",
+            ClientId = "wb_later",
+            SecretHash = "hash-later",
+            CreatedAt = DateTimeOffset.UtcNow.AddSeconds(1),
+        });
+        await context.SaveChangesAsync();
+
+        var secondResult = await service.ListAsync(55);
+
+        await Assert.That(firstResult.Length).IsEqualTo(1);
+        await Assert.That(secondResult.Length).IsEqualTo(1);
     }
 
     [Test]
@@ -186,7 +271,7 @@ public class ApiCredentialServiceTests
 
         var secretService = CreateSecretService();
         secretService.VerifySecret("secret-1", "hash-secret-1").Returns(true);
-        var service = new ApiCredentialService(context, secretService, Tracer);
+        var service = CreateService(context, secretService);
 
         var result = await service.ValidateAsync("wb_owned", "secret-1");
 
@@ -211,7 +296,7 @@ public class ApiCredentialServiceTests
 
         var secretService = CreateSecretService();
         secretService.VerifySecret("wrong-secret", "hash-secret-1").Returns(false);
-        var service = new ApiCredentialService(context, secretService, Tracer);
+        var service = CreateService(context, secretService);
 
         var result = await service.ValidateAsync("wb_owned", "wrong-secret");
 
@@ -220,10 +305,70 @@ public class ApiCredentialServiceTests
     }
 
     [Test]
+    public async Task ValidateAsync_ShouldUseCachedCredentialLookupAcrossCalls()
+    {
+        await using var context = CreateContext();
+        context.ApiCredentials.Add(new ApiCredentialEntity
+        {
+            OwnerDiscordUserId = 123,
+            Name = "Owned credential",
+            ClientId = "wb_owned",
+            SecretHash = "hash-secret-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await context.SaveChangesAsync();
+
+        var secretService = CreateSecretService();
+        secretService.VerifySecret("secret-1", "hash-secret-1").Returns(true);
+        var service = CreateService(context, secretService);
+
+        var firstResult = await service.ValidateAsync("wb_owned", "secret-1");
+
+        var storedCredential = await context.ApiCredentials.SingleAsync();
+        storedCredential.Name = "Renamed after cache";
+        await context.SaveChangesAsync();
+
+        var secondResult = await service.ValidateAsync("wb_owned", "secret-1");
+
+        await Assert.That(firstResult).IsNotNull();
+        await Assert.That(secondResult).IsNotNull();
+        await Assert.That(secondResult!.Name).IsEqualTo("Owned credential");
+    }
+
+    [Test]
+    public async Task RegenerateSecretAsync_ShouldInvalidateValidationCache()
+    {
+        await using var context = CreateContext();
+        var credential = new ApiCredentialEntity
+        {
+            OwnerDiscordUserId = 123,
+            Name = "Owned credential",
+            ClientId = "wb_owned",
+            SecretHash = "hash-secret-1",
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        context.ApiCredentials.Add(credential);
+        await context.SaveChangesAsync();
+
+        var secretService = CreateSecretService();
+        secretService.VerifySecret("secret-1", "hash-secret-1").Returns(true);
+        secretService.VerifySecret("secret-1", "hash-secret-2").Returns(false);
+        secretService.HashSecret("secret-1").Returns("hash-secret-2");
+        var service = CreateService(context, secretService);
+
+        var firstResult = await service.ValidateAsync("wb_owned", "secret-1");
+        await service.RegenerateSecretAsync(123, credential.Id);
+        var secondResult = await service.ValidateAsync("wb_owned", "secret-1");
+
+        await Assert.That(firstResult).IsNotNull();
+        await Assert.That(secondResult).IsNull();
+    }
+
+    [Test]
     public async Task CreateAsync_WithBlankName_ShouldThrow()
     {
         await using var context = CreateContext();
-        var service = new ApiCredentialService(context, CreateSecretService(), Tracer);
+        var service = CreateService(context, CreateSecretService());
 
         await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(1, "   "));
     }
@@ -232,7 +377,7 @@ public class ApiCredentialServiceTests
     public async Task CreateAsync_WithControlCharactersInName_ShouldThrow()
     {
         await using var context = CreateContext();
-        var service = new ApiCredentialService(context, CreateSecretService(), Tracer);
+        var service = CreateService(context, CreateSecretService());
 
         await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(1, "CLI\nIntegration"));
     }
@@ -241,7 +386,7 @@ public class ApiCredentialServiceTests
     public async Task CreateAsync_WithNameLongerThan100Characters_ShouldThrow()
     {
         await using var context = CreateContext();
-        var service = new ApiCredentialService(context, CreateSecretService(), Tracer);
+        var service = CreateService(context, CreateSecretService());
         var longName = new string('a', 101);
 
         await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(1, longName));
@@ -264,5 +409,20 @@ public class ApiCredentialServiceTests
         secretService.HashSecret("secret-1").Returns("hash-secret-1");
         secretService.VerifySecret(Arg.Any<string>(), Arg.Any<string>()).Returns(false);
         return secretService;
+    }
+
+    private static ApiCredentialService CreateService(WasabiBotContext context, IApiCredentialSecretService secretService)
+    {
+        var services = new ServiceCollection();
+        services.AddHybridCache();
+
+        var provider = services.BuildServiceProvider();
+        var cache = provider.GetRequiredService<HybridCache>();
+
+        return new ApiCredentialService(
+            context,
+            secretService,
+            cache,
+            Tracer);
     }
 }
