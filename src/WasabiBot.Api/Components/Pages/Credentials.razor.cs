@@ -31,15 +31,18 @@ public partial class Credentials : ComponentBase
     private long? RequestedCredentialId { get; set; }
 
     [SupplyParameterFromForm(FormName = "create-credential")]
-    private CreateCredentialFormInput? CreateCredentialForm { get; set; }
+    private CreateCredentialFormInput CreateCredentialForm { get; set; } = new();
 
     [SupplyParameterFromForm(FormName = "confirm-credential")]
-    private ConfirmCredentialFormInput? ConfirmCredentialForm { get; set; }
+    private ConfirmCredentialFormInput ConfirmCredentialForm { get; set; } = new();
 
-    private string CreateCredentialFormName => CreateCredentialForm?.Name ?? string.Empty;
+    private string CreateCredentialFormName => CreateCredentialForm.Name;
 
     protected override async Task OnParametersSetAsync()
     {
+        CreateCredentialForm ??= new();
+        ConfirmCredentialForm ??= new();
+
         IssuedCredential = null;
         CreateCredentialError = null;
         ConfirmError = null;
@@ -61,7 +64,6 @@ public partial class Credentials : ComponentBase
 
         OwnerDiscordUserId = ownerDiscordUserId;
         await LoadCredentialsAsync();
-        await ProcessPostAsync();
     }
 
     private bool ShowCreateModal => IssuedCredential is null
@@ -76,11 +78,6 @@ public partial class Credentials : ComponentBase
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(ConfirmCredentialForm?.Intent))
-            {
-                return ParseAction(ConfirmCredentialForm?.Action);
-            }
-
             return RequestedModal switch
             {
                 "delete" => PendingCredentialAction.Delete,
@@ -92,18 +89,7 @@ public partial class Credentials : ComponentBase
 
     private ApiCredentialSummary? ConfirmCredential => RequestedCredentialId is long requestedCredentialId
         ? CredentialRows.FirstOrDefault(c => c.Id == requestedCredentialId)
-        : ConfirmCredentialForm?.CredentialId is long postedCredentialId
-            ? CredentialRows.FirstOrDefault(c => c.Id == postedCredentialId)
-            : null;
-
-    private long ConfirmCredentialId => ConfirmCredential?.Id ?? RequestedCredentialId ?? ConfirmCredentialForm?.CredentialId ?? 0;
-
-    private string CurrentConfirmActionName => CurrentConfirmAction switch
-    {
-        PendingCredentialAction.Delete => "delete",
-        PendingCredentialAction.Regenerate => "regenerate",
-        _ => string.Empty,
-    };
+        : null;
 
     private string ConfirmTitle => CurrentConfirmAction switch
     {
@@ -145,23 +131,14 @@ public partial class Credentials : ComponentBase
         }
     }
 
-    private async Task ProcessPostAsync()
+    private async Task HandleCreateSubmit()
     {
-        if (OwnerDiscordUserId is null)
-        {
-            return;
-        }
+        await CreateCredentialAsync();
+    }
 
-        if (string.Equals(CreateCredentialForm?.Intent, "create", StringComparison.Ordinal))
-        {
-            await CreateCredentialAsync();
-            return;
-        }
-
-        if (string.Equals(ConfirmCredentialForm?.Intent, "confirm", StringComparison.Ordinal))
-        {
-            await ConfirmPendingActionAsync();
-        }
+    private async Task HandleConfirmSubmit()
+    {
+        await ConfirmPendingActionAsync();
     }
 
     private async Task CreateCredentialAsync()
@@ -183,7 +160,7 @@ public partial class Credentials : ComponentBase
             await LoadCredentialsAsync();
 
             IssuedCredential = issuedCredential;
-            CreateCredentialForm = null;
+            CreateCredentialForm = new();
         }
         catch (ArgumentException ex)
         {
@@ -216,7 +193,6 @@ public partial class Credentials : ComponentBase
                 case PendingCredentialAction.Delete:
                     await ApiCredentialService.RevokeAsync(OwnerDiscordUserId.Value, credential.Id);
                     await LoadCredentialsAsync();
-                    ConfirmCredentialForm = null;
                     break;
                 case PendingCredentialAction.Regenerate:
                     var issuedCredential = await ApiCredentialService.RegenerateSecretAsync(OwnerDiscordUserId.Value, credential.Id);
@@ -228,7 +204,6 @@ public partial class Credentials : ComponentBase
 
                     await LoadCredentialsAsync();
                     IssuedCredential = issuedCredential;
-                    ConfirmCredentialForm = null;
                     break;
             }
         }
@@ -268,24 +243,13 @@ public partial class Credentials : ComponentBase
             : null;
     }
 
-    private static PendingCredentialAction? ParseAction(string? value) => value switch
-    {
-        "delete" => PendingCredentialAction.Delete,
-        "regenerate" => PendingCredentialAction.Regenerate,
-        _ => null,
-    };
-
     private sealed class CreateCredentialFormInput
     {
-        public string? Intent { get; set; }
         public string Name { get; set; } = string.Empty;
     }
 
     private sealed class ConfirmCredentialFormInput
     {
-        public string? Intent { get; set; }
-        public string? Action { get; set; }
-        public long? CredentialId { get; set; }
     }
 
     private enum PendingCredentialAction

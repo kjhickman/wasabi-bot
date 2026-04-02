@@ -55,6 +55,7 @@ public class CredentialsComponentTests : IDisposable
 
         await Assert.That(cut.Find("#credentials-create-open-button").TextContent.Trim()).IsEqualTo("Create");
         await Assert.That(cut.Find("#credentials-create-open-button").GetAttribute("href")).IsEqualTo("/creds?modal=create");
+        await Assert.That(cut.Find("#credential-name-input").GetAttribute("name")).IsEqualTo("CreateCredentialForm.Name");
         await Assert.That(cut.Find("#credential-name-input").GetAttribute("maxlength")).IsEqualTo("100");
         await Assert.That(cut.Find("#credential-name-input").GetAttribute("placeholder")).IsEqualTo("My api creds");
         await Assert.That(cut.FindAll("#credentials-secret-modal").Count).IsEqualTo(0);
@@ -65,6 +66,30 @@ public class CredentialsComponentTests : IDisposable
         await Assert.That(cut.Markup).Contains("Create a credential");
         await Assert.That(cut.Markup).Contains("Your API Credentials");
         await Assert.That(cut.FindAll("#credentials-refresh-button").Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUser_RegenerateModal_ShowsConfirmationDialog()
+    {
+        var credentialService = Substitute.For<IApiCredentialService>();
+        credentialService.ListAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns([
+                new ApiCredentialSummary(1, "My api creds", "wb_client_1", DateTimeOffset.UtcNow, null, null)
+            ]);
+        _context.Services.AddSingleton<IApiCredentialService>(credentialService);
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .Build();
+        var authState = new AuthenticationState(user);
+        var navigationManager = _context.Services.GetRequiredService<NavigationManager>();
+        navigationManager.NavigateTo("/creds?modal=regenerate&id=1");
+
+        var cut = _context.RenderWithAuthentication<Credentials>(authState);
+
+        await Assert.That(cut.Find("#credentials-confirm-title").TextContent.Trim()).IsEqualTo("Regenerate secret");
+        await Assert.That(cut.Find("#credentials-confirm-message").TextContent).Contains("current secret will stop working immediately");
+        await Assert.That(cut.Find("#credentials-confirm-modal button[type='submit']").TextContent.Trim()).IsEqualTo("Regenerate");
     }
 
     public void Dispose()
