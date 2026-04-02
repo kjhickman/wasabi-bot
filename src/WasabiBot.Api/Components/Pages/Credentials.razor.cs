@@ -31,12 +31,16 @@ public partial class Credentials : ComponentBase
     private long? RequestedCredentialId { get; set; }
 
     [SupplyParameterFromForm(FormName = "create-credential")]
-    private CredentialsCreateCredentialFormInput CreateCredentialForm { get; set; } = new();
+    private CredentialsCreateCredentialFormInput? CreateCredentialForm { get; set; }
 
     [SupplyParameterFromForm(FormName = "confirm-credential")]
-    private CredentialsConfirmCredentialFormInput ConfirmCredentialForm { get; set; } = new();
+    private CredentialsConfirmCredentialFormInput? ConfirmCredentialForm { get; set; }
 
-    private string CreateCredentialFormName => CreateCredentialForm.Name;
+    private CredentialsCreateCredentialFormInput CurrentCreateCredentialForm => CreateCredentialForm ??= new();
+
+    private CredentialsConfirmCredentialFormInput CurrentConfirmCredentialForm => ConfirmCredentialForm ??= new();
+
+    private string CreateCredentialFormName => CurrentCreateCredentialForm.Name;
 
     protected override async Task OnParametersSetAsync()
     {
