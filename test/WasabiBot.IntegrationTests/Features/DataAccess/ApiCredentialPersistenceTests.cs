@@ -32,8 +32,8 @@ public class ApiCredentialPersistenceTests : IntegrationTestBase
         await Assert.That(credential.Name).IsEqualTo("CLI integration");
         await Assert.That(credential.ClientId).IsEqualTo("wb_client_123");
         await Assert.That(credential.SecretHash).IsEqualTo("hashed-secret");
-        await Assert.That(credential.CreatedAt).IsEqualTo(createdAt);
-        await Assert.That(credential.LastUsedAt).IsEqualTo(lastUsedAt);
+        await Assert.That(PostgresTimestamp.Normalize(credential.CreatedAt)).IsEqualTo(PostgresTimestamp.Normalize(createdAt));
+        await Assert.That(PostgresTimestamp.Normalize(credential.LastUsedAt)).IsEqualTo(PostgresTimestamp.Normalize(lastUsedAt));
         await Assert.That(credential.RevokedAt).IsNull();
     }
 
