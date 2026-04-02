@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Stats;
 using WasabiBot.UnitTests.Infrastructure.Discord;
 
@@ -11,7 +12,8 @@ public class StatsCommandTests
     {
         return new StatsCommand(
             NullLogger<StatsCommand>.Instance,
-            statsService);
+            statsService,
+            TracerProvider.Default.GetTracer("stats-command-tests"));
     }
 
     [Test]

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.UnitTests.Infrastructure.Discord;
@@ -17,7 +18,8 @@ public class RemindMeCommandTests
             NullLogger<RemindMeCommand>.Instance,
             reminderService,
             timeParsingService,
-            timeProvider);
+            timeProvider,
+            TracerProvider.Default.GetTracer("remindme-command-tests"));
     }
 
     [Test]

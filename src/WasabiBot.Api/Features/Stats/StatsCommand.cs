@@ -1,3 +1,4 @@
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
@@ -8,15 +9,21 @@ internal sealed class StatsCommand
 {
     private readonly ILogger<StatsCommand> _logger;
     private readonly IStatsService _statsService;
+    private readonly Tracer _tracer;
 
-    public StatsCommand(ILogger<StatsCommand> logger, IStatsService statsService)
+    public StatsCommand(ILogger<StatsCommand> logger, IStatsService statsService, Tracer tracer)
     {
         _logger = logger;
         _statsService = statsService;
+        _tracer = tracer;
     }
 
     public async Task ExecuteAsync(ICommandContext ctx)
     {
+        using var span = _tracer.StartActiveSpan("stats.command.execute");
+        span.SetAttribute("discord.channel_id", ctx.ChannelId.ToString());
+        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
+
         try
         {
             _logger.LogInformation("Stats command invoked by user {User} ({UserId}) in channel {ChannelId}",
@@ -29,6 +36,7 @@ internal sealed class StatsCommand
         }
         catch (Exception ex)
         {
+            span.RecordException(ex);
             _logger.LogError(ex, "Stats command failed for user {User}", ctx.UserDisplayName);
             await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
         }
@@ -60,4 +68,3 @@ internal sealed class StatsCommand
         return sb.ToString();
     }
 }
-

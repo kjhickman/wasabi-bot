@@ -1,4 +1,5 @@
 ﻿using NetCord.Services.ApplicationCommands;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
@@ -12,17 +13,20 @@ internal sealed class RemindMeCommand
     private readonly IReminderService _reminderService;
     private readonly ITimeParsingService _timeParsingService;
     private readonly TimeProvider _timeProvider;
+    private readonly Tracer _tracer;
 
     public RemindMeCommand(
         ILogger<RemindMeCommand> logger,
         IReminderService reminderService,
         ITimeParsingService timeParsingService,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        Tracer tracer)
     {
         _logger = logger;
         _reminderService = reminderService;
         _timeParsingService = timeParsingService;
         _timeProvider = timeProvider;
+        _tracer = tracer;
     }
 
     public async Task ExecuteAsync(
@@ -30,6 +34,10 @@ internal sealed class RemindMeCommand
         [SlashCommandParameter(Description = "When do you want to be reminded?")] string when,
         [SlashCommandParameter(Description = "Your reminder")] string reminder)
     {
+        using var span = _tracer.StartActiveSpan("reminder.command.schedule");
+        span.SetAttribute("discord.channel_id", ctx.ChannelId.ToString());
+        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
+
         try
         {
             var whenText = when.Trim();
@@ -49,6 +57,7 @@ internal sealed class RemindMeCommand
             }
             catch (Exception ex)
             {
+                span.RecordException(ex);
                 _logger.LogWarning(ex, "Failed to parse reminder time for user {UserId}", ctx.UserId);
                 await ctx.SendEphemeralAsync("Sorry, I couldn't understand that time. Try phrases like 'in 30 minutes' or 'tomorrow at 9am'.");
                 return;
@@ -74,9 +83,9 @@ internal sealed class RemindMeCommand
         }
         catch (Exception ex)
         {
+            span.RecordException(ex);
             _logger.LogError(ex, "Reminder command failed for user {User}", ctx.UserDisplayName);
             await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
         }
     }
 }
-

@@ -1,3 +1,4 @@
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
@@ -9,17 +10,23 @@ internal sealed class RemindMeRmCommand
 {
     private readonly ILogger<RemindMeRmCommand> _logger;
     private readonly IReminderService _reminderService;
+    private readonly Tracer _tracer;
 
-    public RemindMeRmCommand(ILogger<RemindMeRmCommand> logger, IReminderService reminderService)
+    public RemindMeRmCommand(ILogger<RemindMeRmCommand> logger, IReminderService reminderService, Tracer tracer)
     {
         _logger = logger;
         _reminderService = reminderService;
+        _tracer = tracer;
     }
 
     public async Task ExecuteAsync(
         ICommandContext ctx,
         int reminderId)
     {
+        using var span = _tracer.StartActiveSpan("reminder.command.delete");
+        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
+        span.SetAttribute("reminder.id", reminderId);
+
         try
         {
             var userDisplayName = ctx.UserDisplayName;
@@ -62,9 +69,9 @@ internal sealed class RemindMeRmCommand
         }
         catch (Exception ex)
         {
+            span.RecordException(ex);
             _logger.LogError(ex, "Reminder delete command failed for user {User}", ctx.UserDisplayName);
             await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
         }
     }
 }
-

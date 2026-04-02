@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DictionaryEntry;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.Api.Features.Stats;
@@ -13,14 +14,22 @@ public interface IStatsService
 public class StatsService : IStatsService
 {
     private readonly WasabiBotContext _context;
+    private readonly Tracer _tracer;
 
-    public StatsService(WasabiBotContext context)
+    public StatsService(WasabiBotContext context, Tracer tracer)
     {
         _context = context;
+        _tracer = tracer;
     }
 
     public async Task<StatsData> GetStatsAsync(long? channelId = null, long? excludeInteractionId = null, CancellationToken ct = default)
     {
+        using var span = _tracer.StartActiveSpan("stats.compute");
+        if (channelId.HasValue)
+            span.SetAttribute("stats.channel_id", channelId.Value.ToString());
+        if (excludeInteractionId.HasValue)
+            span.SetAttribute("stats.exclude_interaction_id", excludeInteractionId.Value);
+
         var query = _context.Interactions.AsQueryable();
 
         // Exclude the current interaction if specified

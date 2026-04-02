@@ -1,5 +1,6 @@
 using System.Data;
 using Npgsql;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 
 namespace WasabiBot.Api.Features.Reminders.Services;
@@ -10,21 +11,24 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
     private static readonly TimeSpan ReconnectDelay = TimeSpan.FromSeconds(5);
 
     private readonly ILogger<PostgresReminderWakeSignal> _logger;
+    private readonly Tracer _tracer;
     private readonly string _connectionString;
     private readonly SemaphoreSlim _signal = new(0, 1);
     private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private CancellationTokenSource? _cts;
     private Task? _listenerTask;
 
-    public PostgresReminderWakeSignal(ILogger<PostgresReminderWakeSignal> logger, IConfiguration configuration)
+    public PostgresReminderWakeSignal(ILogger<PostgresReminderWakeSignal> logger, IConfiguration configuration, Tracer tracer)
     {
         _logger = logger;
+        _tracer = tracer;
         _connectionString = configuration.GetConnectionString("wasabi_db")
                             ?? throw new InvalidOperationException("Connection string 'wasabi_db' was not found.");
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        using var span = _tracer.StartActiveSpan("reminder.wake-signal.start");
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _listenerTask = Task.Run(() => RunListenerLoopAsync(_cts.Token), CancellationToken.None);
         await _ready.Task.WaitAsync(cancellationToken);
@@ -32,6 +36,8 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+        using var span = _tracer.StartActiveSpan("reminder.wake-signal.stop");
+
         if (_cts == null || _listenerTask == null)
         {
             return;
@@ -77,6 +83,8 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
     {
         while (!ct.IsCancellationRequested)
         {
+            using var span = _tracer.StartActiveSpan("reminder.wake-signal.listen");
+
             try
             {
                 await using var connection = new NpgsqlConnection(_connectionString);
@@ -109,6 +117,7 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
             }
             catch (NpgsqlException ex) when (ct.IsCancellationRequested || ex.InnerException is EndOfStreamException)
             {
+                span.RecordException(ex);
                 if (ct.IsCancellationRequested)
                 {
                     break;
@@ -127,6 +136,7 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
             }
             catch (Exception ex)
             {
+                span.RecordException(ex);
                 _logger.LogWarning(ex, "Reminder notification listener disconnected; retrying in {Delay}", ReconnectDelay);
 
                 try
@@ -145,6 +155,8 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
     {
         if (e.Channel == ChannelName)
         {
+            using var span = _tracer.StartActiveSpan("reminder.wake-signal.notification");
+            span.SetAttribute("messaging.destination.name", e.Channel);
             Signal();
         }
     }

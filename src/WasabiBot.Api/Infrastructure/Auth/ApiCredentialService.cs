@@ -1,16 +1,20 @@
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Persistence;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Infrastructure.Auth;
 
-public sealed class ApiCredentialService(WasabiBotContext context, IApiCredentialSecretService secretService) : IApiCredentialService
+public sealed class ApiCredentialService(WasabiBotContext context, IApiCredentialSecretService secretService, Tracer tracer) : IApiCredentialService
 {
     private const int MaxClientIdAttempts = 5;
     private const int MaxCredentialNameLength = 100;
 
     public async Task<ApiCredentialSummary[]> ListAsync(long ownerDiscordUserId, CancellationToken cancellationToken = default)
     {
+        using var span = tracer.StartActiveSpan("auth.api-credential.list");
+        span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
+
         return await context.ApiCredentials
             .AsNoTracking()
             .Where(c => c.OwnerDiscordUserId == ownerDiscordUserId && c.RevokedAt == null)
@@ -22,6 +26,9 @@ public sealed class ApiCredentialService(WasabiBotContext context, IApiCredentia
 
     public async Task<ApiCredentialIssueResult> CreateAsync(long ownerDiscordUserId, string name, CancellationToken cancellationToken = default)
     {
+        using var span = tracer.StartActiveSpan("auth.api-credential.create");
+        span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
+
         var normalizedName = NormalizeName(name);
         var clientId = await GenerateUniqueClientIdAsync(cancellationToken);
         var clientSecret = secretService.CreateClientSecret();
@@ -44,6 +51,10 @@ public sealed class ApiCredentialService(WasabiBotContext context, IApiCredentia
 
     public async Task<bool> RevokeAsync(long ownerDiscordUserId, long credentialId, CancellationToken cancellationToken = default)
     {
+        using var span = tracer.StartActiveSpan("auth.api-credential.revoke");
+        span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
+        span.SetAttribute("auth.credential_id", credentialId);
+
         var credential = await context.ApiCredentials.FirstOrDefaultAsync(
             c => c.Id == credentialId && c.OwnerDiscordUserId == ownerDiscordUserId,
             cancellationToken);
@@ -65,6 +76,10 @@ public sealed class ApiCredentialService(WasabiBotContext context, IApiCredentia
 
     public async Task<ApiCredentialIssueResult?> RegenerateSecretAsync(long ownerDiscordUserId, long credentialId, CancellationToken cancellationToken = default)
     {
+        using var span = tracer.StartActiveSpan("auth.api-credential.regenerate-secret");
+        span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
+        span.SetAttribute("auth.credential_id", credentialId);
+
         var credential = await context.ApiCredentials.FirstOrDefaultAsync(
             c => c.Id == credentialId && c.OwnerDiscordUserId == ownerDiscordUserId,
             cancellationToken);
@@ -83,6 +98,9 @@ public sealed class ApiCredentialService(WasabiBotContext context, IApiCredentia
 
     public async Task<ApiCredentialValidationResult?> ValidateAsync(string clientId, string clientSecret, CancellationToken cancellationToken = default)
     {
+        using var span = tracer.StartActiveSpan("auth.api-credential.validate");
+        span.SetAttribute("auth.client_id.present", !string.IsNullOrWhiteSpace(clientId));
+
         if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
         {
             return null;
@@ -114,6 +132,8 @@ public sealed class ApiCredentialService(WasabiBotContext context, IApiCredentia
 
     private async Task<string> GenerateUniqueClientIdAsync(CancellationToken cancellationToken)
     {
+        using var span = tracer.StartActiveSpan("auth.api-credential.generate-client-id");
+
         for (var attempt = 0; attempt < MaxClientIdAttempts; attempt++)
         {
             var clientId = secretService.CreateClientId();

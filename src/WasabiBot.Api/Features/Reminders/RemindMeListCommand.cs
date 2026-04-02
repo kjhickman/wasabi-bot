@@ -1,3 +1,4 @@
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
@@ -10,15 +11,20 @@ internal sealed class RemindMeListCommand
 {
     private readonly ILogger<RemindMeListCommand> _logger;
     private readonly IReminderService _reminderService;
+    private readonly Tracer _tracer;
 
-    public RemindMeListCommand(ILogger<RemindMeListCommand> logger, IReminderService reminderService)
+    public RemindMeListCommand(ILogger<RemindMeListCommand> logger, IReminderService reminderService, Tracer tracer)
     {
         _logger = logger;
         _reminderService = reminderService;
+        _tracer = tracer;
     }
 
     public async Task ExecuteAsync(ICommandContext ctx)
     {
+        using var span = _tracer.StartActiveSpan("reminder.command.list");
+        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
+
         try
         {
             var userDisplayName = ctx.UserDisplayName;
@@ -41,6 +47,7 @@ internal sealed class RemindMeListCommand
         }
         catch (Exception ex)
         {
+            span.RecordException(ex);
             _logger.LogError(ex, "Reminder list command failed for user {User}", ctx.UserDisplayName);
             await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
         }

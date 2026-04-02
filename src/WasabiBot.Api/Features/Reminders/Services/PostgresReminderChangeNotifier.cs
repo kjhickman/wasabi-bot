@@ -1,9 +1,10 @@
 using Npgsql;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 
 namespace WasabiBot.Api.Features.Reminders.Services;
 
-public sealed class PostgresReminderChangeNotifier(IConfiguration configuration) : IReminderChangeNotifier
+public sealed class PostgresReminderChangeNotifier(IConfiguration configuration, Tracer tracer) : IReminderChangeNotifier
 {
     private const string ChannelName = "reminders_changed";
     private readonly string _connectionString = configuration.GetConnectionString("wasabi_db")
@@ -11,6 +12,9 @@ public sealed class PostgresReminderChangeNotifier(IConfiguration configuration)
 
     public async Task NotifyReminderChangedAsync(CancellationToken ct = default)
     {
+        using var span = tracer.StartActiveSpan("reminder.change-notify");
+        span.SetAttribute("messaging.destination.name", ChannelName);
+
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(ct);
 
