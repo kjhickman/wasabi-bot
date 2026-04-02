@@ -26,7 +26,7 @@ internal static class ScalarConfiguration
                         BearerFormat = "JWT",
                         In = ParameterLocation.Header,
                         Name = "Authorization",
-                        Description = "Issue a token via /token after signing in with Discord, then Scalar will send it as a Bearer header."
+                        Description = "Issue a token via /api/v1/oauth/token after signing in with Discord, then Scalar will send it as a Bearer header."
                     };
                 }
 
