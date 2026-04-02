@@ -7,17 +7,7 @@
     <meta name="description" content="Sign in with Discord to manage your Wasabi Bot API access.">
     <base href="/" />
     <title>Wasabi Bot</title>
-    <script>
-        (function() {
-            const storedTheme = localStorage.getItem('wasabi-theme') || 'system';
-            const resolvedTheme = storedTheme === 'light' || storedTheme === 'dark'
-                ? storedTheme
-                : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-
-            document.documentElement.setAttribute('data-theme', resolvedTheme);
-            document.documentElement.style.colorScheme = resolvedTheme;
-        })();
-    </script>
+    <script src="@Assets["js/theme-bootstrap.js"]"></script>
     <link rel="stylesheet" href="@Assets["pico.green.min.css"]"/>
     <link rel="stylesheet" href="@Assets["app.css"]"/>
     <link rel="stylesheet" href="@Assets["WasabiBot.Api.styles.css"]"/>
