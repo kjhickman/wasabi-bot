@@ -5,9 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="bunit" Version="2.7.2" />
-    <PackageVersion Include="Amazon.Extensions.Configuration.SystemsManager" Version="7.1.0" />
-    <PackageVersion Include="AWSSDK.Core" Version="4.0.3.10" />
-    <PackageVersion Include="Azure.Identity" Version="1.17.1" />
+    <!-- Pins a vulnerable transitive dependency to keep restore/build warning-free. -->
+    <PackageVersion Include="Azure.Identity" Version="1.20.0" />
     <PackageVersion Include="DictionaryEntry" Version="0.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
     <PackageVersion Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
@@ -26,13 +25,12 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.4.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.4.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="5.3.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
+    <!-- Keeps EF design-time Roslyn dependencies aligned with the upgraded compiler packages. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="5.3.0" />
+    <!-- Keeps EF design-time Roslyn dependencies aligned with the upgraded compiler packages. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.3.0" />
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="4.1.1" />
     <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.479" />
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.2" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
@@ -48,10 +46,11 @@
     <PackageVersion Include="Respawn" Version="6.2.1" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.13.13" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.11.0" />
-    <PackageVersion Include="TUnit" Version="1.21.6" />
+    <PackageVersion Include="TUnit" Version="1.24.18" />
     <PackageVersion Include="Serilog" Version="4.3.1" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <!-- Pins a vulnerable transitive dependency to keep restore/build warning-free. -->
     <PackageVersion Include="System.Drawing.Common" Version="5.0.3" />
   </ItemGroup>
 </Project>
