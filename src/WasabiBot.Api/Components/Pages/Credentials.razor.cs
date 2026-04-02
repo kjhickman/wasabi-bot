@@ -23,6 +23,7 @@ public partial class Credentials : ComponentBase
     private string? CreateCredentialError { get; set; }
     private string? ConfirmError { get; set; }
     private ApiCredentialIssueResult? IssuedCredential { get; set; }
+    private string? UrlReplacementPath { get; set; }
 
     [SupplyParameterFromQuery(Name = "modal")]
     private string? RequestedModal { get; set; }
@@ -46,6 +47,7 @@ public partial class Credentials : ComponentBase
         IssuedCredential = null;
         CreateCredentialError = null;
         ConfirmError = null;
+        UrlReplacementPath = null;
 
         var authState = await AuthenticationStateTask;
         var user = authState.User;
@@ -160,6 +162,7 @@ public partial class Credentials : ComponentBase
             await LoadCredentialsAsync();
 
             IssuedCredential = issuedCredential;
+            UrlReplacementPath = "/creds";
             CreateCredentialForm = new();
         }
         catch (ArgumentException ex)
@@ -193,6 +196,7 @@ public partial class Credentials : ComponentBase
                 case PendingCredentialAction.Delete:
                     await ApiCredentialService.RevokeAsync(OwnerDiscordUserId.Value, credential.Id);
                     await LoadCredentialsAsync();
+                    UrlReplacementPath = "/creds";
                     break;
                 case PendingCredentialAction.Regenerate:
                     var issuedCredential = await ApiCredentialService.RegenerateSecretAsync(OwnerDiscordUserId.Value, credential.Id);
@@ -204,6 +208,7 @@ public partial class Credentials : ComponentBase
 
                     await LoadCredentialsAsync();
                     IssuedCredential = issuedCredential;
+                    UrlReplacementPath = "/creds";
                     break;
             }
         }
