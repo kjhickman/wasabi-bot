@@ -41,6 +41,7 @@ var migrations = builder.AddProject("migrations", "src/WasabiBot.Migrations/Wasa
 
 var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink", "4")
     .WithHttpEndpoint(port: 2333, targetPort: 2333, name: "http")
+    .WithContainerFiles("/opt/Lavalink", "./infra/lavalink")
     .WithEnvironment("SERVER_PORT", "2333")
     .WithEnvironment("LAVALINK_SERVER_PASSWORD", localLavalinkPassword)
     .WithEnvironment("_JAVA_OPTIONS", "-Xms256m -Xmx256m")

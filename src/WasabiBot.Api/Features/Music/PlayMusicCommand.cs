@@ -4,7 +4,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Music;
 
-[CommandHandler("play", "Play music from a direct track or playlist URL.")]
+[CommandHandler("play", "Play music from a search query or direct URL.")]
 internal sealed class PlayMusicCommand(ILogger<PlayMusicCommand> logger, IMusicService musicService)
 {
     private readonly ILogger<PlayMusicCommand> _logger = logger;
@@ -12,7 +12,7 @@ internal sealed class PlayMusicCommand(ILogger<PlayMusicCommand> logger, IMusicS
 
     public async Task ExecuteAsync(
         ICommandContext ctx,
-        [SlashCommandParameter(Description = "Direct track or playlist URL")] string input)
+        [SlashCommandParameter(Description = "Search query or direct track/playlist URL")] string input)
     {
         await HandleAsync(ctx, () => _musicService.PlayAsync(ctx, input), nameof(ExecuteAsync));
     }
