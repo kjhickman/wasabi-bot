@@ -2,6 +2,7 @@
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services.ApplicationCommands;
+using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.CaptionThis.Abstractions;
 using WasabiBot.Api.Features.CaptionThis.Services;
 using WasabiBot.Api.Features.Interactions;
@@ -18,6 +19,7 @@ internal static class DependencyInjection
     {
         services.AddDiscordGateway(x =>
         {
+            x.Intents = GatewayIntents.AllNonPrivileged;
             x.Presence = new PresenceProperties(UserStatusType.Online)
             {
                 Since = DateTimeOffset.UtcNow,
@@ -43,6 +45,7 @@ internal static class DependencyInjection
         services.AddScoped<IReminderService, ReminderService>();
         services.AddHostedService<ReminderDispatcher>();
         services.AddScoped<IImageRetrievalService, HttpClientImageRetrievalService>();
+        services.AddScoped<IMusicService, MusicService>();
         services.AddScoped<IStatsService, StatsService>();
     }
 }

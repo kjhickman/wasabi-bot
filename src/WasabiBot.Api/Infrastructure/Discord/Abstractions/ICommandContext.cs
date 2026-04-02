@@ -5,7 +5,9 @@ public interface ICommandContext
     Task RespondAsync(string message, bool ephemeral = false);
     Task SendEphemeralAsync(string content);
     ulong ChannelId { get; }
+    ulong? GuildId { get; }
     ulong UserId { get; }
+    ulong? UserVoiceChannelId { get; }
     ulong InteractionId { get; }
     string UserDisplayName { get; }
 }
