@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using NSubstitute;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.OAuth;
 using WasabiBot.Api.Infrastructure.Auth;
 
@@ -117,7 +118,9 @@ public class GetOAuthTokenTests
     private static DefaultHttpContext CreateHttpContext(Dictionary<string, StringValues> formValues)
     {
         var httpContext = new DefaultHttpContext();
-        httpContext.RequestServices = new ServiceCollection().BuildServiceProvider();
+        httpContext.RequestServices = new ServiceCollection()
+            .AddSingleton(TracerProvider.Default.GetTracer("oauth-tests"))
+            .BuildServiceProvider();
         httpContext.Request.ContentType = "application/x-www-form-urlencoded";
         httpContext.Request.Form = new FormCollection(formValues);
         return httpContext;
