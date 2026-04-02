@@ -68,14 +68,14 @@ public static class DependencyInjection
             })
             .AddCookie(options =>
             {
-                options.LoginPath = "/auth/login-discord";
+                options.LoginPath = "/login-discord";
             })
             .AddDiscord(options =>
             {
                 options.ClientId = discordClientId;
                 options.ClientSecret = discordClientSecret;
                 options.CallbackPath = string.IsNullOrWhiteSpace(discordCallbackPath)
-                    ? "/auth/login-discord-callback"
+                    ? "/login-discord-callback"
                     : discordCallbackPath;
             })
             .AddJwtBearer(options =>

@@ -9,17 +9,16 @@ public static class Routes
     public static IEndpointRouteBuilder MapEndpoints(this IEndpointRouteBuilder app)
     {
         // Auth endpoints
-        var auth = app.MapGroup("/auth")
-            .ExcludeFromDescription();
-
-        auth.MapGet("/login-discord", LoginDiscord.Handle)
+        app.MapGet("/login-discord", LoginDiscord.Handle)
             .WithDisplayName("Discord Login")
             .WithDescription("Initiates the Discord OAuth2 login process.")
+            .ExcludeFromDescription()
             .AllowAnonymous();
 
-        auth.MapPost("/logout", (Delegate)Logout.Handle)
+        app.MapPost("/logout", (Delegate)Logout.Handle)
             .WithDisplayName("Logout")
             .WithDescription("Logs the user out of the application.")
+            .ExcludeFromDescription()
             .RequireAuthorization();
 
         // API v1 endpoints

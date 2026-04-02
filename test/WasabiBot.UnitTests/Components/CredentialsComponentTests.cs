@@ -29,7 +29,7 @@ public class CredentialsComponentTests : IDisposable
 
         var cut = _context.RenderWithAuthentication<Credentials>(authState);
 
-        await Assert.That(cut.Find("#credentials-login-link").GetAttribute("href")).IsEqualTo("/auth/login-discord");
+        await Assert.That(cut.Find("#credentials-login-link").GetAttribute("href")).IsEqualTo("/login-discord");
         await Assert.That(cut.Markup).Contains("Sign in to manage API credentials");
         await Assert.That(cut.FindAll("#credentials-page").Count).IsEqualTo(0);
     }

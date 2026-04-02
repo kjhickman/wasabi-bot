@@ -17,7 +17,7 @@ public class HomeComponentTests : IDisposable
 
         var cut = _context.RenderWithAuthentication<Home>(authState);
 
-        await Assert.That(cut.Find("#login-link").GetAttribute("href")).IsEqualTo("/auth/login-discord");
+        await Assert.That(cut.Find("#login-link").GetAttribute("href")).IsEqualTo("/login-discord");
         await Assert.That(cut.Markup).Contains("Sign in to Wasabi Bot");
         await Assert.That(cut.FindAll("article").Count).IsEqualTo(0);
         await Assert.That(cut.Markup).DoesNotContain("Browse API docs");

@@ -45,6 +45,7 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.Find("#account-menu-panel").GetAttribute("data-account-menu-panel")).IsEmpty();
         await Assert.That(cut.Find("#theme-select").GetAttribute("data-theme-select")).IsEmpty();
         await Assert.That(cut.FindAll("#theme-select option").Count).IsEqualTo(3);
+        await Assert.That(cut.Find("form.logout-form").GetAttribute("action")).IsEqualTo("/logout");
         await Assert.That(cut.Find("#logout-button").TextContent.Trim()).IsEqualTo("Log out");
     }
 
