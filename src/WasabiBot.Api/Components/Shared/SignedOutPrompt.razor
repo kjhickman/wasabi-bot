@@ -3,7 +3,7 @@
         <h1 id="@HeadingId">@Heading</h1>
         <p class="section-copy">@Description</p>
         <p>
-            <a id="@LinkId" href="/login-discord" role="button" autofocus>@LinkText</a>
+            <a id="@LinkId" href="@Href" role="button" autofocus>@LinkText</a>
         </p>
     </div>
 </section>
@@ -23,6 +23,9 @@
 
     [Parameter, EditorRequired]
     public required string LinkId { get; set; }
+
+    [Parameter]
+    public string Href { get; set; } = "/login-discord";
 
     [Parameter]
     public string LinkText { get; set; } = "Sign in with Discord";

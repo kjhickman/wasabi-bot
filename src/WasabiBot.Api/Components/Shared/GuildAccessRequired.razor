@@ -1,0 +1,14 @@
+@namespace WasabiBot.Api.Components.Shared
+
+<section id="guild-access-required" class="landing-signin" aria-labelledby="guild-access-required-heading">
+    <div class="landing-signin__content stack-md">
+        <h1 id="guild-access-required-heading">Access requires a shared Discord server</h1>
+        <p class="section-copy">You must be in a server with Wasabi Bot to access this site.</p>
+        <p>
+            <form action="/logout" method="post" class="logout-form-inline">
+                <AntiforgeryToken />
+                <button id="guild-access-required-logout" type="submit" class="secondary outline">Log out</button>
+            </form>
+        </p>
+    </div>
+</section>

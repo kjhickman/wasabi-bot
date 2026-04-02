@@ -1,6 +1,6 @@
 @page "/"
 
-<PageTitle>@(IsAuthenticated ? $"Dashboard - {DisplayName}" : "Sign In") - Wasabi Bot</PageTitle>
+<PageTitle>@PageTitleText - Wasabi Bot</PageTitle>
 
 @if (!IsAuthenticated)
 {
@@ -9,6 +9,10 @@
                      Heading="Sign in to Wasabi Bot"
                      Description="Generate API tokens and manage upcoming bot features from one place."
                      LinkId="login-link" />
+}
+else if (!HasGuildAccess)
+{
+    <GuildAccessRequired />
 }
 else
 {

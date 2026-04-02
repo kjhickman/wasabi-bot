@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddSingleton(apiCredentialSecretOptions);
         services.AddSingleton<ApiTokenFactory>();
         services.AddSingleton<IApiCredentialSecretService, ApiCredentialSecretService>();
+        services.AddSingleton<IDiscordGuildAuthorizationClient, DiscordGuildAuthorizationClient>();
         services.AddScoped<IApiCredentialService, ApiCredentialService>();
 
         services
@@ -69,6 +70,28 @@ public static class DependencyInjection
             .AddCookie(options =>
             {
                 options.LoginPath = "/login-discord";
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    if (IsApiRequest(context.Request.Path))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        return Task.CompletedTask;
+                    }
+
+                    context.Response.Redirect("/");
+                    return Task.CompletedTask;
+                };
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    if (IsApiRequest(context.Request.Path))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        return Task.CompletedTask;
+                    }
+
+                    context.Response.Redirect("/");
+                    return Task.CompletedTask;
+                };
             })
             .AddDiscord(options =>
             {
@@ -94,7 +117,7 @@ public static class DependencyInjection
         services.AddAuthorizationBuilder()
             .AddPolicy("DiscordGuildMember", policy =>
             {
-                policy.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme);
+                policy.AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme);
                 policy.RequireAuthenticatedUser();
                 policy.AddRequirements(new DiscordGuildRequirement());
             })
@@ -105,5 +128,10 @@ public static class DependencyInjection
             });
 
         return services;
+    }
+
+    private static bool IsApiRequest(PathString path)
+    {
+        return path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase);
     }
 }
