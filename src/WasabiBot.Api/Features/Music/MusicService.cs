@@ -11,6 +11,11 @@ namespace WasabiBot.Api.Features.Music;
 internal sealed class MusicService(IAudioService audioService, ILogger<MusicService> logger) : IMusicService
 {
     private const int QueuePreviewLimit = 10;
+    private static readonly SearchAttempt[] SearchAttempts =
+    [
+        new(TrackSearchMode.YouTube),
+        new(TrackSearchMode.SoundCloud),
+    ];
 
     private readonly IAudioService _audioService = audioService;
     private readonly ILogger<MusicService> _logger = logger;
@@ -23,9 +28,15 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
         }
 
         var identifier = input.Trim();
-        if (!Uri.TryCreate(identifier, UriKind.Absolute, out _))
+        var trackLoad = await LoadTrackAsync(identifier, cancellationToken);
+        if (trackLoad.Result is not null)
         {
-            return new MusicCommandResult("For now, `/play` only supports direct track or playlist URLs.", Ephemeral: true);
+            return trackLoad.Result;
+        }
+
+        if (trackLoad.LoadResult is not { } loadResult)
+        {
+            return new MusicCommandResult("Lavalink couldn't load that track right now. Please try again later.", Ephemeral: true);
         }
 
         var playerResult = await _audioService.Players.RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
@@ -39,21 +50,6 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
         if (!playerResult.IsSuccess)
         {
             return FromRetrieveStatus(playerResult.Status);
-        }
-
-        var loadResult = await _audioService.Tracks.LoadTracksAsync(
-            identifier,
-            new TrackLoadOptions(),
-            cancellationToken: cancellationToken);
-        if (!loadResult.HasMatches)
-        {
-            return new MusicCommandResult("I couldn't find anything playable at that URL.", Ephemeral: true);
-        }
-
-        if (loadResult.Exception is { } trackException)
-        {
-            _logger.LogWarning("Lavalink failed to load track for identifier {Identifier}: {Exception}", identifier, trackException.Message);
-            return new MusicCommandResult("Lavalink couldn't load that track right now. Please try again later.", Ephemeral: true);
         }
 
         var player = playerResult.Player;
@@ -76,6 +72,66 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
             : $"Queued {FormatTrack(track)} at position {position}.";
 
         return new MusicCommandResult(message);
+    }
+
+    private async Task<(TrackLoadResult? LoadResult, MusicCommandResult? Result)> LoadTrackAsync(
+        string input,
+        CancellationToken cancellationToken)
+    {
+        var attempts = BuildAttempts(input);
+        TrackException? lastException = null;
+
+        foreach (var attempt in attempts)
+        {
+            var loadResult = await _audioService.Tracks.LoadTracksAsync(
+                attempt.Identifier,
+                attempt.Options,
+                cancellationToken: cancellationToken);
+
+            if (loadResult.HasMatches)
+            {
+                return (loadResult, null);
+            }
+
+            if (loadResult.Exception is { } trackException)
+            {
+                lastException = trackException;
+                _logger.LogWarning("Lavalink failed to load track for identifier {Identifier}: {Exception}", attempt.Identifier, trackException.Message);
+            }
+        }
+
+        if (lastException is not null)
+        {
+            return (null, new MusicCommandResult("Lavalink couldn't load that track right now. Please try again later.", Ephemeral: true));
+        }
+
+        var message = attempts.Count == 1
+            ? "I couldn't find anything playable at that URL."
+            : "I couldn't find anything playable for that search.";
+
+        return (null, new MusicCommandResult(message, Ephemeral: true));
+    }
+
+    private static IReadOnlyList<SearchAttempt> BuildAttempts(string input)
+    {
+        if (Uri.TryCreate(input, UriKind.Absolute, out _))
+        {
+            return [new SearchAttempt(input, new TrackLoadOptions(SearchBehavior: StrictSearchBehavior.Passthrough))];
+        }
+
+        return SearchAttempts
+            .Select(attempt => attempt with { Identifier = input })
+            .ToArray();
+    }
+
+    private readonly record struct SearchAttempt(string Identifier, TrackLoadOptions Options)
+    {
+        public SearchAttempt(TrackSearchMode searchMode)
+            : this(
+                string.Empty,
+                new TrackLoadOptions(SearchMode: searchMode, SearchBehavior: StrictSearchBehavior.Explicit))
+        {
+        }
     }
 
     public async Task<MusicCommandResult> SkipAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
@@ -147,17 +203,18 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
         return new MusicCommandResult("Left the voice channel.");
     }
 
-    private async Task<QueuedLavalinkPlayer?> GetExistingPlayerAsync(ICommandContext ctx, CancellationToken cancellationToken)
+    private async Task<IQueuedLavalinkPlayer?> GetExistingPlayerAsync(ICommandContext ctx, CancellationToken cancellationToken)
     {
         if (!ctx.GuildId.HasValue)
         {
             return null;
         }
 
-        return await _audioService.Players.GetPlayerAsync<QueuedLavalinkPlayer>(ctx.GuildId.Value, cancellationToken);
+        var player = await _audioService.Players.GetPlayerAsync(ctx.GuildId.Value, cancellationToken);
+        return player as IQueuedLavalinkPlayer;
     }
 
-    private async Task<(QueuedLavalinkPlayer? Player, MusicCommandResult? Result)> GetControllablePlayerAsync(
+    private async Task<(IQueuedLavalinkPlayer? Player, MusicCommandResult? Result)> GetControllablePlayerAsync(
         ICommandContext ctx,
         CancellationToken cancellationToken)
     {
@@ -199,7 +256,7 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
         return new MusicCommandResult("Music commands can only be used in a server voice channel.", Ephemeral: true);
     }
 
-    private static string BuildQueueMessage(QueuedLavalinkPlayer player)
+    private static string BuildQueueMessage(IQueuedLavalinkPlayer player)
     {
         var lines = new List<string>();
 
