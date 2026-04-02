@@ -1,12 +1,12 @@
 ﻿using Microsoft.OpenApi;
 using Scalar.AspNetCore;
-using WasabiBot.Api.Infrastructure.Auth;
 
 namespace WasabiBot.Api.Infrastructure.Scalar;
 
 internal static class ScalarConfiguration
 {
     private const string ApiTokenSchemeName = "ApiToken";
+    private const string OAuthTokenPath = "/api/v1/oauth/token";
 
     public static void AddOpenApi(this WebApplicationBuilder builder)
     {
@@ -21,12 +21,16 @@ internal static class ScalarConfiguration
                 {
                     document.Components.SecuritySchemes[ApiTokenSchemeName] = new OpenApiSecurityScheme
                     {
-                        Type = SecuritySchemeType.Http,
-                        Scheme = "bearer",
-                        BearerFormat = "JWT",
-                        In = ParameterLocation.Header,
-                        Name = "Authorization",
-                        Description = "Issue a token via /api/v1/oauth/token after signing in with Discord, then Scalar will send it as a Bearer header."
+                        Type = SecuritySchemeType.OAuth2,
+                        Description = "Exchange API client credentials for a JWT, then Scalar will send it as a Bearer header on subsequent requests.",
+                        Flows = new OpenApiOAuthFlows
+                        {
+                            ClientCredentials = new OpenApiOAuthFlow
+                            {
+                                TokenUrl = new Uri(OAuthTokenPath, UriKind.Relative),
+                                Scopes = new Dictionary<string, string>()
+                            }
+                        }
                     };
                 }
 
@@ -39,21 +43,19 @@ internal static class ScalarConfiguration
     {
         app.MapOpenApi();
 
-        var tokenFactory = app.Services.GetRequiredService<ApiTokenFactory>();
-
-        app.MapScalarApiReference((options, httpContext) =>
+        app.MapScalarApiReference(options =>
         {
-            var hasToken = tokenFactory.TryCreateToken(httpContext.User, out var token);
-
             options.WithTitle("WasabiBot API");
             options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
             options.AddPreferredSecuritySchemes(ApiTokenSchemeName);
-            options.AddHttpAuthentication(ApiTokenSchemeName, auth =>
+            options.AddClientCredentialsFlow(ApiTokenSchemeName, flow =>
             {
-                if (hasToken)
-                {
-                    auth.Token = token;
-                }
+                flow.WithTokenUrl(OAuthTokenPath);
+                flow.WithClientId(string.Empty);
+                flow.WithClientSecret(string.Empty);
+                flow.WithCredentialsLocation(CredentialsLocation.Body);
+                flow.AddBodyParameter("grant_type", "client_credentials");
+                flow.WithTokenName("access_token");
             });
             options.EnablePersistentAuthentication();
         }).RequireAuthorization("DiscordGuildMember");

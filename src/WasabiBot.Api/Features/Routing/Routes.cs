@@ -33,6 +33,7 @@ public static class Routes
             .WithDescription("Exchanges API client credentials for a short-lived access token.")
             .AllowAnonymous()
             .DisableAntiforgery()
+            .Accepts<OAuthTokenRequest>("application/x-www-form-urlencoded")
             .Produces<TokenResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest);
 

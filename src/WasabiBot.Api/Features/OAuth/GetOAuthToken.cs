@@ -13,7 +13,7 @@ public static class GetOAuthToken
         {
             form = await httpContext.Request.ReadFormAsync(httpContext.RequestAborted);
         }
-        catch (InvalidDataException)
+        catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException)
         {
             return Results.BadRequest(new { error = "invalid_request" });
         }
