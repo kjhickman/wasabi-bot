@@ -1,37 +1,19 @@
-const storageKey = 'wasabi-theme';
-const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+const themeApi = window.WasabiTheme;
+const mediaQuery = themeApi.mediaQuery;
 
-function getStoredTheme() {
-    try {
-        return localStorage.getItem(storageKey) || 'system';
-    } catch {
-        return 'system';
-    }
-}
-
-function resolveTheme(theme) {
-    if (theme === 'light' || theme === 'dark') {
-        return theme;
-    }
-
-    return mediaQuery.matches ? 'dark' : 'light';
-}
-
-export function applyResolvedTheme(theme) {
-    const resolvedTheme = resolveTheme(theme);
-    document.documentElement.setAttribute('data-theme', resolvedTheme);
-    document.documentElement.style.colorScheme = resolvedTheme;
+export function applyResolvedTheme(selectedTheme) {
+    themeApi.applyResolvedTheme(selectedTheme);
 }
 
 export function syncThemeControls(root = document) {
-    const selectedTheme = getStoredTheme();
+    const selectedTheme = themeApi.getStoredTheme();
     root.querySelectorAll('[data-theme-select]').forEach(function(select) {
         select.value = selectedTheme;
     });
 }
 
 export function syncTheme(root = document) {
-    applyResolvedTheme(getStoredTheme());
+    themeApi.syncDocumentTheme();
     syncThemeControls(root);
 }
 
@@ -40,15 +22,9 @@ export function initializeThemeControls() {
     document.addEventListener('beforetoggle', handleAccountMenuBeforeToggle);
 }
 
-export function applyTheme(theme) {
-    const selectedTheme = theme === 'light' || theme === 'dark' ? theme : 'system';
-
-    try {
-        localStorage.setItem(storageKey, selectedTheme);
-    } catch {
-    }
-
-    applyResolvedTheme(selectedTheme);
+export function applyTheme(selectedTheme) {
+    const normalizedTheme = themeApi.setStoredTheme(selectedTheme);
+    themeApi.applyResolvedTheme(normalizedTheme);
 }
 
 export function initializeTheme() {
@@ -60,8 +36,8 @@ export function initializeTheme() {
 }
 
 function handleThemeMediaChange() {
-    if (getStoredTheme() === 'system') {
-        applyResolvedTheme('system');
+    if (themeApi.getStoredTheme() === 'system') {
+        themeApi.applyResolvedTheme('system');
     }
 }
 
