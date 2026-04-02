@@ -1,0 +1,29 @@
+<section id="@SectionId" class="landing-signin" aria-labelledby="@HeadingId">
+    <div class="landing-signin__content stack-md">
+        <h1 id="@HeadingId">@Heading</h1>
+        <p class="section-copy">@Description</p>
+        <p>
+            <a id="@LinkId" href="/auth/login-discord" role="button" autofocus>@LinkText</a>
+        </p>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public required string SectionId { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string HeadingId { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string Heading { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string Description { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string LinkId { get; set; }
+
+    [Parameter]
+    public string LinkText { get; set; } = "Sign in with Discord";
+}

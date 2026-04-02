@@ -1,0 +1,29 @@
+.section-copy {
+    margin: 0;
+    max-width: 42rem;
+    font-size: 1.02rem;
+    color: var(--pico-muted-color);
+}
+
+.landing-signin {
+    display: grid;
+    place-items: center;
+    min-height: clamp(24rem, 62dvh, 34rem);
+    text-align: center;
+}
+
+.landing-signin__content {
+    width: min(100%, 34rem);
+    justify-items: center;
+}
+
+.landing-signin h1 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.02;
+    text-wrap: balance;
+}
+
+.landing-signin h1:focus {
+    outline: none;
+}

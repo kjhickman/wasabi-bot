@@ -4,15 +4,11 @@
 
 @if (!IsAuthenticated)
 {
-    <section id="unauthenticated" class="landing-signin" aria-labelledby="unauthenticated-heading">
-        <div class="landing-signin__content stack-md">
-            <h1 id="unauthenticated-heading">Sign in to Wasabi Bot</h1>
-            <p class="section-copy">Generate API tokens and manage upcoming bot features from one place.</p>
-            <p>
-                <a id="login-link" href="/auth/login-discord" role="button" autofocus>Sign in with Discord</a>
-            </p>
-        </div>
-    </section>
+    <SignedOutPrompt SectionId="unauthenticated"
+                     HeadingId="unauthenticated-heading"
+                     Heading="Sign in to Wasabi Bot"
+                     Description="Generate API tokens and manage upcoming bot features from one place."
+                     LinkId="login-link" />
 }
 else
 {
