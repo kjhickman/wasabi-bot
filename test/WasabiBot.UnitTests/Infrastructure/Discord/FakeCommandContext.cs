@@ -9,12 +9,16 @@ internal sealed class FakeCommandContext : ICommandContext
     public FakeCommandContext(
         ulong userId = 1,
         ulong channelId = 2,
-        string userDisplayName = "TestUser")
+        string userDisplayName = "TestUser",
+        ulong? guildId = 4,
+        ulong? userVoiceChannelId = 5)
     {
         UserId = userId;
         ChannelId = channelId;
         UserDisplayName = userDisplayName;
+        GuildId = guildId;
         InteractionId = 3;
+        UserVoiceChannelId = userVoiceChannelId;
     }
 
     public IReadOnlyList<(string Message, bool Ephemeral)> Messages => _messages;
@@ -25,8 +29,10 @@ internal sealed class FakeCommandContext : ICommandContext
         .ToList();
 
     public ulong ChannelId { get; }
+    public ulong? GuildId { get; }
 
     public ulong UserId { get; }
+    public ulong? UserVoiceChannelId { get; }
     public ulong InteractionId { get; }
     public string UserDisplayName { get; }
 

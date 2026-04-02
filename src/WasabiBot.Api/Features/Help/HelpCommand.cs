@@ -34,6 +34,15 @@ internal sealed class HelpCommand(ILogger<HelpCommand> logger)
         sb.AppendLine("## Available Commands");
         sb.AppendLine();
 
+        // Music commands
+        sb.AppendLine("### Music");
+        sb.AppendLine("• `/play` - Play music from a direct track or playlist URL");
+        sb.AppendLine("• `/skip` - Skip the current track");
+        sb.AppendLine("• `/stop` - Stop playback and clear the queue");
+        sb.AppendLine("• `/queue` - Show the current queue");
+        sb.AppendLine("• `/nowplaying` - Show the currently playing track");
+        sb.AppendLine("• `/leave` - Disconnect from the voice channel");
+
         // Reminder commands
         sb.AppendLine("### Reminders");
         sb.AppendLine("• `/reminder` - Set a reminder for the channel");
