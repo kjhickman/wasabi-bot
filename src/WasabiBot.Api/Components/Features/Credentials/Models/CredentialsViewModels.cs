@@ -1,4 +1,4 @@
-namespace WasabiBot.Api.Components.Pages;
+namespace WasabiBot.Api.Components.Features.Credentials;
 
 public sealed class CredentialsCreateCredentialFormInput
 {

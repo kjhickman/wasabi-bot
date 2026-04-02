@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Infrastructure.Auth;
 
-namespace WasabiBot.Api.Components.Pages;
+namespace WasabiBot.Api.Components.Features.Credentials;
 
 public partial class Credentials : ComponentBase
 {
