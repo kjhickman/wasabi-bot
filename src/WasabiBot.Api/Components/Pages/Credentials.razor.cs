@@ -1,4 +1,3 @@
-using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using WasabiBot.Api.Core.Extensions;
@@ -32,10 +31,10 @@ public partial class Credentials : ComponentBase
     private long? RequestedCredentialId { get; set; }
 
     [SupplyParameterFromForm(FormName = "create-credential")]
-    private CreateCredentialFormInput CreateCredentialForm { get; set; } = new();
+    private CredentialsCreateCredentialFormInput CreateCredentialForm { get; set; } = new();
 
     [SupplyParameterFromForm(FormName = "confirm-credential")]
-    private ConfirmCredentialFormInput ConfirmCredentialForm { get; set; } = new();
+    private CredentialsConfirmCredentialFormInput ConfirmCredentialForm { get; set; } = new();
 
     private string CreateCredentialFormName => CreateCredentialForm.Name;
 
@@ -220,16 +219,6 @@ public partial class Credentials : ComponentBase
         }
     }
 
-    private static string FormatTimestamp(DateTimeOffset? value)
-    {
-        if (value is null)
-        {
-            return "Never";
-        }
-
-        return value.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture);
-    }
-
     private static string? ValidateCredentialName(string name)
     {
         var normalizedName = name.Trim();
@@ -246,15 +235,6 @@ public partial class Credentials : ComponentBase
         return normalizedName.Any(char.IsControl)
             ? "Credential name cannot contain control characters."
             : null;
-    }
-
-    private sealed class CreateCredentialFormInput
-    {
-        public string Name { get; set; } = string.Empty;
-    }
-
-    private sealed class ConfirmCredentialFormInput
-    {
     }
 
     private enum PendingCredentialAction
