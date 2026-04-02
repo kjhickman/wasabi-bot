@@ -24,6 +24,8 @@ var discordBotToken = builder.AddParameter("discord-bot-token", secret: true)
 var openRouterKey = builder.AddParameter("openrouter-api-key", secret: true)
     .WithDescription("OpenRouter API Key");
 
+const string localLavalinkPassword = "wasabi-local-lavalink";
+
 var postgres = builder.AddPostgres("postgres")
     .WithLifetime(ContainerLifetime.Persistent);
 
@@ -37,14 +39,24 @@ var migrations = builder.AddProject("migrations", "src/WasabiBot.Migrations/Wasa
     .WaitFor(database)
     .WithParentRelationship(postgres);
 
+var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink", "4")
+    .WithHttpEndpoint(port: 2333, targetPort: 2333, name: "http")
+    .WithEnvironment("SERVER_PORT", "2333")
+    .WithEnvironment("LAVALINK_SERVER_PASSWORD", localLavalinkPassword)
+    .WithEnvironment("_JAVA_OPTIONS", "-Xms256m -Xmx256m")
+    .WithLifetime(ContainerLifetime.Session);
+
 var api = builder.AddProject("wasabi-bot", "src/WasabiBot.Api/WasabiBot.Api.csproj")
     .WithReference(database)
     .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
     .WaitFor(database)
+    .WaitFor(lavalink)
     .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
     .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)
     .WithEnvironment("Discord__Token", discordBotToken)
     .WithEnvironment("OpenRouterV2__ApiKey", openRouterKey)
+    .WithEnvironment("Lavalink__BaseUrl", lavalink.GetEndpoint("http"))
+    .WithEnvironment("Lavalink__Password", localLavalinkPassword)
     .WithUrlForEndpoint("http", url => url.DisplayText = "Frontend")
     .WithUrlForEndpoint("http", _ => new ResourceUrlAnnotation
     {

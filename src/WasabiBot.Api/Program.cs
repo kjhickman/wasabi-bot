@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Infrastructure.Discord;
+using WasabiBot.Api.Infrastructure.Lavalink;
 using WasabiBot.Api.Infrastructure.Auth;
 using WasabiBot.Api.Infrastructure.Scalar;
 
@@ -20,6 +21,7 @@ builder.Host.UseDefaultServiceProvider(options =>
 builder.AddOpenApi();
 builder.Configuration.AddUserSecrets<Program>(optional: true);
 builder.Services.AddDiscordServices();
+builder.AddLavalinkServices();
 builder.AddAuthServices();
 builder.AddAIServices();
 builder.AddDbContext();
