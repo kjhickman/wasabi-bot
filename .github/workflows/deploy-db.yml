@@ -1,0 +1,45 @@
+name: Deploy Database Config
+
+on:
+  workflow_call:
+    inputs:
+      fly-config:
+        description: Fly config file for the database app.
+        required: false
+        default: src/WasabiBot.Api/fly.db.toml
+        type: string
+      fly-image:
+        description: Fly image to deploy for the database app.
+        required: false
+        default: flyio/postgres-flex:17.2
+        type: string
+    secrets:
+      FLY_API_TOKEN:
+        description: Fly API token used for database config deployment.
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-db-config:
+    name: Deploy database config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Validate database config
+        run: flyctl config validate -c "${{ inputs.fly-config }}"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy database config
+        run: flyctl deploy --config "${{ inputs.fly-config }}" --image "${{ inputs.fly-image }}" --remote-only --update-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
