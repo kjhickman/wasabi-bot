@@ -2,7 +2,7 @@ app = 'wasabi-bot-lavalink'
 primary_region = 'dfw'
 
 [build]
-  dockerfile = 'infra/lavalink/Dockerfile'
+  dockerfile = 'Dockerfile'
 
 [env]
   SERVER_PORT = '2333'
