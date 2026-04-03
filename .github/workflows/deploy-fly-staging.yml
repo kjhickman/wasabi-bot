@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths:
       - "src/**"
+      - "infra/lavalink/**"
       - ".github/workflows/**"
       - "Directory.Build.props"
       - "Directory.Packages.props"
