@@ -42,14 +42,14 @@ internal sealed class MusicService(IAudioService audioService, PlaybackService p
         }
 
         var (lavalinkPlayer, result) = await _playbackService.RetrievePlaybackPlayerAsync(ctx, cancellationToken);
-        if (lavalinkPlayer is null)
-        {
-            return new MusicCommandResult("Lavalink isn't available right now. Please try again later.", Ephemeral: true);
-        }
         if (result is not null)
         {
             span.SetAttribute("music.player_retrieve_status", "failed");
             return result;
+        }
+        if (lavalinkPlayer is null)
+        {
+            return new MusicCommandResult("Lavalink isn't available right now. Please try again later.", Ephemeral: true);
         }
 
         if (loadResult.IsPlaylist)

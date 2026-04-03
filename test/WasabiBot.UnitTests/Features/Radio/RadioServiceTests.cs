@@ -1,3 +1,6 @@
+using Lavalink4NET.Tracks;
+using NSubstitute;
+using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
 
 namespace WasabiBot.UnitTests.Features.Radio;
@@ -49,5 +52,29 @@ public class RadioServiceTests
         await Assert.That(ranked).Count().IsEqualTo(2);
         await Assert.That(ranked[0].Name).IsEqualTo("Jazz FM");
         await Assert.That(ranked.All(x => !string.IsNullOrWhiteSpace(x.UrlResolved))).IsTrue();
+    }
+
+    [Test]
+    public async Task FormatTrack_WhenRadioMetadataExists_UsesStationNameOnly()
+    {
+        var metadataStore = new RadioTrackMetadataStore();
+        var playbackService = new PlaybackService(Substitute.For<Lavalink4NET.IAudioService>(), metadataStore);
+        var track = new LavalinkTrack
+        {
+            Title = "http://localhost/",
+            Author = "FastCast4u.com AutoDJ",
+            Identifier = "station-1",
+            Uri = new Uri("https://stream.example/jazz"),
+            Duration = TimeSpan.Zero,
+            IsLiveStream = true,
+            IsSeekable = false,
+            SourceName = "http",
+        };
+
+        metadataStore.Set(track, "Jazz FM");
+
+        var formatted = playbackService.FormatTrack(track);
+
+        await Assert.That(formatted).IsEqualTo("**Jazz FM** (`LIVE`)");
     }
 }
