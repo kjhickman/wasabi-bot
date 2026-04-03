@@ -47,4 +47,4 @@ Use these values for:
 aspire start
 ```
 
-After you provide the required parameters, Aspire will start PostgreSQL, run the migrations project, and then start the bot API. Once it connects to Discord, you can test it in any server where the bot has been added.
+After you provide the required parameters, Aspire will start PostgreSQL, the local Lavalink container, run the migrations project, and then start the bot API. Once it connects to Discord, you can test it in any server where the bot has been added.
