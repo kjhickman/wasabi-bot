@@ -26,6 +26,8 @@ test/
 
 # Exclude infrastructure / Terraform configs
 infra/
+!infra/lavalink/
+!infra/lavalink/**
 
 # Exclude projects not copied by Dockerfile for API image
 src/WasabiBot.Migrations/
