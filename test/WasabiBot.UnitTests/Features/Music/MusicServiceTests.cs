@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Lavalink4NET;
 using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
@@ -6,10 +7,10 @@ using Lavalink4NET.Rest;
 using Lavalink4NET.Rest.Entities.Tracks;
 using Lavalink4NET.Tracks;
 using Microsoft.Extensions.Logging.Abstractions;
-using OpenTelemetry.Trace;
-using System.Collections.Immutable;
 using NSubstitute;
+using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Music;
+using WasabiBot.Api.Features.Radio;
 using WasabiBot.UnitTests.Infrastructure.Discord;
 
 namespace WasabiBot.UnitTests.Features.Music;
@@ -28,7 +29,11 @@ public class MusicServiceTests
         audioService.Players.Returns(playerManager);
         audioService.Tracks.Returns(trackManager);
 
-        return new MusicService(audioService, NullLogger<MusicService>.Instance, TracerProvider.Default.GetTracer("music-tests"));
+        return new MusicService(
+            audioService,
+            new PlaybackService(audioService, new RadioTrackMetadataStore()),
+            NullLogger<MusicService>.Instance,
+            TracerProvider.Default.GetTracer("music-tests"));
     }
 
     [Test]
@@ -37,7 +42,7 @@ public class MusicServiceTests
         var service = CreateService();
         var context = new FakeCommandContext(guildId: null, userVoiceChannelId: null);
 
-        var result = await service.PlayAsync(context, "https://example.com/song.mp3");
+        var result = await service.PlayAsync(context, "https://soundcloud.com/test/song");
 
         await Assert.That(result.Ephemeral).IsTrue();
         await Assert.That(result.Message)
@@ -45,58 +50,34 @@ public class MusicServiceTests
     }
 
     [Test]
-    public async Task PlayAsync_WhenSearchHasNoMatches_ReturnsSearchMessage()
+    public async Task PlayAsync_WhenSearchHasNoMatches_ReturnsSoundCloudSearchMessage()
     {
         var trackManager = Substitute.For<ITrackManager>();
-        trackManager.LoadTracksAsync("never gonna give you up", Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.YouTube), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult(TrackLoadResult.CreateEmpty()));
-        trackManager.LoadTracksAsync("never gonna give you up", Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>())
+        trackManager.LoadTracksAsync(
+                "never gonna give you up",
+                Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+                Arg.Any<LavalinkApiResolutionScope>(),
+                Arg.Any<CancellationToken>())
             .Returns(ValueTask.FromResult(TrackLoadResult.CreateEmpty()));
 
         var service = CreateService(trackManager: trackManager);
-        var context = new FakeCommandContext();
 
-        var result = await service.PlayAsync(context, "never gonna give you up");
+        var result = await service.PlayAsync(new FakeCommandContext(), "never gonna give you up");
 
         await Assert.That(result.Ephemeral).IsTrue();
         await Assert.That(result.Message)
-            .IsEqualTo("I couldn't find anything playable for that search.");
+            .IsEqualTo("I couldn't find anything playable on SoundCloud for that search.");
     }
 
     [Test]
-    public async Task PlayAsync_WhenYoutubeSearchHasNoMatches_FallsBackToSoundCloud()
+    public async Task PlayAsync_WhenSearchFindsTrackWithoutVoiceChannel_ReturnsFriendlyError()
     {
         var trackManager = Substitute.For<ITrackManager>();
-        trackManager.LoadTracksAsync("never gonna give you up", Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.YouTube), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult(TrackLoadResult.CreateEmpty()));
-        trackManager.LoadTracksAsync("never gonna give you up", Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult(TrackLoadResult.CreateTrack(CreateTrack("Found Song", "Artist", TimeSpan.FromMinutes(2)))));
-
-        var playerManager = Substitute.For<IPlayerManager>();
-        playerManager
-            .RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
-                Arg.Any<ulong>(),
-                Arg.Any<ulong?>(),
-                Arg.Any<PlayerFactory<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
-                Arg.Any<Microsoft.Extensions.Options.IOptions<QueuedLavalinkPlayerOptions>>(),
-                Arg.Any<PlayerRetrieveOptions>(),
+        trackManager.LoadTracksAsync(
+                "never gonna give you up",
+                Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+                Arg.Any<LavalinkApiResolutionScope>(),
                 Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult(PlayerResult<QueuedLavalinkPlayer>.UserNotInVoiceChannel));
-
-        var service = CreateService(playerManager: playerManager, trackManager: trackManager);
-
-        var result = await service.PlayAsync(new FakeCommandContext(userVoiceChannelId: null), "never gonna give you up");
-
-        await Assert.That(result.Message).IsEqualTo("You need to join a voice channel first.");
-        await trackManager.Received(1).LoadTracksAsync("never gonna give you up", Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.YouTube), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>());
-        await trackManager.Received(1).LoadTracksAsync("never gonna give you up", Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>());
-    }
-
-    [Test]
-    public async Task PlayAsync_WhenYoutubeSearchReturnsTrack_DoesNotFallbackToSoundCloud()
-    {
-        var trackManager = Substitute.For<ITrackManager>();
-        trackManager.LoadTracksAsync("never gonna give you up", Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.YouTube), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>())
             .Returns(ValueTask.FromResult(TrackLoadResult.CreateSearch(ImmutableArray.Create(CreateTrack("Found Song", "Artist", TimeSpan.FromMinutes(2))))));
 
         var playerManager = Substitute.For<IPlayerManager>();
@@ -115,8 +96,48 @@ public class MusicServiceTests
         var result = await service.PlayAsync(new FakeCommandContext(userVoiceChannelId: null), "never gonna give you up");
 
         await Assert.That(result.Message).IsEqualTo("You need to join a voice channel first.");
-        await trackManager.Received(1).LoadTracksAsync("never gonna give you up", Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.YouTube), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>());
-        await trackManager.DidNotReceive().LoadTracksAsync("never gonna give you up", Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>());
+        await trackManager.Received(1).LoadTracksAsync(
+            "never gonna give you up",
+            Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+            Arg.Any<LavalinkApiResolutionScope>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task PlayAsync_WhenUrlIsProvided_UsesPassthroughLoad()
+    {
+        const string url = "https://soundcloud.com/test/song";
+
+        var trackManager = Substitute.For<ITrackManager>();
+        trackManager.LoadTracksAsync(
+                url,
+                Arg.Is<TrackLoadOptions>(x => x.SearchBehavior == StrictSearchBehavior.Passthrough),
+                Arg.Any<LavalinkApiResolutionScope>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TrackLoadResult.CreateTrack(CreateTrack("Found Song", "Artist", TimeSpan.FromMinutes(2)))));
+
+        var playerManager = Substitute.For<IPlayerManager>();
+        playerManager
+            .RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
+                Arg.Any<ulong>(),
+                Arg.Any<ulong?>(),
+                Arg.Any<PlayerFactory<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
+                Arg.Any<Microsoft.Extensions.Options.IOptions<QueuedLavalinkPlayerOptions>>(),
+                Arg.Any<PlayerRetrieveOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(PlayerResult<QueuedLavalinkPlayer>.UserNotInVoiceChannel));
+
+        var service = CreateService(playerManager: playerManager, trackManager: trackManager);
+
+        var result = await service.PlayAsync(new FakeCommandContext(), url);
+
+        await Assert.That(result.Ephemeral).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("You need to join a voice channel first.");
+        await trackManager.Received(1).LoadTracksAsync(
+            url,
+            Arg.Is<TrackLoadOptions>(x => x.SearchBehavior == StrictSearchBehavior.Passthrough),
+            Arg.Any<LavalinkApiResolutionScope>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -128,9 +149,8 @@ public class MusicServiceTests
             .Returns(ValueTask.FromResult<ILavalinkPlayer?>(null));
 
         var service = CreateService(audioService, playerManager);
-        var context = new FakeCommandContext();
 
-        var result = await service.QueueAsync(context);
+        var result = await service.QueueAsync(new FakeCommandContext());
 
         await Assert.That(result.Ephemeral).IsTrue();
         await Assert.That(result.Message).IsEqualTo("The queue is currently empty.");
@@ -151,9 +171,8 @@ public class MusicServiceTests
             .Returns(ValueTask.FromResult(PlayerResult<QueuedLavalinkPlayer>.UserNotInVoiceChannel));
 
         var service = CreateService(playerManager: playerManager);
-        var context = new FakeCommandContext(userVoiceChannelId: null);
 
-        var result = await service.SkipAsync(context);
+        var result = await service.SkipAsync(new FakeCommandContext(userVoiceChannelId: null));
 
         await Assert.That(result.Ephemeral).IsTrue();
         await Assert.That(result.Message).IsEqualTo("You need to join a voice channel first.");
@@ -207,32 +226,6 @@ public class MusicServiceTests
 
         await Assert.That(result.Ephemeral).IsFalse();
         await Assert.That(result.Message).Contains("Now playing **Current Song** by **Current Artist** (`01:35`). 2 more track(s) queued.");
-    }
-
-    [Test]
-    public async Task PlayAsync_WhenUserNotInVoiceChannel_ReturnsFriendlyError()
-    {
-        var trackManager = Substitute.For<ITrackManager>();
-        trackManager.LoadTracksAsync("https://example.com/song.mp3", Arg.Any<TrackLoadOptions>(), Arg.Any<LavalinkApiResolutionScope>(), Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult(TrackLoadResult.CreateTrack(CreateTrack("Found Song", "Artist", TimeSpan.FromMinutes(2)))));
-
-        var playerManager = Substitute.For<IPlayerManager>();
-        playerManager
-            .RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
-                Arg.Any<ulong>(),
-                Arg.Any<ulong?>(),
-                Arg.Any<PlayerFactory<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
-                Arg.Any<Microsoft.Extensions.Options.IOptions<QueuedLavalinkPlayerOptions>>(),
-                Arg.Any<PlayerRetrieveOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult(PlayerResult<QueuedLavalinkPlayer>.UserNotInVoiceChannel));
-
-        var service = CreateService(playerManager: playerManager, trackManager: trackManager);
-
-        var result = await service.PlayAsync(new FakeCommandContext(), "https://example.com/song.mp3");
-
-        await Assert.That(result.Ephemeral).IsTrue();
-        await Assert.That(result.Message).IsEqualTo("You need to join a voice channel first.");
     }
 
     private static LavalinkTrack CreateTrack(string title, string author, TimeSpan duration)

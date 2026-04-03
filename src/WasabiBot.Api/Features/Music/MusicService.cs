@@ -1,19 +1,17 @@
 using Lavalink4NET;
-using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
 using Lavalink4NET.Rest.Entities.Tracks;
-using Lavalink4NET.Tracks;
-using Microsoft.Extensions.Options;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed class MusicService(IAudioService audioService, ILogger<MusicService> logger, Tracer tracer) : IMusicService
+internal sealed class MusicService(IAudioService audioService, PlaybackService playbackService, ILogger<MusicService> logger, Tracer tracer) : IMusicService
 {
     private const int QueuePreviewLimit = 10;
 
     private readonly IAudioService _audioService = audioService;
+    private readonly PlaybackService _playbackService = playbackService;
     private readonly ILogger<MusicService> _logger = logger;
     private readonly Tracer _tracer = tracer;
 
@@ -26,7 +24,7 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
         if (!ctx.GuildId.HasValue)
         {
             span.SetAttribute("music.result", "guild_only");
-            return GuildOnly();
+            return PlaybackService.GuildOnly();
         }
 
         var identifier = input.Trim();
@@ -43,21 +41,17 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
             return new MusicCommandResult("Lavalink couldn't load that track right now. Please try again later.", Ephemeral: true);
         }
 
-        var playerResult = await _audioService.Players.RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
-            ctx.GuildId.Value,
-            ctx.UserVoiceChannelId,
-            PlayerFactory.Queued,
-            Options.Create(new QueuedLavalinkPlayerOptions()),
-            new PlayerRetrieveOptions(ChannelBehavior: PlayerChannelBehavior.Join),
-            cancellationToken);
-
-        if (!playerResult.IsSuccess)
+        var (lavalinkPlayer, result) = await _playbackService.RetrievePlaybackPlayerAsync(ctx, cancellationToken);
+        if (lavalinkPlayer is null)
         {
-            span.SetAttribute("music.player_retrieve_status", playerResult.Status.ToString());
-            return FromRetrieveStatus(playerResult.Status);
+            return new MusicCommandResult("Lavalink isn't available right now. Please try again later.", Ephemeral: true);
+        }
+        if (result is not null)
+        {
+            span.SetAttribute("music.player_retrieve_status", "failed");
+            return result;
         }
 
-        var player = playerResult.Player;
         if (loadResult.IsPlaylist)
         {
             span.SetAttribute("music.load_type", "playlist");
@@ -65,24 +59,19 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
             var firstTrack = loadResult.Tracks[0];
             for (var index = 0; index < loadResult.Tracks.Length; index++)
             {
-                await player.PlayAsync(loadResult.Tracks[index], enqueue: true, cancellationToken: cancellationToken);
+                await lavalinkPlayer.PlayAsync(loadResult.Tracks[index], enqueue: true, cancellationToken: cancellationToken);
             }
 
-            return new MusicCommandResult(
-                $"Queued {loadResult.Tracks.Length} tracks from **{loadResult.Playlist!.Name}**. Starting with {FormatTrack(firstTrack)}.");
+            return _playbackService.BuildPlaylistQueuedResult(loadResult.Playlist!.Name, loadResult.Tracks.Length, firstTrack);
         }
 
         var track = loadResult.Track!;
         span.SetAttribute("music.load_type", "track");
         span.SetAttribute("music.track.title", track.Title);
         span.SetAttribute("music.track.author", track.Author);
-        var position = await player.PlayAsync(track, enqueue: true, cancellationToken: cancellationToken);
+        var position = await lavalinkPlayer.PlayAsync(track, enqueue: true, cancellationToken: cancellationToken);
         span.SetAttribute("music.queue_position", position);
-        var message = position == 0
-            ? $"Now playing {FormatTrack(track)}."
-            : $"Queued {FormatTrack(track)} at position {position}.";
-
-        return new MusicCommandResult(message);
+        return _playbackService.BuildQueuedTrackResult(track, position);
     }
 
     private async Task<(TrackLoadResult? LoadResult, MusicCommandResult? Result)> LoadTrackAsync(
@@ -200,22 +189,22 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
             : string.Empty;
 
         span.SetAttribute("music.queue_count", player.Queue.Count);
-        return new MusicCommandResult($"Now playing {FormatTrack(currentTrack)}.{queueSuffix}");
+        return new MusicCommandResult($"Now playing {_playbackService.FormatTrack(currentTrack)}.{queueSuffix}");
     }
 
     public async Task<MusicCommandResult> LeaveAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
     {
         using var span = _tracer.StartActiveSpan("music.leave");
         AddContextAttributes(span, ctx);
-        var player = await GetControllablePlayerAsync(ctx, cancellationToken);
-        if (player.Result is not null)
+        var (player, result) = await GetControllablePlayerAsync(ctx, cancellationToken);
+        if (result is not null)
         {
             span.SetAttribute("music.result", "player_unavailable");
-            return player.Result;
+            return result;
         }
 
-        await player.Player!.StopAsync(cancellationToken);
-        await player.Player.DisconnectAsync(cancellationToken);
+        await player!.StopAsync(cancellationToken);
+        await player.DisconnectAsync(cancellationToken);
         span.SetAttribute("music.result", "disconnected");
         return new MusicCommandResult("Left the voice channel.");
     }
@@ -227,59 +216,23 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
             return null;
         }
 
-        var player = await _audioService.Players.GetPlayerAsync(ctx.GuildId.Value, cancellationToken);
-        return player as IQueuedLavalinkPlayer;
+        return await _playbackService.GetExistingPlayerAsync(ctx, cancellationToken);
     }
 
     private async Task<(IQueuedLavalinkPlayer? Player, MusicCommandResult? Result)> GetControllablePlayerAsync(
         ICommandContext ctx,
         CancellationToken cancellationToken)
     {
-        if (!ctx.GuildId.HasValue)
-        {
-            return (null, GuildOnly());
-        }
-
-        var result = await _audioService.Players.RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
-            ctx.GuildId.Value,
-            ctx.UserVoiceChannelId,
-            PlayerFactory.Queued,
-            Options.Create(new QueuedLavalinkPlayerOptions()),
-            new PlayerRetrieveOptions(ChannelBehavior: PlayerChannelBehavior.None),
-            cancellationToken);
-
-        return result.IsSuccess
-            ? (result.Player, null)
-            : (null, FromRetrieveStatus(result.Status));
+        return await _playbackService.GetControllablePlayerAsync(ctx, cancellationToken);
     }
 
-    private static MusicCommandResult FromRetrieveStatus(PlayerRetrieveStatus status)
-    {
-        var message = status switch
-        {
-            PlayerRetrieveStatus.UserNotInVoiceChannel => "You need to join a voice channel first.",
-            PlayerRetrieveStatus.VoiceChannelMismatch => "You need to be in the same voice channel as the bot.",
-            PlayerRetrieveStatus.UserInSameVoiceChannel => "I'm already connected to your voice channel.",
-            PlayerRetrieveStatus.BotNotConnected => "I'm not connected to a voice channel right now.",
-            PlayerRetrieveStatus.PreconditionFailed => "That action isn't allowed in the player's current state.",
-            _ => "I couldn't access the music player right now."
-        };
-
-        return new MusicCommandResult(message, Ephemeral: true);
-    }
-
-    private static MusicCommandResult GuildOnly()
-    {
-        return new MusicCommandResult("Music commands can only be used in a server voice channel.", Ephemeral: true);
-    }
-
-    private static string BuildQueueMessage(IQueuedLavalinkPlayer player)
+    private string BuildQueueMessage(IQueuedLavalinkPlayer player)
     {
         var lines = new List<string>();
 
         if (player.CurrentTrack is not null)
         {
-            lines.Add($"Now playing: {FormatTrack(player.CurrentTrack)}");
+            lines.Add($"Now playing: {_playbackService.FormatTrack(player.CurrentTrack)}");
         }
 
         if (player.Queue.Count == 0)
@@ -293,7 +246,7 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
         for (var index = 0; index < count; index++)
         {
             var track = player.Queue[index].Track;
-            lines.Add($"{index + 1}. {FormatTrack(track)}");
+            lines.Add($"{index + 1}. {_playbackService.FormatTrack(track)}");
         }
 
         if (player.Queue.Count > QueuePreviewLimit)
@@ -302,24 +255,6 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
         }
 
         return string.Join('\n', lines);
-    }
-
-    private static string FormatTrack(LavalinkTrack? track)
-    {
-        if (track is null)
-        {
-            return "an unknown track";
-        }
-
-        var duration = track.IsLiveStream ? "LIVE" : FormatDuration(track.Duration);
-        return $"**{track.Title}** by **{track.Author}** (`{duration}`)";
-    }
-
-    private static string FormatDuration(TimeSpan duration)
-    {
-        return duration.TotalHours >= 1
-            ? $"{(int)duration.TotalHours}:{duration.Minutes:D2}:{duration.Seconds:D2}"
-            : $"{duration.Minutes:D2}:{duration.Seconds:D2}";
     }
 
     private static void AddContextAttributes(TelemetrySpan span, ICommandContext ctx)
