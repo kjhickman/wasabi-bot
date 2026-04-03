@@ -1,8 +1,9 @@
-﻿using NetCord;
+using NetCord;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services.ApplicationCommands;
 using WasabiBot.Api.Features.Music;
+using WasabiBot.Api.Features.Radio;
 using WasabiBot.Api.Features.CaptionThis.Abstractions;
 using WasabiBot.Api.Features.CaptionThis.Services;
 using WasabiBot.Api.Features.Interactions;
@@ -45,7 +46,14 @@ internal static class DependencyInjection
         services.AddScoped<IReminderService, ReminderService>();
         services.AddHostedService<ReminderDispatcher>();
         services.AddScoped<IImageRetrievalService, HttpClientImageRetrievalService>();
+        services.AddSingleton<RadioTrackMetadataStore>();
+        services.AddScoped<PlaybackService>();
         services.AddScoped<IMusicService, MusicService>();
+        services.AddHttpClient<IRadioService, RadioService>(client =>
+        {
+            client.BaseAddress = new Uri("https://de1.api.radio-browser.info/json/");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("WasabiBot/1.0");
+        });
         services.AddScoped<IStatsService, StatsService>();
     }
 }

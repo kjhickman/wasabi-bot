@@ -11,5 +11,5 @@ lavalink:
       twitch: false
       vimeo: false
       nico: false
-      http: false
+      http: true
       local: false

@@ -4,7 +4,7 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Music;
 
-[CommandHandler("nowplaying", "Show the currently playing track.")]
+[CommandHandler("nowplaying", "Show the currently playing track or radio station.")]
 internal sealed class NowPlayingMusicCommand(ILogger<NowPlayingMusicCommand> logger, IMusicService musicService, Tracer tracer)
 {
     private readonly ILogger<NowPlayingMusicCommand> _logger = logger;

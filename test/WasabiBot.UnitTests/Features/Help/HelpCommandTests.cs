@@ -22,7 +22,8 @@ public class HelpCommandTests
         var ephemerals = context.EphemeralMessages;
         await Assert.That(ephemerals.Count).IsEqualTo(1);
         await Assert.That(ephemerals.Single()).IsNotEmpty();
-        await Assert.That(ephemerals.Single().Contains("`/play` - Play music from a search query or direct track/playlist URL")).IsTrue();
+        await Assert.That(ephemerals.Single().Contains("`/play` - Play music from a SoundCloud search query or track/playlist URL")).IsTrue();
+        await Assert.That(ephemerals.Single().Contains("`/radio` - Search internet radio stations and play the best match")).IsTrue();
         await Assert.That(ephemerals.Single().Contains("`/ask` - Ask any question")).IsTrue();
     }
 }
