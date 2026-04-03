@@ -6,6 +6,7 @@ using Lavalink4NET.Rest;
 using Lavalink4NET.Rest.Entities.Tracks;
 using Lavalink4NET.Tracks;
 using Microsoft.Extensions.Logging.Abstractions;
+using OpenTelemetry.Trace;
 using System.Collections.Immutable;
 using NSubstitute;
 using WasabiBot.Api.Features.Music;
@@ -27,7 +28,7 @@ public class MusicServiceTests
         audioService.Players.Returns(playerManager);
         audioService.Tracks.Returns(trackManager);
 
-        return new MusicService(audioService, NullLogger<MusicService>.Instance);
+        return new MusicService(audioService, NullLogger<MusicService>.Instance, TracerProvider.Default.GetTracer("music-tests"));
     }
 
     [Test]
