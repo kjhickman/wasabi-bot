@@ -39,7 +39,7 @@ var migrations = builder.AddProject("migrations", "src/WasabiBot.Migrations/Wasa
     .WaitFor(database)
     .WithParentRelationship(postgres);
 
-var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink", "4")
+var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink", "4-alpine")
     .WithHttpEndpoint(port: 2333, targetPort: 2333, name: "http")
     .WithContainerFiles("/opt/Lavalink", "./infra/lavalink")
     .WithEnvironment("SERVER_PORT", "2333")

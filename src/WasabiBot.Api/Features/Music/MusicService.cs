@@ -12,11 +12,6 @@ namespace WasabiBot.Api.Features.Music;
 internal sealed class MusicService(IAudioService audioService, ILogger<MusicService> logger, Tracer tracer) : IMusicService
 {
     private const int QueuePreviewLimit = 10;
-    private static readonly SearchAttempt[] SearchAttempts =
-    [
-        new(TrackSearchMode.YouTube),
-        new(TrackSearchMode.SoundCloud),
-    ];
 
     private readonly IAudioService _audioService = audioService;
     private readonly ILogger<MusicService> _logger = logger;
@@ -97,64 +92,42 @@ internal sealed class MusicService(IAudioService audioService, ILogger<MusicServ
         using var span = _tracer.StartActiveSpan("music.load-track");
         span.SetAttribute("music.input.length", input.Length);
 
-        var attempts = BuildAttempts(input);
-        span.SetAttribute("music.search_attempts", attempts.Count);
+        var identifier = input.Trim();
+        span.SetAttribute("music.search_attempts", 1);
         TrackException? lastException = null;
 
-        foreach (var attempt in attempts)
+        var isUrl = Uri.TryCreate(identifier, UriKind.Absolute, out _);
+        span.SetAttribute("music.search_mode", isUrl ? "url" : TrackSearchMode.SoundCloud.Prefix);
+        var loadResult = await _audioService.Tracks.LoadTracksAsync(
+            identifier,
+            isUrl
+                ? new TrackLoadOptions(SearchBehavior: StrictSearchBehavior.Passthrough)
+                : new TrackLoadOptions(SearchMode: TrackSearchMode.SoundCloud, SearchBehavior: StrictSearchBehavior.Explicit),
+            cancellationToken: cancellationToken);
+
+        if (loadResult.HasMatches)
         {
-            span.SetAttribute("music.search_mode", attempt.Options.SearchMode.Prefix ?? "url");
-            var loadResult = await _audioService.Tracks.LoadTracksAsync(
-                attempt.Identifier,
-                attempt.Options,
-                cancellationToken: cancellationToken);
+            span.SetAttribute("music.search_match_count", loadResult.Tracks.Length);
+            return (loadResult, null);
+        }
 
-            if (loadResult.HasMatches)
-            {
-                span.SetAttribute("music.search_match_count", loadResult.Tracks.Length);
-                return (loadResult, null);
-            }
-
-            if (loadResult.Exception is { } trackException)
-            {
-                lastException = trackException;
-                span.RecordException(new InvalidOperationException(trackException.Message));
-                _logger.LogWarning("Lavalink failed to load track for identifier {Identifier}: {Exception}", attempt.Identifier, trackException.Message);
-            }
+        if (loadResult.Exception is { } trackException)
+        {
+            lastException = trackException;
+            span.RecordException(new InvalidOperationException(trackException.Message));
+            _logger.LogWarning("Lavalink failed to load SoundCloud track for identifier {Identifier}: {Exception}", identifier, trackException.Message);
         }
 
         if (lastException is not null)
         {
-            return (null, new MusicCommandResult("Lavalink couldn't load that track right now. Please try again later.", Ephemeral: true));
+            return (null, new MusicCommandResult("SoundCloud couldn't load that track right now. Please try again later.", Ephemeral: true));
         }
 
-        var message = attempts.Count == 1
-            ? "I couldn't find anything playable at that URL."
-            : "I couldn't find anything playable for that search.";
-
-        return (null, new MusicCommandResult(message, Ephemeral: true));
-    }
-
-    private static IReadOnlyList<SearchAttempt> BuildAttempts(string input)
-    {
-        if (Uri.TryCreate(input, UriKind.Absolute, out _))
-        {
-            return [new SearchAttempt(input, new TrackLoadOptions(SearchBehavior: StrictSearchBehavior.Passthrough))];
-        }
-
-        return SearchAttempts
-            .Select(attempt => attempt with { Identifier = input })
-            .ToArray();
-    }
-
-    private readonly record struct SearchAttempt(string Identifier, TrackLoadOptions Options)
-    {
-        public SearchAttempt(TrackSearchMode searchMode)
-            : this(
-                string.Empty,
-                new TrackLoadOptions(SearchMode: searchMode, SearchBehavior: StrictSearchBehavior.Explicit))
-        {
-        }
+        return (null, new MusicCommandResult(
+            isUrl
+                ? "I couldn't find anything playable at that URL."
+                : "I couldn't find anything playable on SoundCloud for that search.",
+            Ephemeral: true));
     }
 
     public async Task<MusicCommandResult> SkipAsync(ICommandContext ctx, CancellationToken cancellationToken = default)

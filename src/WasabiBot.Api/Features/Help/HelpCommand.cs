@@ -36,7 +36,7 @@ internal sealed class HelpCommand(ILogger<HelpCommand> logger)
 
         // Music commands
         sb.AppendLine("### Music");
-        sb.AppendLine("• `/play` - Play music from a search query or direct track/playlist URL");
+        sb.AppendLine("• `/play` - Play music from a SoundCloud search query or track/playlist URL");
         sb.AppendLine("• `/skip` - Skip the current track");
         sb.AppendLine("• `/stop` - Stop playback and clear the queue");
         sb.AppendLine("• `/queue` - Show the current queue");
