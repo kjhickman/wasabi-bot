@@ -20,6 +20,7 @@ public class MusicComponentTests : IDisposable
     {
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(false));
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardControlService>());
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var authState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
@@ -36,6 +37,7 @@ public class MusicComponentTests : IDisposable
     {
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
         var dashboardService = Substitute.For<IMusicDashboardService>();
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardControlService>());
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns((ActiveMusicSession?)null);
         _context.Services.AddSingleton(dashboardService);
@@ -58,6 +60,7 @@ public class MusicComponentTests : IDisposable
     {
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
         var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns(new ActiveMusicSession(
                 new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
@@ -84,6 +87,7 @@ public class MusicComponentTests : IDisposable
                     SourceUrl: "https://soundcloud.com/example/next-song",
                     SourceName: "scsearch"))]));
         _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var user = ClaimsPrincipalBuilder.Create()
@@ -104,6 +108,52 @@ public class MusicComponentTests : IDisposable
         await Assert.That(cut.Find("#music-progress-position").TextContent.Trim()).IsEqualTo("01:30");
         await Assert.That(cut.Find("#music-progress-duration").TextContent.Trim()).IsEqualTo("03:00");
         await Assert.That(cut.Find("#music-queue-list").TextContent).Contains("Next Song");
+        await Assert.That(cut.Find("#music-skip").HasAttribute("disabled")).IsFalse();
+        await Assert.That(cut.Find("#music-stop").HasAttribute("disabled")).IsFalse();
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUser_ClickingSkip_ShowsActionMessage()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+
+        var session = new ActiveMusicSession(
+            new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+            "Playing",
+            new PlaybackProgressSnapshot(TimeSpan.FromMinutes(1), "01:00", 25),
+            new MusicTrackSnapshot(
+                "Current Song",
+                "Current Artist",
+                "04:00",
+                TimeSpan.FromMinutes(4),
+                IsLive: false,
+                IsRadio: false,
+                ArtworkUrl: null,
+                SourceUrl: null,
+                SourceName: "scsearch"),
+            []);
+
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(session);
+        controlService.SkipAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new MusicCommandResult("Skipped the current track."));
+
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+        var authState = new AuthenticationState(user);
+
+        var cut = _context.RenderWithAuthentication<Music>(authState);
+        await cut.InvokeAsync(() => cut.Find("#music-skip").Click());
+
+        await Assert.That(cut.Find("#music-action-message").TextContent).Contains("Skipped the current track.");
     }
 
     public void Dispose()

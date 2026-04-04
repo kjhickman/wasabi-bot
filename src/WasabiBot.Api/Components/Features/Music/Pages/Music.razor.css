@@ -29,6 +29,16 @@
     gap: 1rem;
 }
 
+.music-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.music-controls button {
+    margin: 0;
+}
+
 .music-now-playing {
     display: grid;
     gap: 1rem;

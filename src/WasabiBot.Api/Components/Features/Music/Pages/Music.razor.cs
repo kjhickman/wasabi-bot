@@ -20,6 +20,9 @@ public partial class Music : ComponentBase, IAsyncDisposable
     [Inject]
     private IMusicDashboardService MusicDashboardService { get; set; } = default!;
 
+    [Inject]
+    private IMusicDashboardControlService MusicDashboardControlService { get; set; } = default!;
+
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
 
@@ -28,6 +31,9 @@ public partial class Music : ComponentBase, IAsyncDisposable
     private ulong? UserId { get; set; }
     private string? DisplayName { get; set; }
     private string? LoadError { get; set; }
+    private string? ActionMessage { get; set; }
+    private bool ActionIsError { get; set; }
+    private bool IsSubmittingAction { get; set; }
     private bool IsLoading { get; set; } = true;
     private ActiveMusicSession? Session { get; set; }
     private string PageTitleText => !IsAuthenticated ? "Sign In" : HasGuildAccess ? "Music Dashboard" : "Access Restricted";
@@ -140,5 +146,47 @@ public partial class Music : ComponentBase, IAsyncDisposable
     {
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return ulong.TryParse(userIdClaim, out userId);
+    }
+
+    private async Task TogglePauseAsync()
+    {
+        await ExecuteActionAsync(ct => MusicDashboardControlService.TogglePauseAsync(UserId!.Value, ct));
+    }
+
+    private async Task SkipAsync()
+    {
+        await ExecuteActionAsync(ct => MusicDashboardControlService.SkipAsync(UserId!.Value, ct));
+    }
+
+    private async Task StopAsync()
+    {
+        await ExecuteActionAsync(ct => MusicDashboardControlService.StopAsync(UserId!.Value, ct));
+    }
+
+    private async Task ExecuteActionAsync(Func<CancellationToken, Task<MusicCommandResult>> action)
+    {
+        if (UserId is null || IsSubmittingAction)
+        {
+            return;
+        }
+
+        IsSubmittingAction = true;
+
+        try
+        {
+            var result = await action(CancellationToken.None);
+            ActionMessage = result.Message;
+            ActionIsError = result.Ephemeral;
+            await RefreshSessionAsync();
+        }
+        catch
+        {
+            ActionMessage = "Couldn't complete that music action right now. Please try again.";
+            ActionIsError = true;
+        }
+        finally
+        {
+            IsSubmittingAction = false;
+        }
     }
 }

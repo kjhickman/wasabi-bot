@@ -51,11 +51,40 @@ else
         }
         else
         {
+            @if (!string.IsNullOrWhiteSpace(ActionMessage))
+            {
+                <article id="music-action-message" class="surface-card stack-sm" aria-live="polite">
+                    <h2>@(ActionIsError ? "Action blocked" : "Action completed")</h2>
+                    <p>@ActionMessage</p>
+                </article>
+            }
+
             <div class="music-page__meta" aria-label="Current session context">
                 <span id="music-guild-name" class="music-pill">@Session.Channel.GuildName</span>
                 <span id="music-channel-name" class="music-pill">#@Session.Channel.VoiceChannelName</span>
                 <span id="music-playback-state" class="music-pill">@Session.PlaybackState</span>
             </div>
+
+            <section id="music-controls" class="music-controls" aria-label="Playback controls">
+                <button id="music-toggle-pause"
+                        type="button"
+                        disabled="@IsSubmittingAction"
+                        @onclick="TogglePauseAsync">
+                    @(Session.PlaybackState == "Paused" ? "Resume" : "Pause")
+                </button>
+                <button id="music-skip"
+                        type="button"
+                        disabled="@IsSubmittingAction"
+                        @onclick="SkipAsync">
+                    Skip
+                </button>
+                <button id="music-stop"
+                        type="button"
+                        disabled="@IsSubmittingAction"
+                        @onclick="StopAsync">
+                    Stop
+                </button>
+            </section>
 
             <div class="music-grid">
                 <article class="surface-card stack-md" aria-labelledby="music-now-playing-heading">
