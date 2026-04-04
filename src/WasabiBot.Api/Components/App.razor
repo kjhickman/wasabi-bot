@@ -13,10 +13,18 @@
     <link rel="stylesheet" href="@Assets["WasabiBot.Api.styles.css"]"/>
     <link rel="icon" type="image/png" href="@Assets["favicon.png"]" />
 
-    <HeadOutlet />
+    <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 <body>
-    <Routes />
+    <Routes @rendermode="PageRenderMode" />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 </html>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private IComponentRenderMode? PageRenderMode
+        => HttpContext.GetEndpoint()?.Metadata.GetMetadata<RenderModeAttribute>()?.Mode;
+}

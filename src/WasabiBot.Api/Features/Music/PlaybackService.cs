@@ -42,7 +42,12 @@ internal sealed class PlaybackService(IAudioService audioService, RadioTrackMeta
             return null;
         }
 
-        var player = await _audioService.Players.GetPlayerAsync(ctx.GuildId.Value, cancellationToken);
+        return await GetExistingPlayerAsync(ctx.GuildId.Value, cancellationToken);
+    }
+
+    public async Task<IQueuedLavalinkPlayer?> GetExistingPlayerAsync(ulong guildId, CancellationToken cancellationToken)
+    {
+        var player = await _audioService.Players.GetPlayerAsync(guildId, cancellationToken);
         return player as IQueuedLavalinkPlayer;
     }
 
@@ -110,18 +115,34 @@ internal sealed class PlaybackService(IAudioService audioService, RadioTrackMeta
 
     public string FormatTrack(LavalinkTrack? track)
     {
-        if (track is null)
+        var snapshot = CreateTrackSnapshot(track);
+        if (snapshot is null)
         {
             return "an unknown track";
         }
 
+        if (snapshot.IsRadio)
+        {
+            return $"**{snapshot.Title}** (`{snapshot.DurationText}`)";
+        }
+
+        return $"**{snapshot.Title}** by **{snapshot.Author}** (`{snapshot.DurationText}`)";
+    }
+
+    public MusicTrackSnapshot? CreateTrackSnapshot(LavalinkTrack? track)
+    {
+        if (track is null)
+        {
+            return null;
+        }
+
         if (_radioTrackMetadataStore.TryGet(track, out var metadata))
         {
-            return $"**{metadata.Title}** (`LIVE`)";
+            return new MusicTrackSnapshot(metadata.Title, string.Empty, "LIVE", IsLive: true, IsRadio: true);
         }
 
         var duration = track.IsLiveStream ? "LIVE" : FormatDuration(track.Duration);
-        return $"**{track.Title}** by **{track.Author}** (`{duration}`)";
+        return new MusicTrackSnapshot(track.Title, track.Author, duration, track.IsLiveStream, IsRadio: false);
     }
 
     private static string FormatDuration(TimeSpan duration)

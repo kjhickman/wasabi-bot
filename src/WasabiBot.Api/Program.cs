@@ -31,13 +31,15 @@ builder.Services.AddHybridCache(options =>
     options.MaximumPayloadBytes = 1024 * 1024;
     options.MaximumKeyLength = 1024;
 });
-builder.Services.AddRazorComponents();
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();
 
 app.MapStaticAssets();
-app.MapRazorComponents<App>();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
 
 app.UseAuthentication();
 app.UseAuthorization();

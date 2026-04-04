@@ -1,0 +1,144 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using WasabiBot.Api.Core.Extensions;
+using WasabiBot.Api.Features.Music;
+
+namespace WasabiBot.Api.Components.Features.Music;
+
+public partial class Music : ComponentBase, IAsyncDisposable
+{
+    private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(3);
+
+    private CancellationTokenSource? _refreshCancellationTokenSource;
+    private Task? _refreshTask;
+
+    [Inject]
+    private IAuthorizationService AuthorizationService { get; set; } = default!;
+
+    [Inject]
+    private IMusicDashboardService MusicDashboardService { get; set; } = default!;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+
+    private bool IsAuthenticated { get; set; }
+    private bool HasGuildAccess { get; set; }
+    private ulong? UserId { get; set; }
+    private string? DisplayName { get; set; }
+    private string? LoadError { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private ActiveMusicSession? Session { get; set; }
+    private string PageTitleText => !IsAuthenticated ? "Sign In" : HasGuildAccess ? "Music Dashboard" : "Access Restricted";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+        IsAuthenticated = user.Identity?.IsAuthenticated ?? false;
+
+        if (!IsAuthenticated)
+        {
+            IsLoading = false;
+            return;
+        }
+
+        DisplayName = user.DisplayName;
+        HasGuildAccess = (await AuthorizationService.AuthorizeAsync(user, policyName: "DiscordGuildMember")).Succeeded;
+        if (!HasGuildAccess)
+        {
+            IsLoading = false;
+            return;
+        }
+
+        if (!TryGetUserId(user, out var userId))
+        {
+            LoadError = "Couldn't resolve your Discord identity for the music dashboard.";
+            IsLoading = false;
+            return;
+        }
+
+        UserId = userId;
+        await RefreshSessionAsync();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !RendererInfo.IsInteractive || UserId is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        _refreshCancellationTokenSource = new CancellationTokenSource();
+        _refreshTask = RunRefreshLoopAsync(_refreshCancellationTokenSource.Token);
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_refreshCancellationTokenSource is not null)
+        {
+            await _refreshCancellationTokenSource.CancelAsync();
+            _refreshCancellationTokenSource.Dispose();
+        }
+
+        if (_refreshTask is not null)
+        {
+            try
+            {
+                await _refreshTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+    }
+
+    private async Task RunRefreshLoopAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(RefreshInterval);
+
+        await RefreshSessionAsync(cancellationToken);
+        await InvokeAsync(StateHasChanged);
+
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            await RefreshSessionAsync(cancellationToken);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RefreshSessionAsync(CancellationToken cancellationToken = default)
+    {
+        if (UserId is null)
+        {
+            IsLoading = false;
+            return;
+        }
+
+        try
+        {
+            Session = await MusicDashboardService.GetActiveSessionAsync(UserId.Value, cancellationToken);
+            LoadError = null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+        catch
+        {
+            LoadError = "Couldn't load the music dashboard right now. Please try again in a moment.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private static bool TryGetUserId(ClaimsPrincipal user, out ulong userId)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return ulong.TryParse(userIdClaim, out userId);
+    }
+}

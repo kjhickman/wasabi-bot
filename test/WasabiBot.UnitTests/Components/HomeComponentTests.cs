@@ -45,6 +45,8 @@ public class HomeComponentTests : IDisposable
         await Assert.That(cut.Markup).Contains("Stats");
         await Assert.That(cut.Find("#docs-link").GetAttribute("href")).IsEqualTo("/scalar/v1");
         await Assert.That(cut.Find("#creds-link").GetAttribute("href")).IsEqualTo("/creds");
+        await Assert.That(cut.Find("#music-link").GetAttribute("href")).IsEqualTo("/music");
+        await Assert.That(cut.Markup).Contains("See the active queue and now playing state for the voice channel you're currently sharing with Wasabi Bot.");
         await Assert.That(cut.FindAll("#login-link").Count).IsEqualTo(0);
     }
 
