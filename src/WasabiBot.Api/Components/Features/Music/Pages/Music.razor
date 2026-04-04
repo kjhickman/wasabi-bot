@@ -1,0 +1,115 @@
+@namespace WasabiBot.Api.Components.Features.Music
+@page "/music"
+@attribute [Authorize(Policy = "DiscordGuildMember")]
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+<PageTitle>@PageTitleText - Wasabi Bot</PageTitle>
+
+@if (!IsAuthenticated)
+{
+    <SignedOutPrompt SectionId="music-unauthenticated"
+                     HeadingId="music-signin-heading"
+                     Heading="Sign in to view live music"
+                     Description="See the current queue and now playing state for the voice channel you're sharing with Wasabi Bot."
+                     LinkId="music-login-link"
+                     Href="/login-discord?returnUrl=%2Fmusic" />
+}
+else if (!HasGuildAccess)
+{
+    <GuildAccessRequired />
+}
+else
+{
+    <section id="music-page" class="music-page stack-lg" aria-labelledby="music-page-heading">
+        <header class="music-page__header stack-sm">
+            <p class="eyebrow">Live Queue</p>
+            <h1 id="music-page-heading">Music Dashboard</h1>
+            <p class="section-copy">Live queue view for the voice channel you're currently sharing with Wasabi Bot.</p>
+        </header>
+
+        @if (!string.IsNullOrWhiteSpace(LoadError))
+        {
+            <article id="music-error" class="surface-card stack-sm" aria-live="polite">
+                <h2>Dashboard unavailable</h2>
+                <p>@LoadError</p>
+            </article>
+        }
+        else if (IsLoading)
+        {
+            <article id="music-loading" class="surface-card stack-sm" aria-live="polite">
+                <h2>Loading live queue</h2>
+                <p>Checking the voice channel you're currently sharing with Wasabi Bot.</p>
+            </article>
+        }
+        else if (Session is null)
+        {
+            <article id="music-empty-state" class="surface-card stack-sm" aria-live="polite">
+                <h2>Join a voice channel with Wasabi Bot</h2>
+                <p>Once you're in the same voice channel as the bot, this page will show the live queue and current track.</p>
+            </article>
+        }
+        else
+        {
+            <div class="music-page__meta" aria-label="Current session context">
+                <span id="music-guild-name" class="music-pill">@Session.Channel.GuildName</span>
+                <span id="music-channel-name" class="music-pill">#@Session.Channel.VoiceChannelName</span>
+            </div>
+
+            <div class="music-grid">
+                <article class="surface-card stack-md" aria-labelledby="music-now-playing-heading">
+                    <header class="stack-sm">
+                        <p class="eyebrow">Now Playing</p>
+                        <h2 id="music-now-playing-heading">Current track</h2>
+                    </header>
+
+                    @if (Session.NowPlaying is null)
+                    {
+                        <p id="music-now-playing-empty">Nothing is playing right now.</p>
+                    }
+                    else
+                    {
+                        <div id="music-now-playing-track" class="stack-xs">
+                            <strong>@Session.NowPlaying.Title</strong>
+                            @if (!Session.NowPlaying.IsRadio)
+                            {
+                                <span>by @Session.NowPlaying.Author</span>
+                            }
+                            <span class="music-track-meta">@Session.NowPlaying.DurationText</span>
+                        </div>
+                    }
+                </article>
+
+                <article class="surface-card stack-md" aria-labelledby="music-queue-heading">
+                    <header class="stack-sm">
+                        <p class="eyebrow">Queue</p>
+                        <h2 id="music-queue-heading">Up next</h2>
+                    </header>
+
+                    @if (Session.Queue.Count == 0)
+                    {
+                        <p id="music-queue-empty">The queue is empty.</p>
+                    }
+                    else
+                    {
+                        <ol id="music-queue-list" class="music-queue-list">
+                            @foreach (var item in Session.Queue)
+                            {
+                                <li class="music-queue-item">
+                                    <div class="music-queue-item__body">
+                                        <strong>@item.Track.Title</strong>
+                                        @if (!item.Track.IsRadio)
+                                        {
+                                            <span>by @item.Track.Author</span>
+                                        }
+                                    </div>
+                                    <span class="music-track-meta">@item.Track.DurationText</span>
+                                </li>
+                            }
+                        </ol>
+                    }
+                </article>
+            </div>
+        }
+    </section>
+}
