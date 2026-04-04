@@ -54,6 +54,7 @@ else
             <div class="music-page__meta" aria-label="Current session context">
                 <span id="music-guild-name" class="music-pill">@Session.Channel.GuildName</span>
                 <span id="music-channel-name" class="music-pill">#@Session.Channel.VoiceChannelName</span>
+                <span id="music-playback-state" class="music-pill">@Session.PlaybackState</span>
             </div>
 
             <div class="music-grid">
@@ -69,13 +70,48 @@ else
                     }
                     else
                     {
-                        <div id="music-now-playing-track" class="stack-xs">
-                            <strong>@Session.NowPlaying.Title</strong>
-                            @if (!Session.NowPlaying.IsRadio)
+                        <div class="music-now-playing">
+                            @if (!string.IsNullOrWhiteSpace(Session.NowPlaying.ArtworkUrl))
                             {
-                                <span>by @Session.NowPlaying.Author</span>
+                                <img id="music-artwork"
+                                     class="music-now-playing__artwork"
+                                     src="@Session.NowPlaying.ArtworkUrl"
+                                     alt="Album artwork for @Session.NowPlaying.Title" />
                             }
-                            <span class="music-track-meta">@Session.NowPlaying.DurationText</span>
+
+                            <div id="music-now-playing-track" class="stack-xs music-now-playing__details">
+                                <strong>@Session.NowPlaying.Title</strong>
+                                @if (!Session.NowPlaying.IsRadio)
+                                {
+                                    <span>by @Session.NowPlaying.Author</span>
+                                }
+
+                                <div class="music-now-playing__meta-row">
+                                    <span class="music-track-meta">@Session.NowPlaying.DurationText</span>
+                                    @if (!string.IsNullOrWhiteSpace(Session.NowPlaying.SourceName))
+                                    {
+                                        <span id="music-source-name" class="music-track-meta">@FormatSourceName(Session.NowPlaying.SourceName)</span>
+                                    }
+                                </div>
+
+                                @if (Session.Progress is not null && Session.NowPlaying.Duration is { } duration)
+                                {
+                                    <div id="music-progress" class="music-progress stack-xs" aria-label="Playback progress">
+                                        <progress value="@Session.Progress.Position.TotalSeconds" max="@duration.TotalSeconds"></progress>
+                                        <div class="music-progress__times">
+                                            <span id="music-progress-position">@Session.Progress.PositionText</span>
+                                            <span id="music-progress-duration">@Session.NowPlaying.DurationText</span>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(Session.NowPlaying.SourceUrl))
+                                {
+                                    <p class="music-now-playing__source-link">
+                                        <a id="music-source-link" href="@Session.NowPlaying.SourceUrl" target="_blank" rel="noopener noreferrer">Open source</a>
+                                    </p>
+                                }
+                            </div>
                         </div>
                     }
                 </article>
@@ -112,4 +148,17 @@ else
             </div>
         }
     </section>
+}
+
+@code {
+    private static string FormatSourceName(string sourceName)
+    {
+        return sourceName.ToLowerInvariant() switch
+        {
+            "scsearch" => "SoundCloud",
+            "soundcloud" => "SoundCloud",
+            "http" => "Direct stream",
+            _ => sourceName
+        };
+    }
 }

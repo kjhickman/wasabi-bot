@@ -1,3 +1,5 @@
+using Lavalink4NET.Players;
+
 namespace WasabiBot.Api.Features.Music;
 
 internal sealed class MusicDashboardService(
@@ -18,8 +20,41 @@ internal sealed class MusicDashboardService(
         var player = await _playbackService.GetExistingPlayerAsync(sharedVoiceChannel.GuildId, cancellationToken);
         return new ActiveMusicSession(
             sharedVoiceChannel,
+            BuildPlaybackState(player),
+            BuildProgress(player),
             _playbackService.CreateTrackSnapshot(player?.CurrentTrack),
             BuildQueue(player));
+    }
+
+    private static string BuildPlaybackState(Lavalink4NET.Players.Queued.IQueuedLavalinkPlayer? player)
+    {
+        if (player?.CurrentTrack is null)
+        {
+            return "Idle";
+        }
+
+        return player.State switch
+        {
+            PlayerState.Paused => "Paused",
+            PlayerState.Playing => "Playing",
+            _ => "Idle"
+        };
+    }
+
+    private PlaybackProgressSnapshot? BuildProgress(Lavalink4NET.Players.Queued.IQueuedLavalinkPlayer? player)
+    {
+        var track = _playbackService.CreateTrackSnapshot(player?.CurrentTrack);
+        if (player is null || track is null || track.IsLive)
+        {
+            return null;
+        }
+
+        var position = player.Position?.Position ?? TimeSpan.Zero;
+        double? percent = track.Duration is { } duration && duration > TimeSpan.Zero
+            ? Math.Clamp(position.TotalMilliseconds / duration.TotalMilliseconds * 100D, 0D, 100D)
+            : null;
+
+        return new PlaybackProgressSnapshot(position, PlaybackService.FormatDuration(position), percent);
     }
 
     private IReadOnlyList<MusicQueueItemSnapshot> BuildQueue(Lavalink4NET.Players.Queued.IQueuedLavalinkPlayer? player)

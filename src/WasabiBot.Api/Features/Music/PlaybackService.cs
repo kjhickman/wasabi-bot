@@ -138,14 +138,32 @@ internal sealed class PlaybackService(IAudioService audioService, RadioTrackMeta
 
         if (_radioTrackMetadataStore.TryGet(track, out var metadata))
         {
-            return new MusicTrackSnapshot(metadata.Title, string.Empty, "LIVE", IsLive: true, IsRadio: true);
+            return new MusicTrackSnapshot(
+                metadata.Title,
+                string.Empty,
+                "LIVE",
+                Duration: null,
+                IsLive: true,
+                IsRadio: true,
+                ArtworkUrl: null,
+                SourceUrl: track.Uri?.ToString(),
+                SourceName: track.SourceName);
         }
 
         var duration = track.IsLiveStream ? "LIVE" : FormatDuration(track.Duration);
-        return new MusicTrackSnapshot(track.Title, track.Author, duration, track.IsLiveStream, IsRadio: false);
+        return new MusicTrackSnapshot(
+            track.Title,
+            track.Author,
+            duration,
+            track.IsLiveStream ? null : track.Duration,
+            track.IsLiveStream,
+            IsRadio: false,
+            ArtworkUrl: track.ArtworkUri?.ToString(),
+            SourceUrl: track.Uri?.ToString(),
+            SourceName: track.SourceName);
     }
 
-    private static string FormatDuration(TimeSpan duration)
+    public static string FormatDuration(TimeSpan duration)
     {
         return duration.TotalHours >= 1
             ? $"{(int)duration.TotalHours}:{duration.Minutes:D2}:{duration.Seconds:D2}"
