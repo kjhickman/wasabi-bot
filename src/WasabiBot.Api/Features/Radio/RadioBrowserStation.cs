@@ -13,6 +13,12 @@ internal sealed record RadioBrowserStation
     [JsonPropertyName("url_resolved")]
     public string UrlResolved { get; init; } = string.Empty;
 
+    [JsonPropertyName("homepage")]
+    public string Homepage { get; init; } = string.Empty;
+
+    [JsonPropertyName("favicon")]
+    public string Favicon { get; init; } = string.Empty;
+
     [JsonPropertyName("country")]
     public string Country { get; init; } = string.Empty;
 

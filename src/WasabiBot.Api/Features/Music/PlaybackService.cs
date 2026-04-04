@@ -22,12 +22,21 @@ internal sealed class PlaybackService(IAudioService audioService, RadioTrackMeta
             return (null, GuildOnly());
         }
 
+        return await RetrievePlaybackPlayerAsync(ctx.GuildId.Value, ctx.UserVoiceChannelId, PlayerChannelBehavior.Join, cancellationToken);
+    }
+
+    public async Task<(IQueuedLavalinkPlayer? Player, MusicCommandResult? Result)> RetrievePlaybackPlayerAsync(
+        ulong guildId,
+        ulong? voiceChannelId,
+        PlayerChannelBehavior channelBehavior,
+        CancellationToken cancellationToken)
+    {
         var result = await _audioService.Players.RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
-            ctx.GuildId.Value,
-            ctx.UserVoiceChannelId,
+            guildId,
+            voiceChannelId,
             PlayerFactory.Queued,
             Options.Create(new QueuedLavalinkPlayerOptions()),
-            new PlayerRetrieveOptions(ChannelBehavior: PlayerChannelBehavior.Join),
+            new PlayerRetrieveOptions(ChannelBehavior: channelBehavior),
             cancellationToken);
 
         return result.IsSuccess
@@ -60,17 +69,7 @@ internal sealed class PlaybackService(IAudioService audioService, RadioTrackMeta
             return (null, GuildOnly());
         }
 
-        var result = await _audioService.Players.RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
-            ctx.GuildId.Value,
-            ctx.UserVoiceChannelId,
-            PlayerFactory.Queued,
-            Options.Create(new QueuedLavalinkPlayerOptions()),
-            new PlayerRetrieveOptions(ChannelBehavior: PlayerChannelBehavior.None),
-            cancellationToken);
-
-        return result.IsSuccess
-            ? (result.Player, null)
-            : (null, FromRetrieveStatus(result.Status));
+        return await RetrievePlaybackPlayerAsync(ctx.GuildId.Value, ctx.UserVoiceChannelId, PlayerChannelBehavior.None, cancellationToken);
     }
 
     public MusicCommandResult BuildQueuedTrackResult(LavalinkTrack track, int position)

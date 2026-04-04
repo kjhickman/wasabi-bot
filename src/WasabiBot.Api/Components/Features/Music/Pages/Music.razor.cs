@@ -23,6 +23,12 @@ public partial class Music : ComponentBase, IAsyncDisposable
     [Inject]
     private IMusicDashboardControlService MusicDashboardControlService { get; set; } = default!;
 
+    [Inject]
+    private IMusicDashboardSearchService MusicDashboardSearchService { get; set; } = default!;
+
+    [Inject]
+    private IMusicDashboardQueueService MusicDashboardQueueService { get; set; } = default!;
+
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
 
@@ -34,6 +40,10 @@ public partial class Music : ComponentBase, IAsyncDisposable
     private string? ActionMessage { get; set; }
     private bool ActionIsError { get; set; }
     private bool IsSubmittingAction { get; set; }
+    private string SearchQuery { get; set; } = string.Empty;
+    private bool IsSearching { get; set; }
+    private string? SearchError { get; set; }
+    private MusicDashboardSearchResults? SearchResults { get; set; }
     private bool IsLoading { get; set; } = true;
     private ActiveMusicSession? Session { get; set; }
     private string PageTitleText => !IsAuthenticated ? "Sign In" : HasGuildAccess ? "Music Dashboard" : "Access Restricted";
@@ -161,6 +171,51 @@ public partial class Music : ComponentBase, IAsyncDisposable
     private async Task StopAsync()
     {
         await ExecuteActionAsync(ct => MusicDashboardControlService.StopAsync(UserId!.Value, ct));
+    }
+
+    private async Task SearchAsync()
+    {
+        if (IsSearching)
+        {
+            return;
+        }
+
+        IsSearching = true;
+        SearchError = null;
+
+        try
+        {
+            SearchResults = await MusicDashboardSearchService.SearchAsync(SearchQuery, CancellationToken.None);
+            SearchError = SearchResults.ErrorMessage;
+        }
+        catch
+        {
+            SearchError = "Couldn't search music right now. Please try again.";
+        }
+        finally
+        {
+            IsSearching = false;
+        }
+    }
+
+    private async Task QueueSongAsync(MusicDashboardSongSearchResult result)
+    {
+        await ExecuteActionAsync(ct => MusicDashboardQueueService.QueueTrackAsync(UserId!.Value, result.Track, ct));
+    }
+
+    private async Task PlaySongNextAsync(MusicDashboardSongSearchResult result)
+    {
+        await ExecuteActionAsync(ct => MusicDashboardQueueService.PlayNextTrackAsync(UserId!.Value, result.Track, ct));
+    }
+
+    private async Task QueueStationAsync(MusicDashboardRadioSearchResult result)
+    {
+        await ExecuteActionAsync(ct => MusicDashboardQueueService.QueueStationAsync(UserId!.Value, result.Station, ct));
+    }
+
+    private async Task PlayStationNextAsync(MusicDashboardRadioSearchResult result)
+    {
+        await ExecuteActionAsync(ct => MusicDashboardQueueService.PlayNextStationAsync(UserId!.Value, result.Station, ct));
     }
 
     private async Task ExecuteActionAsync(Func<CancellationToken, Task<MusicCommandResult>> action)

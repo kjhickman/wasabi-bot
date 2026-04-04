@@ -117,7 +117,7 @@ internal sealed class RadioService(
             .ToArray();
     }
 
-    private async Task<IReadOnlyList<RadioBrowserStation>> SearchStationsAsync(string query, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<RadioBrowserStation>> SearchStationsAsync(string query, CancellationToken cancellationToken = default)
     {
         var requestUri = $"stations/search?hidebroken=true&limit={StationSearchLimit}&order=votes&reverse=true&name={Uri.EscapeDataString(query)}";
         var response = await _httpClient.GetAsync(requestUri, cancellationToken);
