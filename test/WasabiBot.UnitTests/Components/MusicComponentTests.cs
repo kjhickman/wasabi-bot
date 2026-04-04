@@ -21,6 +21,8 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(false));
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardService>());
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardControlService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardSearchService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardQueueService>());
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var authState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
@@ -38,6 +40,8 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
         var dashboardService = Substitute.For<IMusicDashboardService>();
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardControlService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardSearchService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardQueueService>());
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns((ActiveMusicSession?)null);
         _context.Services.AddSingleton(dashboardService);
@@ -61,6 +65,8 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
         var dashboardService = Substitute.For<IMusicDashboardService>();
         var controlService = Substitute.For<IMusicDashboardControlService>();
+        var searchService = Substitute.For<IMusicDashboardSearchService>();
+        var queueService = Substitute.For<IMusicDashboardQueueService>();
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns(new ActiveMusicSession(
                 new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
@@ -88,6 +94,8 @@ public class MusicComponentTests : IDisposable
                     SourceName: "scsearch"))]));
         _context.Services.AddSingleton(dashboardService);
         _context.Services.AddSingleton(controlService);
+        _context.Services.AddSingleton(searchService);
+        _context.Services.AddSingleton(queueService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var user = ClaimsPrincipalBuilder.Create()
@@ -118,6 +126,8 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
         var dashboardService = Substitute.For<IMusicDashboardService>();
         var controlService = Substitute.For<IMusicDashboardControlService>();
+        var searchService = Substitute.For<IMusicDashboardSearchService>();
+        var queueService = Substitute.For<IMusicDashboardQueueService>();
 
         var session = new ActiveMusicSession(
             new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
@@ -142,6 +152,8 @@ public class MusicComponentTests : IDisposable
 
         _context.Services.AddSingleton(dashboardService);
         _context.Services.AddSingleton(controlService);
+        _context.Services.AddSingleton(searchService);
+        _context.Services.AddSingleton(queueService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var user = ClaimsPrincipalBuilder.Create()
@@ -154,6 +166,48 @@ public class MusicComponentTests : IDisposable
         await cut.InvokeAsync(() => cut.Find("#music-skip").Click());
 
         await Assert.That(cut.Find("#music-action-message").TextContent).Contains("Skipped the current track.");
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUser_Searching_ShowsSongAndRadioResults()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+        var searchService = Substitute.For<IMusicDashboardSearchService>();
+        var queueService = Substitute.For<IMusicDashboardQueueService>();
+
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Playing",
+                null,
+                new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
+                []));
+
+        searchService.SearchAsync("radiohead", Arg.Any<CancellationToken>())
+            .Returns(new MusicDashboardSearchResults(
+                [new MusicDashboardSongSearchResult("Creep", "Radiohead", "03:58", null, "https://soundcloud.com/radiohead/creep", "scsearch", new Lavalink4NET.Tracks.LavalinkTrack { Identifier = "creep", Title = "Creep", Author = "Radiohead" })],
+                [new MusicDashboardRadioSearchResult("Radiohead FM", "UK", "alternative", null, "https://example.com/radiohead", new WasabiBot.Api.Features.Radio.RadioBrowserStation { StationUuid = "station-1", Name = "Radiohead FM", UrlResolved = "https://stream.example.com/radiohead", LastCheckOk = 1 })],
+                null));
+
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Services.AddSingleton(searchService);
+        _context.Services.AddSingleton(queueService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+
+        var cut = _context.RenderWithAuthentication<Music>(new AuthenticationState(user));
+        cut.Find("#music-search-query").Input("radiohead");
+        await cut.InvokeAsync(() => cut.Find("#music-search-submit").Click());
+
+        await Assert.That(cut.Find("#music-song-results").TextContent).Contains("Creep");
+        await Assert.That(cut.Find("#music-radio-results").TextContent).Contains("Radiohead FM");
     }
 
     public void Dispose()

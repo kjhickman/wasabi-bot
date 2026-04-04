@@ -86,6 +86,121 @@ else
                 </button>
             </section>
 
+            <article class="surface-card stack-md" aria-labelledby="music-search-heading">
+                <header class="stack-sm">
+                    <p class="eyebrow">Search</p>
+                    <h2 id="music-search-heading">Find songs and radio</h2>
+                </header>
+
+                <div class="music-search-form">
+                    <label class="music-search-form__field" for="music-search-query">
+                        <span class="sr-only">Search query</span>
+                        <input id="music-search-query"
+                               type="search"
+                               placeholder="Search SoundCloud songs or radio stations"
+                               @bind="SearchQuery"
+                               @bind:event="oninput" />
+                    </label>
+                    <button id="music-search-submit"
+                            type="button"
+                            disabled="@IsSearching"
+                            @onclick="SearchAsync">
+                        @(IsSearching ? "Searching..." : "Search")
+                    </button>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(SearchError))
+                {
+                    <p id="music-search-error">@SearchError</p>
+                }
+                else if (SearchResults is not null)
+                {
+                    <div class="music-search-results">
+                        <section class="stack-sm" aria-labelledby="music-song-results-heading">
+                            <h3 id="music-song-results-heading">Songs</h3>
+                            @if (SearchResults.Songs.Count == 0)
+                            {
+                                <p id="music-song-results-empty">No SoundCloud songs found.</p>
+                            }
+                            else
+                            {
+                                <ul id="music-song-results" class="music-search-result-list">
+                                    @foreach (var song in SearchResults.Songs)
+                                    {
+                                        <li class="music-search-result-item">
+                                            <div class="music-search-result-item__content">
+                                                @if (!string.IsNullOrWhiteSpace(song.ArtworkUrl))
+                                                {
+                                                    <img class="music-search-result-item__artwork" src="@song.ArtworkUrl" alt="Artwork for @song.Title" />
+                                                }
+                                                <div class="music-search-result-item__details">
+                                                    <strong>@song.Title</strong>
+                                                    <span>by @song.Author</span>
+                                                    <div class="music-now-playing__meta-row">
+                                                        <span class="music-track-meta">@song.DurationText</span>
+                                                        @if (!string.IsNullOrWhiteSpace(song.SourceName))
+                                                        {
+                                                            <span class="music-track-meta">@FormatSourceName(song.SourceName)</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="music-search-result-item__actions">
+                                                <button type="button" disabled="@IsSubmittingAction" @onclick="() => QueueSongAsync(song)">Add to queue</button>
+                                                <button type="button" disabled="@IsSubmittingAction" @onclick="() => PlaySongNextAsync(song)">Play next</button>
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </section>
+
+                        <section class="stack-sm" aria-labelledby="music-radio-results-heading">
+                            <h3 id="music-radio-results-heading">Radio stations</h3>
+                            @if (SearchResults.Stations.Count == 0)
+                            {
+                                <p id="music-radio-results-empty">No radio stations found.</p>
+                            }
+                            else
+                            {
+                                <ul id="music-radio-results" class="music-search-result-list">
+                                    @foreach (var station in SearchResults.Stations)
+                                    {
+                                        <li class="music-search-result-item">
+                                            <div class="music-search-result-item__content">
+                                                @if (!string.IsNullOrWhiteSpace(station.ArtworkUrl))
+                                                {
+                                                    <img class="music-search-result-item__artwork" src="@station.ArtworkUrl" alt="Artwork for @station.Name" />
+                                                }
+                                                <div class="music-search-result-item__details">
+                                                    <strong>@station.Name</strong>
+                                                    @if (!string.IsNullOrWhiteSpace(station.Country))
+                                                    {
+                                                        <span>@station.Country</span>
+                                                    }
+                                                    @if (!string.IsNullOrWhiteSpace(station.Tags))
+                                                    {
+                                                        <span class="music-track-meta">@FormatStationTags(station.Tags)</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="music-search-result-item__actions">
+                                                <button type="button" disabled="@IsSubmittingAction" @onclick="() => QueueStationAsync(station)">Add to queue</button>
+                                                <button type="button" disabled="@IsSubmittingAction" @onclick="() => PlayStationNextAsync(station)">Play next</button>
+                                                @if (!string.IsNullOrWhiteSpace(station.HomepageUrl))
+                                                {
+                                                    <a href="@station.HomepageUrl" target="_blank" rel="noopener noreferrer">Homepage</a>
+                                                }
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </section>
+                    </div>
+                }
+            </article>
+
             <div class="music-grid">
                 <article class="surface-card stack-md" aria-labelledby="music-now-playing-heading">
                     <header class="stack-sm">
@@ -189,5 +304,11 @@ else
             "http" => "Direct stream",
             _ => sourceName
         };
+    }
+
+    private static string FormatStationTags(string tags)
+    {
+        var parts = tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return string.Join(" • ", parts.Take(3));
     }
 }
