@@ -54,6 +54,7 @@ internal static class DependencyInjection
         services.AddScoped<IMusicDashboardControlService, MusicDashboardControlService>();
         services.AddScoped<IMusicDashboardSearchService, MusicDashboardSearchService>();
         services.AddScoped<IMusicDashboardQueueService, MusicDashboardQueueService>();
+        services.AddScoped<IMusicFavoritesService, MusicFavoritesService>();
         services.AddHttpClient<IRadioService, RadioService>(client =>
         {
             client.BaseAddress = new Uri("https://de1.api.radio-browser.info/json/");

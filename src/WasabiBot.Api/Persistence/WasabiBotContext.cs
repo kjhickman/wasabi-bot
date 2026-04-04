@@ -7,6 +7,7 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
 {
     public DbSet<ApiCredentialEntity> ApiCredentials => Set<ApiCredentialEntity>();
     public DbSet<InteractionEntity> Interactions => Set<InteractionEntity>();
+    public DbSet<MusicFavoriteEntity> MusicFavorites => Set<MusicFavoriteEntity>();
     public DbSet<ReminderEntity> Reminders => Set<ReminderEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -26,6 +27,21 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
             builder.Property(e => e.SecretHash).HasColumnType("text");
             builder.HasIndex(e => e.ClientId).IsUnique();
             builder.HasIndex(e => e.OwnerDiscordUserId);
+        });
+
+        modelBuilder.Entity<MusicFavoriteEntity>(builder =>
+        {
+            builder.ToTable("MusicFavorites");
+            builder.Property(e => e.Kind).HasConversion<string>();
+            builder.Property(e => e.ExternalId).HasColumnType("text");
+            builder.Property(e => e.Title).HasColumnType("text");
+            builder.Property(e => e.ArtistOrSubtitle).HasColumnType("text");
+            builder.Property(e => e.SourceName).HasColumnType("text");
+            builder.Property(e => e.SourceUrl).HasColumnType("text");
+            builder.Property(e => e.ArtworkUrl).HasColumnType("text");
+            builder.Property(e => e.MetadataJson).HasColumnType("jsonb");
+            builder.HasIndex(e => new { e.DiscordUserId, e.Kind, e.ExternalId }).IsUnique();
+            builder.HasIndex(e => new { e.DiscordUserId, e.Kind, e.CreatedAt });
         });
 
         modelBuilder.Entity<ReminderEntity>(builder =>
