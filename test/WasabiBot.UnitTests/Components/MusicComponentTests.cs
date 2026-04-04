@@ -61,8 +61,28 @@ public class MusicComponentTests : IDisposable
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns(new ActiveMusicSession(
                 new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
-                new MusicTrackSnapshot("Current Song", "Current Artist", "03:00", IsLive: false, IsRadio: false),
-                [new MusicQueueItemSnapshot(1, new MusicTrackSnapshot("Next Song", "Next Artist", "01:35", IsLive: false, IsRadio: false))]));
+                "Playing",
+                new PlaybackProgressSnapshot(TimeSpan.FromMinutes(1.5), "01:30", 50),
+                new MusicTrackSnapshot(
+                    "Current Song",
+                    "Current Artist",
+                    "03:00",
+                    TimeSpan.FromMinutes(3),
+                    IsLive: false,
+                    IsRadio: false,
+                    ArtworkUrl: "https://cdn.example.com/current-song.jpg",
+                    SourceUrl: "https://soundcloud.com/example/current-song",
+                    SourceName: "scsearch"),
+                [new MusicQueueItemSnapshot(1, new MusicTrackSnapshot(
+                    "Next Song",
+                    "Next Artist",
+                    "01:35",
+                    TimeSpan.FromSeconds(95),
+                    IsLive: false,
+                    IsRadio: false,
+                    ArtworkUrl: null,
+                    SourceUrl: "https://soundcloud.com/example/next-song",
+                    SourceName: "scsearch"))]));
         _context.Services.AddSingleton(dashboardService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
@@ -76,7 +96,13 @@ public class MusicComponentTests : IDisposable
 
         await Assert.That(cut.Find("#music-guild-name").TextContent.Trim()).IsEqualTo("Wasabi HQ");
         await Assert.That(cut.Find("#music-channel-name").TextContent.Trim()).IsEqualTo("#music-room");
+        await Assert.That(cut.Find("#music-playback-state").TextContent.Trim()).IsEqualTo("Playing");
         await Assert.That(cut.Find("#music-now-playing-track").TextContent).Contains("Current Song");
+        await Assert.That(cut.Find("#music-source-name").TextContent.Trim()).IsEqualTo("SoundCloud");
+        await Assert.That(cut.Find("#music-source-link").GetAttribute("href")).IsEqualTo("https://soundcloud.com/example/current-song");
+        await Assert.That(cut.Find("#music-artwork").GetAttribute("src")).IsEqualTo("https://cdn.example.com/current-song.jpg");
+        await Assert.That(cut.Find("#music-progress-position").TextContent.Trim()).IsEqualTo("01:30");
+        await Assert.That(cut.Find("#music-progress-duration").TextContent.Trim()).IsEqualTo("03:00");
         await Assert.That(cut.Find("#music-queue-list").TextContent).Contains("Next Song");
     }
 
