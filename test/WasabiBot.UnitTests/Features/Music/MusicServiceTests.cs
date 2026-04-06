@@ -31,7 +31,7 @@ public class MusicServiceTests
 
         return new MusicService(
             audioService,
-            new PlaybackService(audioService, new RadioTrackMetadataStore()),
+            new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()),
             NullLogger<MusicService>.Instance,
             TracerProvider.Default.GetTracer("music-tests"));
     }
@@ -82,14 +82,14 @@ public class MusicServiceTests
 
         var playerManager = Substitute.For<IPlayerManager>();
         playerManager
-            .RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
+            .RetrieveAsync<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
                 Arg.Any<ulong>(),
                 Arg.Any<ulong?>(),
-                Arg.Any<PlayerFactory<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
+                Arg.Any<PlayerFactory<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
                 Arg.Any<Microsoft.Extensions.Options.IOptions<QueuedLavalinkPlayerOptions>>(),
                 Arg.Any<PlayerRetrieveOptions>(),
                 Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult(PlayerResult<QueuedLavalinkPlayer>.UserNotInVoiceChannel));
+            .Returns(ValueTask.FromResult(PlayerResult<WasabiQueuedLavalinkPlayer>.UserNotInVoiceChannel));
 
         var service = CreateService(playerManager: playerManager, trackManager: trackManager);
 
@@ -118,14 +118,14 @@ public class MusicServiceTests
 
         var playerManager = Substitute.For<IPlayerManager>();
         playerManager
-            .RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
+            .RetrieveAsync<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
                 Arg.Any<ulong>(),
                 Arg.Any<ulong?>(),
-                Arg.Any<PlayerFactory<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
+                Arg.Any<PlayerFactory<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
                 Arg.Any<Microsoft.Extensions.Options.IOptions<QueuedLavalinkPlayerOptions>>(),
                 Arg.Any<PlayerRetrieveOptions>(),
                 Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult(PlayerResult<QueuedLavalinkPlayer>.UserNotInVoiceChannel));
+            .Returns(ValueTask.FromResult(PlayerResult<WasabiQueuedLavalinkPlayer>.UserNotInVoiceChannel));
 
         var service = CreateService(playerManager: playerManager, trackManager: trackManager);
 
@@ -161,14 +161,14 @@ public class MusicServiceTests
     {
         var playerManager = Substitute.For<IPlayerManager>();
         playerManager
-            .RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
+            .RetrieveAsync<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
                 Arg.Any<ulong>(),
                 Arg.Any<ulong?>(),
-                Arg.Any<PlayerFactory<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
+                Arg.Any<PlayerFactory<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
                 Arg.Any<Microsoft.Extensions.Options.IOptions<QueuedLavalinkPlayerOptions>>(),
                 Arg.Any<PlayerRetrieveOptions>(),
                 Arg.Any<CancellationToken>())
-            .Returns(ValueTask.FromResult(PlayerResult<QueuedLavalinkPlayer>.UserNotInVoiceChannel));
+            .Returns(ValueTask.FromResult(PlayerResult<WasabiQueuedLavalinkPlayer>.UserNotInVoiceChannel));
 
         var service = CreateService(playerManager: playerManager);
 

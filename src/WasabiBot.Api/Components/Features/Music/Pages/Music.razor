@@ -306,6 +306,47 @@ else
                 }
             </article>
 
+            <article class="surface-card stack-md" aria-labelledby="music-most-played-heading">
+                <header class="stack-sm">
+                    <p class="eyebrow">Guild Stats</p>
+                    <h2 id="music-most-played-heading">Most played in this guild</h2>
+                </header>
+
+                @if (IsLoadingMostPlayed)
+                {
+                    <p id="music-most-played-loading">Loading most played songs...</p>
+                }
+                else if (MostPlayedTracks.Count == 0)
+                {
+                    <p id="music-most-played-empty">No songs have been tracked in this guild yet.</p>
+                }
+                else
+                {
+                    <ol id="music-most-played-list" class="music-queue-list">
+                        @foreach (var track in MostPlayedTracks)
+                        {
+                            <li class="music-queue-item">
+                                <div class="music-queue-item__body">
+                                    <strong>@track.Title</strong>
+                                    <span>by @track.Artist</span>
+                                    <div class="music-now-playing__meta-row">
+                                        <span class="music-track-meta">@track.PlayCount play(s)</span>
+                                        @if (!string.IsNullOrWhiteSpace(track.SourceName))
+                                        {
+                                            <span class="music-track-meta">@FormatSourceName(track.SourceName)</span>
+                                        }
+                                    </div>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(track.SourceUrl))
+                                {
+                                    <a href="@track.SourceUrl" target="_blank" rel="noopener noreferrer">Open source</a>
+                                }
+                            </li>
+                        }
+                    </ol>
+                }
+            </article>
+
             <div class="music-grid">
                 <article class="surface-card stack-md" aria-labelledby="music-now-playing-heading">
                     <header class="stack-sm">

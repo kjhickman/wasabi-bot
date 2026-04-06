@@ -32,6 +32,9 @@ public partial class Music : ComponentBase, IAsyncDisposable
     [Inject]
     private IMusicFavoritesService MusicFavoritesService { get; set; } = default!;
 
+    [Inject]
+    private IMusicGuildStatsService MusicGuildStatsService { get; set; } = default!;
+
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
 
@@ -49,6 +52,8 @@ public partial class Music : ComponentBase, IAsyncDisposable
     private MusicDashboardSearchResults? SearchResults { get; set; }
     private MusicFavoritesSnapshot Favorites { get; set; } = new([], []);
     private bool IsLoadingFavorites { get; set; }
+    private IReadOnlyList<GuildTopTrackSummary> MostPlayedTracks { get; set; } = [];
+    private bool IsLoadingMostPlayed { get; set; }
     private bool IsLoading { get; set; } = true;
     private ActiveMusicSession? Session { get; set; }
     private string PageTitleText => !IsAuthenticated ? "Sign In" : HasGuildAccess ? "Music Dashboard" : "Access Restricted";
@@ -83,6 +88,7 @@ public partial class Music : ComponentBase, IAsyncDisposable
         UserId = userId;
         await RefreshSessionAsync();
         await RefreshFavoritesAsync();
+        await RefreshMostPlayedAsync();
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -143,6 +149,7 @@ public partial class Music : ComponentBase, IAsyncDisposable
         {
             Session = await MusicDashboardService.GetActiveSessionAsync(UserId.Value, cancellationToken);
             LoadError = null;
+            await RefreshMostPlayedAsync(cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -308,6 +315,26 @@ public partial class Music : ComponentBase, IAsyncDisposable
         finally
         {
             IsLoadingFavorites = false;
+        }
+    }
+
+    private async Task RefreshMostPlayedAsync(CancellationToken cancellationToken = default)
+    {
+        if (Session is null)
+        {
+            MostPlayedTracks = [];
+            return;
+        }
+
+        IsLoadingMostPlayed = true;
+
+        try
+        {
+            MostPlayedTracks = await MusicGuildStatsService.GetTopTracksAsync(Session.Channel.GuildId, cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            IsLoadingMostPlayed = false;
         }
     }
 

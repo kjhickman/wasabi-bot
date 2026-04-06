@@ -1,5 +1,6 @@
 using Lavalink4NET.Tracks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
@@ -85,7 +86,7 @@ public class MusicFavoritesServiceTests
 
     private static MusicFavoritesService CreateService(WasabiBotContext context)
     {
-        return new MusicFavoritesService(context, new PlaybackService(Substitute.For<Lavalink4NET.IAudioService>(), new RadioTrackMetadataStore()));
+        return new MusicFavoritesService(context, new PlaybackService(Substitute.For<Lavalink4NET.IAudioService>(), new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()));
     }
 
     private static WasabiBotContext CreateContext()

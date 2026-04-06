@@ -8,10 +8,17 @@ using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed class PlaybackService(IAudioService audioService, RadioTrackMetadataStore radioTrackMetadataStore)
+internal sealed class PlaybackService(
+    IAudioService audioService,
+    RadioTrackMetadataStore radioTrackMetadataStore,
+    ILogger<WasabiQueuedLavalinkPlayer> queuedPlayerLogger,
+    IMusicPlaybackStatsRecorder musicPlaybackStatsRecorder)
 {
     private readonly IAudioService _audioService = audioService;
     private readonly RadioTrackMetadataStore _radioTrackMetadataStore = radioTrackMetadataStore;
+    private readonly PlayerFactory<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions> _playerFactory
+        = PlayerFactory.Create((IPlayerProperties<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions> properties)
+            => new WasabiQueuedLavalinkPlayer(properties, queuedPlayerLogger, musicPlaybackStatsRecorder));
 
     public async Task<(IQueuedLavalinkPlayer? Player, MusicCommandResult? Result)> RetrievePlaybackPlayerAsync(
         ICommandContext ctx,
@@ -31,10 +38,10 @@ internal sealed class PlaybackService(IAudioService audioService, RadioTrackMeta
         PlayerChannelBehavior channelBehavior,
         CancellationToken cancellationToken)
     {
-        var result = await _audioService.Players.RetrieveAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
+        var result = await _audioService.Players.RetrieveAsync<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
             guildId,
             voiceChannelId,
-            PlayerFactory.Queued,
+            _playerFactory,
             Options.Create(new QueuedLavalinkPlayerOptions()),
             new PlayerRetrieveOptions(ChannelBehavior: channelBehavior),
             cancellationToken);

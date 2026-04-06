@@ -1,6 +1,7 @@
 using Lavalink4NET;
 using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
@@ -22,7 +23,7 @@ public class MusicDashboardControlServiceTests
 
         return new MusicDashboardControlService(
             resolver,
-            new PlaybackService(audioService, new RadioTrackMetadataStore()));
+            new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()));
     }
 
     [Test]

@@ -47,6 +47,7 @@ internal static class DependencyInjection
         services.AddHostedService<ReminderDispatcher>();
         services.AddScoped<IImageRetrievalService, HttpClientImageRetrievalService>();
         services.AddSingleton<RadioTrackMetadataStore>();
+        services.AddSingleton<IMusicPlaybackStatsRecorder, MusicPlaybackStatsRecorder>();
         services.AddScoped<PlaybackService>();
         services.AddScoped<IMusicService, MusicService>();
         services.AddScoped<ISharedVoiceChannelResolver, SharedVoiceChannelResolver>();
@@ -55,6 +56,7 @@ internal static class DependencyInjection
         services.AddScoped<IMusicDashboardSearchService, MusicDashboardSearchService>();
         services.AddScoped<IMusicDashboardQueueService, MusicDashboardQueueService>();
         services.AddScoped<IMusicFavoritesService, MusicFavoritesService>();
+        services.AddScoped<IMusicGuildStatsService, MusicGuildStatsService>();
         services.AddHttpClient<IRadioService, RadioService>(client =>
         {
             client.BaseAddress = new Uri("https://de1.api.radio-browser.info/json/");
