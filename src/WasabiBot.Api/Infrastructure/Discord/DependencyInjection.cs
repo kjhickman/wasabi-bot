@@ -48,6 +48,7 @@ internal static class DependencyInjection
         services.AddScoped<IImageRetrievalService, HttpClientImageRetrievalService>();
         services.AddSingleton<RadioTrackMetadataStore>();
         services.AddSingleton<IMusicPlaybackStatsRecorder, MusicPlaybackStatsRecorder>();
+        services.AddSingleton<IMusicQueueMutationCoordinator, MusicQueueMutationCoordinator>();
         services.AddScoped<PlaybackService>();
         services.AddScoped<IMusicService, MusicService>();
         services.AddScoped<ISharedVoiceChannelResolver, SharedVoiceChannelResolver>();

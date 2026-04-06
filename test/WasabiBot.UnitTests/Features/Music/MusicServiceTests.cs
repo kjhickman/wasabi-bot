@@ -33,7 +33,8 @@ public class MusicServiceTests
             audioService,
             new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()),
             NullLogger<MusicService>.Instance,
-            TracerProvider.Default.GetTracer("music-tests"));
+            TracerProvider.Default.GetTracer("music-tests"),
+            new MusicQueueMutationCoordinator());
     }
 
     [Test]

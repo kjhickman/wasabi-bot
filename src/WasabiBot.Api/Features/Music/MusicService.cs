@@ -6,7 +6,12 @@ using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed class MusicService(IAudioService audioService, PlaybackService playbackService, ILogger<MusicService> logger, Tracer tracer) : IMusicService
+internal sealed class MusicService(
+    IAudioService audioService,
+    PlaybackService playbackService,
+    ILogger<MusicService> logger,
+    Tracer tracer,
+    IMusicQueueMutationCoordinator queueMutationCoordinator) : IMusicService
 {
     private const int QueuePreviewLimit = 10;
 
@@ -14,6 +19,7 @@ internal sealed class MusicService(IAudioService audioService, PlaybackService p
     private readonly PlaybackService _playbackService = playbackService;
     private readonly ILogger<MusicService> _logger = logger;
     private readonly Tracer _tracer = tracer;
+    private readonly IMusicQueueMutationCoordinator _queueMutationCoordinator = queueMutationCoordinator;
 
     public async Task<MusicCommandResult> PlayAsync(ICommandContext ctx, string input, CancellationToken cancellationToken = default)
     {
@@ -41,35 +47,71 @@ internal sealed class MusicService(IAudioService audioService, PlaybackService p
             return new MusicCommandResult("Lavalink couldn't load that track right now. Please try again later.", Ephemeral: true);
         }
 
-        var (lavalinkPlayer, result) = await _playbackService.RetrievePlaybackPlayerAsync(ctx, cancellationToken);
-        if (result is not null)
-        {
-            span.SetAttribute("music.player_retrieve_status", "failed");
-            return result;
-        }
-        if (lavalinkPlayer is null)
-        {
-            return new MusicCommandResult("Lavalink isn't available right now. Please try again later.", Ephemeral: true);
-        }
+        var guildId = ctx.GuildId.GetValueOrDefault();
 
         if (loadResult.IsPlaylist)
         {
             span.SetAttribute("music.load_type", "playlist");
             span.SetAttribute("music.track_count", loadResult.Tracks.Length);
             var firstTrack = loadResult.Tracks[0];
-            for (var index = 0; index < loadResult.Tracks.Length; index++)
+
+            var playlistResult = await _queueMutationCoordinator.ExecuteAsync(guildId, async ct =>
             {
-                await lavalinkPlayer.PlayAsync(loadResult.Tracks[index], enqueue: true, cancellationToken: cancellationToken);
+                var (lavalinkPlayer, result) = await _playbackService.RetrievePlaybackPlayerAsync(ctx, ct);
+                if (result is not null)
+                {
+                    return result;
+                }
+
+                if (lavalinkPlayer is null)
+                {
+                    return new MusicCommandResult("Lavalink isn't available right now. Please try again later.", Ephemeral: true);
+                }
+
+                for (var index = 0; index < loadResult.Tracks.Length; index++)
+                {
+                    await lavalinkPlayer.PlayAsync(loadResult.Tracks[index], enqueue: true, cancellationToken: ct);
+                }
+
+                return _playbackService.BuildPlaylistQueuedResult(loadResult.Playlist!.Name, loadResult.Tracks.Length, firstTrack);
+            }, cancellationToken);
+
+            if (playlistResult.Ephemeral)
+            {
+                span.SetAttribute("music.player_retrieve_status", "failed");
             }
 
-            return _playbackService.BuildPlaylistQueuedResult(loadResult.Playlist!.Name, loadResult.Tracks.Length, firstTrack);
+            return playlistResult;
         }
 
         var track = loadResult.Track!;
         span.SetAttribute("music.load_type", "track");
         span.SetAttribute("music.track.title", track.Title);
         span.SetAttribute("music.track.author", track.Author);
-        var position = await lavalinkPlayer.PlayAsync(track, enqueue: true, cancellationToken: cancellationToken);
+        var result = await _queueMutationCoordinator.ExecuteAsync(guildId, async ct =>
+        {
+            var (lavalinkPlayer, retrieveResult) = await _playbackService.RetrievePlaybackPlayerAsync(ctx, ct);
+            if (retrieveResult is not null)
+            {
+                return (Position: (int?)null, Result: retrieveResult);
+            }
+
+            if (lavalinkPlayer is null)
+            {
+                return (Position: (int?)null, Result: new MusicCommandResult("Lavalink isn't available right now. Please try again later.", Ephemeral: true));
+            }
+
+            var position = await lavalinkPlayer.PlayAsync(track, enqueue: true, cancellationToken: ct);
+            return (Position: (int?)position, Result: (MusicCommandResult?)null);
+        }, cancellationToken);
+
+        if (result.Result is not null)
+        {
+            span.SetAttribute("music.player_retrieve_status", "failed");
+            return result.Result;
+        }
+
+        var position = result.Position!.Value;
         span.SetAttribute("music.queue_position", position);
         return _playbackService.BuildQueuedTrackResult(track, position);
     }
@@ -123,38 +165,57 @@ internal sealed class MusicService(IAudioService audioService, PlaybackService p
     {
         using var span = _tracer.StartActiveSpan("music.skip");
         AddContextAttributes(span, ctx);
-        var player = await GetControllablePlayerAsync(ctx, cancellationToken);
-        if (player.Result is not null)
+        if (!ctx.GuildId.HasValue)
         {
             span.SetAttribute("music.result", "player_unavailable");
-            return player.Result;
+            return PlaybackService.GuildOnly();
         }
 
-        if (player.Player!.CurrentTrack is null && player.Player.Queue.Count == 0)
+        var result = await _queueMutationCoordinator.ExecuteAsync(ctx.GuildId.GetValueOrDefault(), async ct =>
         {
-            span.SetAttribute("music.result", "nothing_playing");
-            return new MusicCommandResult("Nothing is playing right now.", Ephemeral: true);
-        }
+            var player = await GetControllablePlayerAsync(ctx, ct);
+            if (player.Result is not null)
+            {
+                return player.Result;
+            }
 
-        await player.Player.SkipAsync(cancellationToken: cancellationToken);
-        span.SetAttribute("music.result", "skipped");
-        return new MusicCommandResult("Skipped the current track.");
+            if (player.Player!.CurrentTrack is null && player.Player.Queue.Count == 0)
+            {
+                return new MusicCommandResult("Nothing is playing right now.", Ephemeral: true);
+            }
+
+            await player.Player.SkipAsync(cancellationToken: ct);
+            return new MusicCommandResult("Skipped the current track.");
+        }, cancellationToken);
+
+        span.SetAttribute("music.result", result.Ephemeral ? "player_unavailable" : "skipped");
+        return result;
     }
 
     public async Task<MusicCommandResult> StopAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
     {
         using var span = _tracer.StartActiveSpan("music.stop");
         AddContextAttributes(span, ctx);
-        var player = await GetControllablePlayerAsync(ctx, cancellationToken);
-        if (player.Result is not null)
+        if (!ctx.GuildId.HasValue)
         {
             span.SetAttribute("music.result", "player_unavailable");
-            return player.Result;
+            return PlaybackService.GuildOnly();
         }
 
-        await player.Player!.StopAsync(cancellationToken);
-        span.SetAttribute("music.result", "stopped");
-        return new MusicCommandResult("Stopped playback and cleared the queue.");
+        var result = await _queueMutationCoordinator.ExecuteAsync(ctx.GuildId.GetValueOrDefault(), async ct =>
+        {
+            var player = await GetControllablePlayerAsync(ctx, ct);
+            if (player.Result is not null)
+            {
+                return player.Result;
+            }
+
+            await player.Player!.StopAsync(ct);
+            return new MusicCommandResult("Stopped playback and cleared the queue.");
+        }, cancellationToken);
+
+        span.SetAttribute("music.result", result.Ephemeral ? "player_unavailable" : "stopped");
+        return result;
     }
 
     public async Task<MusicCommandResult> QueueAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
@@ -196,15 +257,31 @@ internal sealed class MusicService(IAudioService audioService, PlaybackService p
     {
         using var span = _tracer.StartActiveSpan("music.leave");
         AddContextAttributes(span, ctx);
-        var (player, result) = await GetControllablePlayerAsync(ctx, cancellationToken);
-        if (result is not null)
+        if (!ctx.GuildId.HasValue)
         {
             span.SetAttribute("music.result", "player_unavailable");
-            return result;
+            return PlaybackService.GuildOnly();
         }
 
-        await player!.StopAsync(cancellationToken);
-        await player.DisconnectAsync(cancellationToken);
+        var result = await _queueMutationCoordinator.ExecuteAsync(ctx.GuildId.GetValueOrDefault(), async ct =>
+        {
+            var (player, playerResult) = await GetControllablePlayerAsync(ctx, ct);
+            if (playerResult is not null)
+            {
+                return (Player: (IQueuedLavalinkPlayer?)null, Result: playerResult);
+            }
+
+            await player!.StopAsync(ct);
+            return (Player: player, Result: (MusicCommandResult?)null);
+        }, cancellationToken);
+
+        if (result.Result is not null)
+        {
+            span.SetAttribute("music.result", "player_unavailable");
+            return result.Result;
+        }
+
+        await result.Player!.DisconnectAsync(cancellationToken);
         span.SetAttribute("music.result", "disconnected");
         return new MusicCommandResult("Left the voice channel.");
     }

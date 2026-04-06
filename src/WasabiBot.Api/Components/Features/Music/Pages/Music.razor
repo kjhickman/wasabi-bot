@@ -408,8 +408,19 @@ else
 
                 <article class="surface-card stack-md" aria-labelledby="music-queue-heading">
                     <header class="stack-sm">
-                        <p class="eyebrow">Queue</p>
-                        <h2 id="music-queue-heading">Up next</h2>
+                        <div class="music-queue-card__header">
+                            <div class="stack-sm">
+                                <p class="eyebrow">Queue</p>
+                                <h2 id="music-queue-heading">Up next</h2>
+                            </div>
+
+                            <button type="button"
+                                    class="secondary outline"
+                                    @onclick="ClearQueueAsync"
+                                    disabled="@(IsSubmittingAction || Session.Queue.Count == 0)">
+                                Clear queue
+                            </button>
+                        </div>
                     </header>
 
                     @if (Session.Queue.Count == 0)
@@ -429,7 +440,30 @@ else
                                             <span>by @item.Track.Author</span>
                                         }
                                     </div>
-                                    <span class="music-track-meta">@item.Track.DurationText</span>
+
+                                    <div class="music-queue-item__meta">
+                                        <span class="music-track-meta">@item.Track.DurationText</span>
+                                        <div class="music-queue-item__actions">
+                                            <button type="button"
+                                                    class="secondary outline"
+                                                    @onclick="() => MoveQueueItemUpAsync(item)"
+                                                    disabled="@(IsSubmittingAction || item.Position == 1)">
+                                                Up
+                                            </button>
+                                            <button type="button"
+                                                    class="secondary outline"
+                                                    @onclick="() => MoveQueueItemDownAsync(item)"
+                                                    disabled="@(IsSubmittingAction || item.Position == Session.Queue.Count)">
+                                                Down
+                                            </button>
+                                            <button type="button"
+                                                    class="secondary outline"
+                                                    @onclick="() => RemoveQueueItemAsync(item)"
+                                                    disabled="@IsSubmittingAction">
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
                                 </li>
                             }
                         </ol>
