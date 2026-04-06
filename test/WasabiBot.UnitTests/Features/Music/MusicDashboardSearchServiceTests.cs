@@ -3,6 +3,7 @@ using Lavalink4NET;
 using Lavalink4NET.Rest;
 using Lavalink4NET.Rest.Entities.Tracks;
 using Lavalink4NET.Tracks;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
@@ -42,7 +43,7 @@ public class MusicDashboardSearchServiceTests
                 }
             ]);
 
-        var service = new MusicDashboardSearchService(audioService, radioService, new PlaybackService(audioService, new RadioTrackMetadataStore()));
+        var service = new MusicDashboardSearchService(audioService, radioService, new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()));
 
         var result = await service.SearchAsync("radiohead");
 

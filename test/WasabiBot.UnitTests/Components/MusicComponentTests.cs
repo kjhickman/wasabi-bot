@@ -24,6 +24,7 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardSearchService>());
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardQueueService>());
         _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicGuildStatsService>());
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var authState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
@@ -44,6 +45,7 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardSearchService>());
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardQueueService>());
         _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicGuildStatsService>());
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns((ActiveMusicSession?)null);
         _context.Services.AddSingleton(dashboardService);
@@ -70,6 +72,7 @@ public class MusicComponentTests : IDisposable
         var searchService = Substitute.For<IMusicDashboardSearchService>();
         var queueService = Substitute.For<IMusicDashboardQueueService>();
         var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns(new ActiveMusicSession(
                 new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
@@ -101,6 +104,8 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton(queueService);
         favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot([], []));
         _context.Services.AddSingleton(favoritesService);
+        guildStatsService.GetTopTracksAsync(42, Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
+        _context.Services.AddSingleton(guildStatsService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var user = ClaimsPrincipalBuilder.Create()
@@ -134,6 +139,7 @@ public class MusicComponentTests : IDisposable
         var searchService = Substitute.For<IMusicDashboardSearchService>();
         var queueService = Substitute.For<IMusicDashboardQueueService>();
         var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
 
         var session = new ActiveMusicSession(
             new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
@@ -162,6 +168,8 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton(queueService);
         favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot([], []));
         _context.Services.AddSingleton(favoritesService);
+        guildStatsService.GetTopTracksAsync(42, Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
+        _context.Services.AddSingleton(guildStatsService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var user = ClaimsPrincipalBuilder.Create()
@@ -185,6 +193,7 @@ public class MusicComponentTests : IDisposable
         var searchService = Substitute.For<IMusicDashboardSearchService>();
         var queueService = Substitute.For<IMusicDashboardQueueService>();
         var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
 
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns(new ActiveMusicSession(
@@ -200,12 +209,14 @@ public class MusicComponentTests : IDisposable
                 [new MusicDashboardRadioSearchResult("Radiohead FM", "UK", "alternative", null, "https://example.com/radiohead", new WasabiBot.Api.Features.Radio.RadioBrowserStation { StationUuid = "station-1", Name = "Radiohead FM", UrlResolved = "https://stream.example.com/radiohead", LastCheckOk = 1 })],
                 null));
         favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot([], []));
+        guildStatsService.GetTopTracksAsync(42, Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
 
         _context.Services.AddSingleton(dashboardService);
         _context.Services.AddSingleton(controlService);
         _context.Services.AddSingleton(searchService);
         _context.Services.AddSingleton(queueService);
         _context.Services.AddSingleton(favoritesService);
+        _context.Services.AddSingleton(guildStatsService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var user = ClaimsPrincipalBuilder.Create()
@@ -230,6 +241,7 @@ public class MusicComponentTests : IDisposable
         var searchService = Substitute.For<IMusicDashboardSearchService>();
         var queueService = Substitute.For<IMusicDashboardQueueService>();
         var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
 
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns(new ActiveMusicSession(
@@ -247,6 +259,8 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton(searchService);
         _context.Services.AddSingleton(queueService);
         _context.Services.AddSingleton(favoritesService);
+        guildStatsService.GetTopTracksAsync(42, Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
+        _context.Services.AddSingleton(guildStatsService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var user = ClaimsPrincipalBuilder.Create()
@@ -258,6 +272,48 @@ public class MusicComponentTests : IDisposable
 
         await Assert.That(cut.Find("#music-favorite-songs").TextContent).Contains("Creep");
         await Assert.That(cut.Find("#music-favorite-radio").TextContent).Contains("Radiohead FM");
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUser_ShowsMostPlayedTracks()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+        var searchService = Substitute.For<IMusicDashboardSearchService>();
+        var queueService = Substitute.For<IMusicDashboardQueueService>();
+        var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
+
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Playing",
+                null,
+                new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
+                []));
+        favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot([], []));
+        guildStatsService.GetTopTracksAsync(42, Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([
+            new GuildTopTrackSummary("Creep", "Radiohead", "scsearch", "https://soundcloud.com/radiohead/creep", "", 5, DateTimeOffset.UtcNow)
+        ]);
+
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Services.AddSingleton(searchService);
+        _context.Services.AddSingleton(queueService);
+        _context.Services.AddSingleton(favoritesService);
+        _context.Services.AddSingleton(guildStatsService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+
+        var cut = _context.RenderWithAuthentication<Music>(new AuthenticationState(user));
+
+        await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("Creep");
+        await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("5 play(s)");
     }
 
     public void Dispose()

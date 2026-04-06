@@ -6,6 +6,7 @@ namespace WasabiBot.Api.Persistence;
 public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options) : DbContext(options)
 {
     public DbSet<ApiCredentialEntity> ApiCredentials => Set<ApiCredentialEntity>();
+    public DbSet<GuildTrackPlayEntity> GuildTrackPlays => Set<GuildTrackPlayEntity>();
     public DbSet<InteractionEntity> Interactions => Set<InteractionEntity>();
     public DbSet<MusicFavoriteEntity> MusicFavorites => Set<MusicFavoriteEntity>();
     public DbSet<ReminderEntity> Reminders => Set<ReminderEntity>();
@@ -27,6 +28,19 @@ public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options)
             builder.Property(e => e.SecretHash).HasColumnType("text");
             builder.HasIndex(e => e.ClientId).IsUnique();
             builder.HasIndex(e => e.OwnerDiscordUserId);
+        });
+
+        modelBuilder.Entity<GuildTrackPlayEntity>(builder =>
+        {
+            builder.ToTable("GuildTrackPlays");
+            builder.Property(e => e.ExternalId).HasColumnType("text");
+            builder.Property(e => e.Title).HasColumnType("text");
+            builder.Property(e => e.Artist).HasColumnType("text");
+            builder.Property(e => e.SourceName).HasColumnType("text");
+            builder.Property(e => e.SourceUrl).HasColumnType("text");
+            builder.Property(e => e.ArtworkUrl).HasColumnType("text");
+            builder.HasIndex(e => new { e.GuildId, e.ExternalId }).IsUnique();
+            builder.HasIndex(e => new { e.GuildId, e.PlayCount, e.LastPlayedAt });
         });
 
         modelBuilder.Entity<MusicFavoriteEntity>(builder =>

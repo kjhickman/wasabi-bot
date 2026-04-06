@@ -1,4 +1,5 @@
 using Lavalink4NET.Tracks;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
@@ -58,7 +59,7 @@ public class RadioServiceTests
     public async Task FormatTrack_WhenRadioMetadataExists_UsesStationNameOnly()
     {
         var metadataStore = new RadioTrackMetadataStore();
-        var playbackService = new PlaybackService(Substitute.For<Lavalink4NET.IAudioService>(), metadataStore);
+        var playbackService = new PlaybackService(Substitute.For<Lavalink4NET.IAudioService>(), metadataStore, NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>());
         var track = new LavalinkTrack
         {
             Title = "http://localhost/",
