@@ -231,6 +231,26 @@ public partial class Music : ComponentBase, IAsyncDisposable
         await ExecuteActionAsync(ct => MusicDashboardQueueService.PlayNextStationAsync(UserId!.Value, result.Station, ct));
     }
 
+    private async Task RemoveQueueItemAsync(MusicQueueItemSnapshot item)
+    {
+        await ExecuteActionAsync(ct => MusicDashboardQueueService.RemoveQueueItemAsync(UserId!.Value, item.Position, ct));
+    }
+
+    private async Task MoveQueueItemUpAsync(MusicQueueItemSnapshot item)
+    {
+        await ExecuteActionAsync(ct => MusicDashboardQueueService.MoveQueueItemAsync(UserId!.Value, item.Position, item.Position - 1, ct));
+    }
+
+    private async Task MoveQueueItemDownAsync(MusicQueueItemSnapshot item)
+    {
+        await ExecuteActionAsync(ct => MusicDashboardQueueService.MoveQueueItemAsync(UserId!.Value, item.Position, item.Position + 1, ct));
+    }
+
+    private async Task ClearQueueAsync()
+    {
+        await ExecuteActionAsync(ct => MusicDashboardQueueService.ClearQueueAsync(UserId!.Value, ct));
+    }
+
     private async Task SaveSongFavoriteAsync(MusicDashboardSongSearchResult result)
     {
         await ExecuteActionAsync(async ct =>

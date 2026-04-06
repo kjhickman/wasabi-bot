@@ -23,7 +23,8 @@ public class MusicDashboardControlServiceTests
 
         return new MusicDashboardControlService(
             resolver,
-            new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()));
+            new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()),
+            new MusicQueueMutationCoordinator());
     }
 
     [Test]
