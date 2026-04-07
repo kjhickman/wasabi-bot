@@ -60,8 +60,8 @@ public class MusicComponentTests : IDisposable
 
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
-        await Assert.That(cut.Markup).Contains("Join a voice channel with Wasabi Bot");
-        await Assert.That(cut.Find("#music-page-heading").TextContent.Trim()).IsEqualTo("Live control room");
+        await Assert.That(cut.Markup).Contains("Waiting for a live room");
+        await Assert.That(cut.FindAll("#music-page-heading").Count).IsEqualTo(0);
     }
 
     [Test]
@@ -117,9 +117,6 @@ public class MusicComponentTests : IDisposable
 
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
-        await Assert.That(cut.Find("#music-guild-name").TextContent.Trim()).IsEqualTo("Wasabi HQ");
-        await Assert.That(cut.Find("#music-channel-name").TextContent.Trim()).IsEqualTo("#music-room");
-        await Assert.That(cut.Find("#music-playback-state").TextContent.Trim()).IsEqualTo("Playing");
         await Assert.That(cut.Find("#music-now-playing-track").TextContent).Contains("Current Song");
         await Assert.That(cut.Find("#music-source-name").TextContent.Trim()).IsEqualTo("SoundCloud");
         await Assert.That(cut.Find("#music-source-link").GetAttribute("href")).IsEqualTo("https://soundcloud.com/example/current-song");
@@ -132,7 +129,7 @@ public class MusicComponentTests : IDisposable
     }
 
     [Test]
-    public async Task Render_AuthenticatedUser_ClickingSkip_ShowsActionMessage()
+    public async Task Render_AuthenticatedUser_ClickingSkip_CallsSkipService()
     {
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
         var dashboardService = Substitute.For<IMusicDashboardService>();
@@ -182,7 +179,8 @@ public class MusicComponentTests : IDisposable
         var cut = _context.RenderWithAuthentication<Music>(authState);
         await cut.InvokeAsync(() => cut.Find("#music-skip").Click());
 
-        await Assert.That(cut.Find("#music-action-message").TextContent).Contains("Skipped the current track.");
+        await controlService.Received(1).SkipAsync(123456789, Arg.Any<CancellationToken>());
+        await Assert.That(cut.FindAll("#music-action-message").Count).IsEqualTo(0);
     }
 
     [Test]

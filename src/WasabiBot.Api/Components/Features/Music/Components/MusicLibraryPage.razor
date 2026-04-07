@@ -55,9 +55,9 @@
                                     </div>
                                 </div>
                                 <div class="music-search-result-item__actions">
-                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)">Add to queue</button>
-                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)">Play next</button>
-                                    <button type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)">Remove</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)">Add to queue</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)">Play next</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)">Remove</button>
                                 </div>
                             </li>
                         }
@@ -99,12 +99,12 @@
                                     </div>
                                 </div>
                                 <div class="music-search-result-item__actions">
-                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)">Add to queue</button>
-                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)">Play next</button>
-                                    <button type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)">Remove</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)">Add to queue</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)">Play next</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)">Remove</button>
                                     @if (!string.IsNullOrWhiteSpace(favorite.Radio?.HomepageUrl))
                                     {
-                                        <a href="@favorite.Radio.HomepageUrl" target="_blank" rel="noopener noreferrer">Homepage</a>
+                                        <a class="btn btn-sm btn-ghost" href="@favorite.Radio.HomepageUrl" target="_blank" rel="noopener noreferrer">Homepage</a>
                                     }
                                 </div>
                             </li>

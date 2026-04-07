@@ -1,5 +1,3 @@
-import { initializeTheme, initializeThemeControls, syncTheme } from '/js/theme.js';
-
 let initialized = false;
 
 function replaceUrlIfNeeded(root = document) {
@@ -49,21 +47,17 @@ async function handleCopyButtonClick(event) {
 }
 
 export function beforeWebStart() {
-    initializeTheme();
 }
 
 export function afterWebStarted(blazor) {
     if (!initialized) {
-        initializeThemeControls();
         initializeCopyButtons();
         initialized = true;
     }
 
-    syncTheme();
     replaceUrlIfNeeded();
 
     blazor.addEventListener('enhancedload', function() {
-        syncTheme();
         replaceUrlIfNeeded();
     });
 }

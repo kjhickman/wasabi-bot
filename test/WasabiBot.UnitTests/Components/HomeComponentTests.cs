@@ -26,7 +26,7 @@ public class HomeComponentTests : IDisposable
     }
 
     [Test]
-    public async Task Render_AuthenticatedUser_ShowsGreetingAndCredsCard()
+    public async Task Render_AuthenticatedUser_ShowsGreetingOnly()
     {
         var user = ClaimsPrincipalBuilder.Create()
             .AsDiscordUser("123456789", "kyle")
@@ -39,14 +39,10 @@ public class HomeComponentTests : IDisposable
         var cut = _context.RenderWithAuthentication<Home>(authState);
 
         await Assert.That(cut.Find("#user-greeting").TextContent.Trim()).IsEqualTo("Kyle");
-        await Assert.That(cut.Markup).Contains("Get API Access");
-        await Assert.That(cut.Markup).Contains("Create or manage credentials to gain access to the Wasabi Bot API.");
-        await Assert.That(cut.Markup).Contains("Music");
-        await Assert.That(cut.Markup).Contains("Stats");
-        await Assert.That(cut.Find("#docs-link").GetAttribute("href")).IsEqualTo("/scalar/v1");
-        await Assert.That(cut.Find("#creds-link").GetAttribute("href")).IsEqualTo("/creds");
-        await Assert.That(cut.Find("#music-link").GetAttribute("href")).IsEqualTo("/music");
-        await Assert.That(cut.Markup).Contains("See the active queue and now playing state for the voice channel you're currently sharing with Wasabi Bot.");
+        await Assert.That(cut.Find("#authenticated-heading").TextContent.Trim()).IsEqualTo("Hello, Kyle");
+        await Assert.That(cut.Markup).DoesNotContain("Get API Access");
+        await Assert.That(cut.Markup).DoesNotContain("Music");
+        await Assert.That(cut.Markup).DoesNotContain("Stats");
         await Assert.That(cut.FindAll("#login-link").Count).IsEqualTo(0);
     }
 

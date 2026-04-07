@@ -13,12 +13,14 @@
             <label class="music-search-form__field" for="music-search-query">
                 <span class="sr-only">Search query</span>
                 <input id="music-search-query"
+                       class="input input-bordered w-full"
                        type="search"
                        value="@SearchQuery"
                        placeholder="Search SoundCloud songs or radio stations"
                        @oninput="OnSearchInput" />
             </label>
             <button id="music-search-submit"
+                    class="btn btn-primary"
                     type="button"
                     disabled="@IsSearching"
                     @onclick="OnSearch">
@@ -33,7 +35,7 @@
 
         @if (!string.IsNullOrWhiteSpace(SearchError))
         {
-            <p id="music-search-error">@SearchError</p>
+            <p id="music-search-error" class="app-alert app-alert--error">@SearchError</p>
         }
     </article>
 
@@ -74,9 +76,9 @@
                                     </div>
                                 </div>
                                 <div class="music-search-result-item__actions">
-                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueSong.InvokeAsync(song)">Add to queue</button>
-                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlaySongNext.InvokeAsync(song)">Play next</button>
-                                    <button type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveSongFavorite.InvokeAsync(song)">Favorite</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueSong.InvokeAsync(song)">Add to queue</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlaySongNext.InvokeAsync(song)">Play next</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveSongFavorite.InvokeAsync(song)">Favorite</button>
                                 </div>
                             </li>
                         }
@@ -118,12 +120,12 @@
                                     </div>
                                 </div>
                                 <div class="music-search-result-item__actions">
-                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueStation.InvokeAsync(station)">Add to queue</button>
-                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayStationNext.InvokeAsync(station)">Play next</button>
-                                    <button type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveRadioFavorite.InvokeAsync(station)">Favorite</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueStation.InvokeAsync(station)">Add to queue</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayStationNext.InvokeAsync(station)">Play next</button>
+                                    <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveRadioFavorite.InvokeAsync(station)">Favorite</button>
                                     @if (!string.IsNullOrWhiteSpace(station.HomepageUrl))
                                     {
-                                        <a href="@station.HomepageUrl" target="_blank" rel="noopener noreferrer">Homepage</a>
+                                        <a class="btn btn-sm btn-ghost" href="@station.HomepageUrl" target="_blank" rel="noopener noreferrer">Homepage</a>
                                     }
                                 </div>
                             </li>

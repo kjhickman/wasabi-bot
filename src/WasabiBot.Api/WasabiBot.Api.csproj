@@ -6,6 +6,9 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <PublishReadyToRun>true</PublishReadyToRun>
         <UserSecretsId>3fb4ccc6-b8c3-4dc0-90b8-ea6c79a0da21</UserSecretsId>
+        <FrontendRoot>$(MSBuildProjectDirectory)</FrontendRoot>
+        <GeneratedAppCss>$(MSBuildProjectDirectory)/wwwroot/app.css</GeneratedAppCss>
+        <FrontendInstallStamp>$(MSBuildProjectDirectory)/node_modules/.bun-install.stamp</FrontendInstallStamp>
     </PropertyGroup>
 
     <ItemGroup>
@@ -31,5 +34,31 @@
     <ItemGroup>
       <ProjectReference Include="..\WasabiBot.Api.Generators\WasabiBot.Api.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
+
+    <ItemGroup>
+      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/package.json" />
+      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/bun.lock" />
+      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/Styles/**/*.css" />
+      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/Components/**/*.razor" />
+      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/Components/**/*.cs" />
+      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/wwwroot/**/*.js" Exclude="$(GeneratedAppCss)" />
+    </ItemGroup>
+
+    <Target Name="BunInstall"
+            BeforeTargets="BeforeBuild"
+            Inputs="$(MSBuildProjectDirectory)/package.json;$(MSBuildProjectDirectory)/bun.lock"
+            Outputs="$(FrontendInstallStamp)"
+            Condition="'$(DesignTimeBuild)' != 'true'">
+      <Exec Command="bun install --frozen-lockfile &amp;&amp; touch &quot;$(FrontendInstallStamp)&quot;" WorkingDirectory="$(FrontendRoot)" />
+    </Target>
+
+    <Target Name="BuildFrontendCss"
+            BeforeTargets="BeforeBuild"
+            DependsOnTargets="BunInstall"
+            Inputs="@(TailwindSourceFiles)"
+            Outputs="$(GeneratedAppCss)"
+            Condition="'$(DesignTimeBuild)' != 'true'">
+      <Exec Command="bun run build:css" WorkingDirectory="$(FrontendRoot)" />
+    </Target>
 
 </Project>
