@@ -33,8 +33,19 @@ jobs:
         with:
           sdk-version: ${{ env.DOTNET_VERSION }}
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Restore
         run: dotnet restore WasabiBot.slnx
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix src/WasabiBot.Api
+
+      - name: Build frontend CSS
+        run: npm run build:css --prefix src/WasabiBot.Api
 
       - name: Test
         run: |

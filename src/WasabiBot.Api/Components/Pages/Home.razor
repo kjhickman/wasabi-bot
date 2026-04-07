@@ -16,46 +16,7 @@ else if (!HasGuildAccess)
 }
 else
 {
-    <section id="authenticated" class="dashboard-stack" aria-labelledby="authenticated-heading">
-        <header class="page-heading">
-            <h1 id="authenticated-heading">Hello, <span id="user-greeting">@DisplayName</span></h1>
-        </header>
-
-        <div class="dashboard-grid">
-            <article class="surface-card surface-card--accent stack-md" aria-labelledby="api-creds-heading">
-                <header class="stack-sm">
-                    <p class="eyebrow">Access</p>
-                    <h2 id="api-creds-heading">Get API Access</h2>
-                    <p>Create or manage credentials to gain access to the Wasabi Bot API.</p>
-                </header>
-
-                <section class="stack-sm">
-                    <p class="section-copy">Need the endpoint reference? <a id="docs-link" href="/scalar/v1" target="_blank" rel="noopener noreferrer">Open API docs</a>.</p>
-                    <p>
-                        <a id="creds-link" href="/creds" role="button">Open creds</a>
-                    </p>
-                </section>
-            </article>
-
-            <article class="surface-card surface-card--accent stack-md" aria-labelledby="music-heading">
-                <header class="stack-sm">
-                    <p class="eyebrow">Live</p>
-                    <h2 id="music-heading">Music</h2>
-                    <p>See the active queue and now playing state for the voice channel you're currently sharing with Wasabi Bot.</p>
-                </header>
-                <p>
-                    <a id="music-link" href="/music" role="button">Open music dashboard</a>
-                </p>
-            </article>
-
-            <article class="surface-card placeholder-card stack-md" aria-labelledby="stats-heading">
-                <header class="stack-sm">
-                    <p class="eyebrow">Soon</p>
-                    <h2 id="stats-heading">Stats</h2>
-                </header>
-                <p>Interaction counts, activity summaries, and quick operational views can live here once the data surface expands.</p>
-                <p class="placeholder-card__status">Coming soon</p>
-            </article>
-        </div>
+    <section id="authenticated" aria-labelledby="authenticated-heading">
+        <h1 id="authenticated-heading" class="text-3xl font-semibold tracking-tight md:text-4xl">Hello, <span id="user-greeting">@DisplayName</span></h1>
     </section>
 }

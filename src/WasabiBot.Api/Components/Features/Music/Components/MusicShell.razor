@@ -18,148 +18,84 @@ else if (!HasGuildAccess)
 }
 else
 {
-    <section id="music-shell" class="music-shell stack-lg" aria-labelledby="music-page-heading">
-        <header class="music-shell__hero surface-card surface-card--accent stack-md">
-            <div class="music-shell__hero-header">
-                <div class="stack-sm">
-                    <p class="eyebrow">Music</p>
-                    <h1 id="music-page-heading">@PageHeading</h1>
-                    <p class="section-copy">@PageDescription</p>
-                </div>
-
-                @if (Session?.NowPlaying is { } nowPlaying)
-                {
-                    <div class="music-shell__hero-track">
-                        @if (!string.IsNullOrWhiteSpace(nowPlaying.ArtworkUrl))
-                        {
-                            <img class="music-shell__hero-artwork" src="@nowPlaying.ArtworkUrl" alt="Artwork for @nowPlaying.Title" />
-                        }
-                        <div class="stack-xs">
-                            <span class="music-shell__hero-label">Now playing</span>
-                            <strong>@nowPlaying.Title</strong>
-                            @if (!nowPlaying.IsRadio)
-                            {
-                                <span>@nowPlaying.Author</span>
-                            }
-                        </div>
-                    </div>
-                }
+    <section id="music-shell" class="space-y-6" aria-label="Music">
+        <div class="space-y-4 md:flex md:items-start md:justify-between md:gap-6 md:space-y-0">
+            <div class="space-y-2">
+                <p class="eyebrow">Music</p>
+                <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">Dashboard</h1>
+                <p class="max-w-2xl text-base leading-7 text-base-content/70">Search, queue, and monitor playback without losing the basic structural frame.</p>
             </div>
 
-            @if (!string.IsNullOrWhiteSpace(ActionMessage))
+            @if (Session is not null)
             {
-                <article id="music-action-message" class="music-shell__notice music-shell__notice--action" aria-live="polite">
-                    <strong>@(ActionIsError ? "Action blocked" : "Action completed")</strong>
-                    <span>@ActionMessage</span>
-                </article>
+                <div class="flex flex-wrap gap-2">
+                    <span id="music-guild-name" class="badge badge-outline badge-lg">@Session.Channel.GuildName</span>
+                    <span id="music-channel-name" class="badge badge-outline badge-lg">#@Session.Channel.VoiceChannelName</span>
+                    <span id="music-playback-state" class="badge badge-primary badge-lg">@Session.PlaybackState</span>
+                </div>
             }
+        </div>
 
+        <div>
             @if (!string.IsNullOrWhiteSpace(LoadError))
             {
-                <article id="music-error" class="music-shell__notice music-shell__notice--error" aria-live="polite">
+                <article id="music-error" class="app-alert app-alert--error" aria-live="polite">
                     <strong>Dashboard unavailable</strong>
                     <span>@LoadError</span>
                 </article>
             }
             else if (IsLoading)
             {
-                <article id="music-loading" class="music-shell__notice" aria-live="polite">
+                <article id="music-loading" class="app-alert app-alert--info" aria-live="polite">
                     <strong>Loading music</strong>
                     <span>Checking the voice channel you're currently sharing with Wasabi Bot.</span>
                 </article>
             }
-            else if (Session is null)
+
+            @switch (ActivePage)
             {
-                <article id="music-empty-state" class="music-shell__notice" aria-live="polite">
-                    <strong>Join a voice channel with Wasabi Bot</strong>
-                    <span>Search and browse now, then join the bot in voice to control playback and see live guild context.</span>
-                </article>
+                case MusicPageKind.Live:
+                    <MusicLivePage Session="Session"
+                                   IsSubmittingAction="IsSubmittingAction"
+                                   OnTogglePause="TogglePauseAsync"
+                                   OnSkip="SkipAsync"
+                                   OnStop="StopAsync"
+                                   OnRemoveQueueItem="RemoveQueueItemAsync"
+                                   OnMoveQueueItemUp="MoveQueueItemUpAsync"
+                                   OnMoveQueueItemDown="MoveQueueItemDownAsync"
+                                   OnClearQueue="ClearQueueAsync" />
+                    break;
+                case MusicPageKind.Search:
+                    <MusicSearchPage SearchQuery="SearchQuery"
+                                     SearchQueryChanged="OnSearchQueryChanged"
+                                     IsSearching="IsSearching"
+                                     SearchError="SearchError"
+                                     SearchResults="SearchResults"
+                                     IsSubmittingAction="IsSubmittingAction"
+                                     HasSharedSession="@(Session is not null)"
+                                     OnSearch="SearchAsync"
+                                     OnQueueSong="QueueSongAsync"
+                                     OnPlaySongNext="PlaySongNextAsync"
+                                     OnSaveSongFavorite="SaveSongFavoriteAsync"
+                                     OnQueueStation="QueueStationAsync"
+                                     OnPlayStationNext="PlayStationNextAsync"
+                                     OnSaveRadioFavorite="SaveRadioFavoriteAsync" />
+                    break;
+                case MusicPageKind.Library:
+                    <MusicLibraryPage IsLoadingFavorites="IsLoadingFavorites"
+                                      Favorites="Favorites"
+                                      IsSubmittingAction="IsSubmittingAction"
+                                      HasSharedSession="@(Session is not null)"
+                                      OnQueueFavorite="QueueFavoriteAsync"
+                                      OnPlayFavoriteNext="PlayFavoriteNextAsync"
+                                      OnRemoveFavorite="RemoveFavoriteAsync" />
+                    break;
+                case MusicPageKind.Stats:
+                    <MusicStatsPage Session="Session"
+                                    IsLoadingMostPlayed="IsLoadingMostPlayed"
+                                    MostPlayedTracks="MostPlayedTracks" />
+                    break;
             }
-
-            <div class="music-shell__meta" aria-label="Current session context">
-                @if (Session is null)
-                {
-                    <span class="music-pill">No shared voice session</span>
-                }
-                else
-                {
-                    <span id="music-guild-name" class="music-pill">@Session.Channel.GuildName</span>
-                    <span id="music-channel-name" class="music-pill">#@Session.Channel.VoiceChannelName</span>
-                    <span id="music-playback-state" class="music-pill">@Session.PlaybackState</span>
-                }
-            </div>
-
-            <div class="music-shell__controls-nav">
-                <section id="music-controls" class="music-controls" aria-label="Playback controls">
-                    <button id="music-toggle-pause"
-                            type="button"
-                            disabled="@(IsSubmittingAction || Session is null)"
-                            @onclick="TogglePauseAsync">
-                        @(Session?.PlaybackState == "Paused" ? "Resume" : "Pause")
-                    </button>
-                    <button id="music-skip"
-                            type="button"
-                            disabled="@(IsSubmittingAction || Session is null)"
-                            @onclick="SkipAsync">
-                        Skip
-                    </button>
-                    <button id="music-stop"
-                            type="button"
-                            disabled="@(IsSubmittingAction || Session is null)"
-                            @onclick="StopAsync">
-                        Stop
-                    </button>
-                </section>
-
-                <nav class="music-shell__nav" aria-label="Music navigation">
-                    <NavLink href="/music/live" class="music-shell__nav-link" Match="NavLinkMatch.Prefix">Live</NavLink>
-                    <NavLink href="/music/search" class="music-shell__nav-link">Search</NavLink>
-                    <NavLink href="/music/library" class="music-shell__nav-link">Library</NavLink>
-                    <NavLink href="/music/stats" class="music-shell__nav-link">Stats</NavLink>
-                </nav>
-            </div>
-        </header>
-
-        @switch (ActivePage)
-        {
-            case MusicPageKind.Live:
-                <MusicLivePage Session="Session"
-                               IsSubmittingAction="IsSubmittingAction"
-                               OnRemoveQueueItem="RemoveQueueItemAsync"
-                               OnMoveQueueItemUp="MoveQueueItemUpAsync"
-                               OnMoveQueueItemDown="MoveQueueItemDownAsync"
-                               OnClearQueue="ClearQueueAsync" />
-                break;
-            case MusicPageKind.Search:
-                <MusicSearchPage SearchQuery="SearchQuery"
-                                 SearchQueryChanged="OnSearchQueryChanged"
-                                 IsSearching="IsSearching"
-                                 SearchError="SearchError"
-                                 SearchResults="SearchResults"
-                                 IsSubmittingAction="IsSubmittingAction"
-                                 HasSharedSession="@(Session is not null)"
-                                 OnSearch="SearchAsync"
-                                 OnQueueSong="QueueSongAsync"
-                                 OnPlaySongNext="PlaySongNextAsync"
-                                 OnSaveSongFavorite="SaveSongFavoriteAsync"
-                                 OnQueueStation="QueueStationAsync"
-                                 OnPlayStationNext="PlayStationNextAsync"
-                                 OnSaveRadioFavorite="SaveRadioFavoriteAsync" />
-                break;
-            case MusicPageKind.Library:
-                <MusicLibraryPage IsLoadingFavorites="IsLoadingFavorites"
-                                  Favorites="Favorites"
-                                  IsSubmittingAction="IsSubmittingAction"
-                                  HasSharedSession="@(Session is not null)"
-                                  OnQueueFavorite="QueueFavoriteAsync"
-                                  OnPlayFavoriteNext="PlayFavoriteNextAsync"
-                                  OnRemoveFavorite="RemoveFavoriteAsync" />
-                break;
-            case MusicPageKind.Stats:
-                <MusicStatsPage Session="Session"
-                                IsLoadingMostPlayed="IsLoadingMostPlayed"
-                                MostPlayedTracks="MostPlayedTracks" />
-                break;
-        }
+        </div>
     </section>
 }

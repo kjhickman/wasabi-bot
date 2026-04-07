@@ -48,8 +48,6 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
     private bool HasGuildAccess { get; set; }
     private ulong? UserId { get; set; }
     private string? LoadError { get; set; }
-    private string? ActionMessage { get; set; }
-    private bool ActionIsError { get; set; }
     private bool IsSubmittingAction { get; set; }
     private string SearchQuery { get; set; } = string.Empty;
     private bool IsSearching { get; set; }
@@ -340,9 +338,7 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
 
         try
         {
-            var result = await action(CancellationToken.None);
-            ActionMessage = result.Message;
-            ActionIsError = result.Ephemeral;
+            await action(CancellationToken.None);
             await RefreshSessionAsync();
 
             if (ActivePage == MusicPageKind.Library)
@@ -357,8 +353,6 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
         }
         catch
         {
-            ActionMessage = "Couldn't complete that music action right now. Please try again.";
-            ActionIsError = true;
         }
         finally
         {

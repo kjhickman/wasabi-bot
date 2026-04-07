@@ -14,7 +14,7 @@ public class NotFoundComponentTests : IDisposable
 
         await Assert.That(cut.Markup).Contains("404");
         await Assert.That(cut.Find("#not-found-heading").TextContent.Trim()).IsEqualTo("This page does not exist.");
-        await Assert.That(cut.Find("a[role='button']").GetAttribute("href")).IsEqualTo("/");
+        await Assert.That(cut.Find("a").GetAttribute("href")).IsEqualTo("/");
     }
 
     public void Dispose()

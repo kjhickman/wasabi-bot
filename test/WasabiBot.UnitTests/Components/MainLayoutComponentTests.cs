@@ -20,6 +20,7 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.Markup).Contains("Wasabi Bot");
         await Assert.That(cut.FindAll("#logout-button").Count).IsEqualTo(0);
         await Assert.That(cut.FindAll("#header-user-name").Count).IsEqualTo(0);
+        await Assert.That(cut.FindAll("#nav-link-creds").Count).IsEqualTo(0);
     }
 
     [Test]
@@ -38,15 +39,12 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.Find("#header-user-name").TextContent.Trim()).IsEqualTo("Kyle");
         await Assert.That(cut.Markup).DoesNotContain("Hello,");
         await Assert.That(cut.Find("#header-user-avatar").GetAttribute("src")).Contains("cdn.discordapp.com/avatars/123456789/avatarhash.png?size=128");
-        await Assert.That(cut.Find("#account-menu-button").GetAttribute("aria-controls")).IsEqualTo("account-menu-panel");
-        await Assert.That(cut.Find("#account-menu-button").GetAttribute("aria-expanded")).IsEqualTo("false");
-        await Assert.That(cut.Find("#account-menu-button").GetAttribute("popovertarget")).IsEqualTo("account-menu-panel");
-        await Assert.That(cut.Find("#account-menu-panel").GetAttribute("popover")).IsEqualTo("auto");
-        await Assert.That(cut.Find("#account-menu-panel").GetAttribute("data-account-menu-panel")).IsEmpty();
-        await Assert.That(cut.Find("#theme-select").GetAttribute("data-theme-select")).IsEmpty();
-        await Assert.That(cut.FindAll("#theme-select option").Count).IsEqualTo(3);
-        await Assert.That(cut.Find("form.logout-form").GetAttribute("action")).IsEqualTo("/logout");
+        await Assert.That(cut.Find("#account-menu-panel form").GetAttribute("action")).IsEqualTo("/logout");
         await Assert.That(cut.Find("#logout-button").TextContent.Trim()).IsEqualTo("Log out");
+        await Assert.That(cut.Find("#account-menu-panel").TextContent).DoesNotContain("Kyle");
+        await Assert.That(cut.Find("#nav-link-creds").GetAttribute("href")).IsEqualTo("/creds");
+        await Assert.That(cut.Find("#nav-link-music").GetAttribute("href")).IsEqualTo("/music");
+        await Assert.That(cut.Find("#account-menu-button").TagName).IsEqualTo("SUMMARY");
     }
 
     [Test]

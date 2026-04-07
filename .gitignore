@@ -115,3 +115,7 @@ Thumbs.db
 
 # Local Playwright Discord session artifacts
 .playwright-cli/
+
+# Frontend build artifacts
+node_modules/
+src/WasabiBot.Api/wwwroot/app.css
