@@ -1,0 +1,185 @@
+@namespace WasabiBot.Api.Components.Features.Music
+@using WasabiBot.Api.Features.Music
+
+<div class="music-page-stack stack-lg">
+    <article class="surface-card music-search-card stack-md" aria-labelledby="music-search-heading">
+        <header class="stack-sm">
+            <p class="eyebrow">Discover</p>
+            <h2 id="music-search-heading">Search songs and radio</h2>
+            <p class="section-copy">Queue instantly when you're in the room, or scout what you want to hear next before you join.</p>
+        </header>
+
+        <div class="music-search-form music-search-form--hero">
+            <label class="music-search-form__field" for="music-search-query">
+                <span class="sr-only">Search query</span>
+                <input id="music-search-query"
+                       type="search"
+                       value="@SearchQuery"
+                       placeholder="Search SoundCloud songs or radio stations"
+                       @oninput="OnSearchInput" />
+            </label>
+            <button id="music-search-submit"
+                    type="button"
+                    disabled="@IsSearching"
+                    @onclick="OnSearch">
+                @(IsSearching ? "Searching..." : "Search")
+            </button>
+        </div>
+
+        @if (!HasSharedSession)
+        {
+            <p class="music-callout">Join the bot in voice to queue results directly from here.</p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(SearchError))
+        {
+            <p id="music-search-error">@SearchError</p>
+        }
+    </article>
+
+    @if (SearchResults is not null)
+    {
+        <div class="music-results-grid">
+            <article class="surface-card stack-md" aria-labelledby="music-song-results-heading">
+                <header class="stack-sm">
+                    <p class="eyebrow">Songs</p>
+                    <h2 id="music-song-results-heading">SoundCloud matches</h2>
+                </header>
+
+                @if (SearchResults.Songs.Count == 0)
+                {
+                    <p id="music-song-results-empty">No SoundCloud songs found.</p>
+                }
+                else
+                {
+                    <ul id="music-song-results" class="music-search-result-list">
+                        @foreach (var song in SearchResults.Songs)
+                        {
+                            <li class="music-search-result-item music-search-result-item--dense">
+                                <div class="music-search-result-item__content">
+                                    @if (!string.IsNullOrWhiteSpace(song.ArtworkUrl))
+                                    {
+                                        <img class="music-search-result-item__artwork" src="@song.ArtworkUrl" alt="Artwork for @song.Title" />
+                                    }
+                                    <div class="music-search-result-item__details">
+                                        <strong>@song.Title</strong>
+                                        <span>by @song.Author</span>
+                                        <div class="music-now-playing__meta-row">
+                                            <span class="music-track-meta">@song.DurationText</span>
+                                            @if (!string.IsNullOrWhiteSpace(song.SourceName))
+                                            {
+                                                <span class="music-track-meta">@MusicDisplayFormatting.FormatSourceName(song.SourceName)</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="music-search-result-item__actions">
+                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueSong.InvokeAsync(song)">Add to queue</button>
+                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlaySongNext.InvokeAsync(song)">Play next</button>
+                                    <button type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveSongFavorite.InvokeAsync(song)">Favorite</button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </article>
+
+            <article class="surface-card stack-md" aria-labelledby="music-radio-results-heading">
+                <header class="stack-sm">
+                    <p class="eyebrow">Radio</p>
+                    <h2 id="music-radio-results-heading">Live stations</h2>
+                </header>
+
+                @if (SearchResults.Stations.Count == 0)
+                {
+                    <p id="music-radio-results-empty">No radio stations found.</p>
+                }
+                else
+                {
+                    <ul id="music-radio-results" class="music-search-result-list">
+                        @foreach (var station in SearchResults.Stations)
+                        {
+                            <li class="music-search-result-item music-search-result-item--dense">
+                                <div class="music-search-result-item__content">
+                                    @if (!string.IsNullOrWhiteSpace(station.ArtworkUrl))
+                                    {
+                                        <img class="music-search-result-item__artwork" src="@station.ArtworkUrl" alt="Artwork for @station.Name" />
+                                    }
+                                    <div class="music-search-result-item__details">
+                                        <strong>@station.Name</strong>
+                                        @if (!string.IsNullOrWhiteSpace(station.Country))
+                                        {
+                                            <span>@station.Country</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(station.Tags))
+                                        {
+                                            <span class="music-track-meta">@MusicDisplayFormatting.FormatStationTags(station.Tags)</span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="music-search-result-item__actions">
+                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueStation.InvokeAsync(station)">Add to queue</button>
+                                    <button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayStationNext.InvokeAsync(station)">Play next</button>
+                                    <button type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveRadioFavorite.InvokeAsync(station)">Favorite</button>
+                                    @if (!string.IsNullOrWhiteSpace(station.HomepageUrl))
+                                    {
+                                        <a href="@station.HomepageUrl" target="_blank" rel="noopener noreferrer">Homepage</a>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </article>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string SearchQuery { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> SearchQueryChanged { get; set; }
+
+    [Parameter]
+    public bool IsSearching { get; set; }
+
+    [Parameter]
+    public string? SearchError { get; set; }
+
+    [Parameter]
+    public MusicDashboardSearchResults? SearchResults { get; set; }
+
+    [Parameter]
+    public bool IsSubmittingAction { get; set; }
+
+    [Parameter]
+    public bool HasSharedSession { get; set; }
+
+    [Parameter]
+    public EventCallback OnSearch { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicDashboardSongSearchResult> OnQueueSong { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicDashboardSongSearchResult> OnPlaySongNext { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicDashboardSongSearchResult> OnSaveSongFavorite { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicDashboardRadioSearchResult> OnQueueStation { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicDashboardRadioSearchResult> OnPlayStationNext { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicDashboardRadioSearchResult> OnSaveRadioFavorite { get; set; }
+
+    private Task OnSearchInput(ChangeEventArgs args)
+    {
+        return SearchQueryChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+    }
+}

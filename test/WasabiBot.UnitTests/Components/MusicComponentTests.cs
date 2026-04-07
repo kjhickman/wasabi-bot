@@ -26,14 +26,15 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
         _context.Services.AddSingleton(Substitute.For<IMusicGuildStatsService>());
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+        _context.Services.GetRequiredService<NavigationManager>().NavigateTo("http://localhost/music");
 
         var authState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
 
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
-        await Assert.That(cut.Find("#music-login-link").GetAttribute("href")).IsEqualTo("/login-discord?returnUrl=%2Fmusic");
-        await Assert.That(cut.Markup).Contains("Sign in to view live music");
-        await Assert.That(cut.FindAll("#music-page").Count).IsEqualTo(0);
+        await Assert.That(cut.Find("#music-login-link").GetAttribute("href")).IsEqualTo("/login-discord?returnUrl=/music");
+        await Assert.That(cut.Markup).Contains("Sign in to control music");
+        await Assert.That(cut.FindAll("#music-shell").Count).IsEqualTo(0);
     }
 
     [Test]
@@ -60,7 +61,7 @@ public class MusicComponentTests : IDisposable
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
         await Assert.That(cut.Markup).Contains("Join a voice channel with Wasabi Bot");
-        await Assert.That(cut.Find("#music-page-heading").TextContent.Trim()).IsEqualTo("Music Dashboard");
+        await Assert.That(cut.Find("#music-page-heading").TextContent.Trim()).IsEqualTo("Live control room");
     }
 
     [Test]
@@ -224,7 +225,8 @@ public class MusicComponentTests : IDisposable
             .WithDiscordGlobalName("Kyle")
             .Build();
 
-        var cut = _context.RenderWithAuthentication<Music>(new AuthenticationState(user));
+        var cut = _context.RenderWithAuthentication<MusicShell>(new AuthenticationState(user), parameters => parameters
+            .Add(x => x.ActivePage, MusicPageKind.Search));
         cut.Find("#music-search-query").Input("radiohead");
         await cut.InvokeAsync(() => cut.Find("#music-search-submit").Click());
 
@@ -268,7 +270,8 @@ public class MusicComponentTests : IDisposable
             .WithDiscordGlobalName("Kyle")
             .Build();
 
-        var cut = _context.RenderWithAuthentication<Music>(new AuthenticationState(user));
+        var cut = _context.RenderWithAuthentication<MusicShell>(new AuthenticationState(user), parameters => parameters
+            .Add(x => x.ActivePage, MusicPageKind.Library));
 
         await Assert.That(cut.Find("#music-favorite-songs").TextContent).Contains("Creep");
         await Assert.That(cut.Find("#music-favorite-radio").TextContent).Contains("Radiohead FM");
@@ -310,7 +313,8 @@ public class MusicComponentTests : IDisposable
             .WithDiscordGlobalName("Kyle")
             .Build();
 
-        var cut = _context.RenderWithAuthentication<Music>(new AuthenticationState(user));
+        var cut = _context.RenderWithAuthentication<MusicShell>(new AuthenticationState(user), parameters => parameters
+            .Add(x => x.ActivePage, MusicPageKind.Stats));
 
         await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("Creep");
         await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("5 play(s)");

@@ -1,12 +1,12 @@
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed record SharedVoiceChannel(
+public sealed record SharedVoiceChannel(
     ulong GuildId,
     string GuildName,
     ulong VoiceChannelId,
     string VoiceChannelName);
 
-internal sealed record MusicTrackSnapshot(
+public sealed record MusicTrackSnapshot(
     string Title,
     string Author,
     string DurationText,
@@ -17,14 +17,14 @@ internal sealed record MusicTrackSnapshot(
     string? SourceUrl,
     string? SourceName);
 
-internal sealed record MusicQueueItemSnapshot(int Position, MusicTrackSnapshot Track);
+public sealed record MusicQueueItemSnapshot(int Position, MusicTrackSnapshot Track);
 
-internal sealed record PlaybackProgressSnapshot(
+public sealed record PlaybackProgressSnapshot(
     TimeSpan Position,
     string PositionText,
     double? Percent);
 
-internal sealed record ActiveMusicSession(
+public sealed record ActiveMusicSession(
     SharedVoiceChannel Channel,
     string PlaybackState,
     PlaybackProgressSnapshot? Progress,

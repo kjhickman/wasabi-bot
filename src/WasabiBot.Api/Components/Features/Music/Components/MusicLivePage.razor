@@ -1,0 +1,156 @@
+@namespace WasabiBot.Api.Components.Features.Music
+@using WasabiBot.Api.Features.Music
+
+@if (Session is null)
+{
+    <article class="surface-card stack-sm">
+        <h2>Waiting for a live room</h2>
+        <p>Once you and Wasabi Bot share a voice channel, this page becomes your control room for playback and queue edits.</p>
+    </article>
+}
+else
+{
+    <div class="music-live-grid">
+        <article class="surface-card music-live-card music-live-card--hero stack-md" aria-labelledby="music-now-playing-heading">
+            <header class="stack-sm">
+                <p class="eyebrow">Now Playing</p>
+                <h2 id="music-now-playing-heading">Current track</h2>
+            </header>
+
+            @if (Session.NowPlaying is null)
+            {
+                <p id="music-now-playing-empty">Nothing is playing right now.</p>
+            }
+            else
+            {
+                <div class="music-now-playing music-now-playing--hero">
+                    @if (!string.IsNullOrWhiteSpace(Session.NowPlaying.ArtworkUrl))
+                    {
+                        <img id="music-artwork"
+                             class="music-now-playing__artwork music-now-playing__artwork--large"
+                             src="@Session.NowPlaying.ArtworkUrl"
+                             alt="Artwork for @Session.NowPlaying.Title" />
+                    }
+
+                    <div id="music-now-playing-track" class="stack-sm music-now-playing__details music-now-playing__details--hero">
+                        <div class="stack-xs">
+                            <strong>@Session.NowPlaying.Title</strong>
+                            @if (!Session.NowPlaying.IsRadio)
+                            {
+                                <span>by @Session.NowPlaying.Author</span>
+                            }
+                        </div>
+
+                        <div class="music-now-playing__meta-row">
+                            <span class="music-track-meta">@Session.NowPlaying.DurationText</span>
+                            @if (!string.IsNullOrWhiteSpace(Session.NowPlaying.SourceName))
+                            {
+                                <span id="music-source-name" class="music-track-meta">@MusicDisplayFormatting.FormatSourceName(Session.NowPlaying.SourceName)</span>
+                            }
+                        </div>
+
+                        @if (Session.Progress is not null && Session.NowPlaying.Duration is { } duration)
+                        {
+                            <div id="music-progress" class="music-progress stack-xs" aria-label="Playback progress">
+                                <progress value="@Session.Progress.Position.TotalSeconds" max="@duration.TotalSeconds"></progress>
+                                <div class="music-progress__times">
+                                    <span id="music-progress-position">@Session.Progress.PositionText</span>
+                                    <span id="music-progress-duration">@Session.NowPlaying.DurationText</span>
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Session.NowPlaying.SourceUrl))
+                        {
+                            <p class="music-now-playing__source-link">
+                                <a id="music-source-link" href="@Session.NowPlaying.SourceUrl" target="_blank" rel="noopener noreferrer">Open source</a>
+                            </p>
+                        }
+                    </div>
+                </div>
+            }
+        </article>
+
+        <article class="surface-card music-live-card stack-md" aria-labelledby="music-queue-heading">
+            <header class="music-queue-card__header">
+                <div class="stack-sm">
+                    <p class="eyebrow">Queue</p>
+                    <h2 id="music-queue-heading">Up next</h2>
+                </div>
+
+                <button type="button"
+                        class="secondary outline"
+                        @onclick="OnClearQueue"
+                        disabled="@(IsSubmittingAction || Session.Queue.Count == 0)">
+                    Clear queue
+                </button>
+            </header>
+
+            @if (Session.Queue.Count == 0)
+            {
+                <p id="music-queue-empty">The queue is empty.</p>
+            }
+            else
+            {
+                <ol id="music-queue-list" class="music-queue-list music-queue-list--panel">
+                    @foreach (var item in Session.Queue)
+                    {
+                        <li class="music-queue-item music-queue-item--panel">
+                            <div class="music-queue-item__body">
+                                <strong>@item.Track.Title</strong>
+                                @if (!item.Track.IsRadio)
+                                {
+                                    <span>by @item.Track.Author</span>
+                                }
+                            </div>
+
+                            <div class="music-queue-item__meta">
+                                <span class="music-track-meta">@item.Track.DurationText</span>
+                                <div class="music-queue-item__actions">
+                                    <button type="button"
+                                            class="secondary outline"
+                                            @onclick="() => OnMoveQueueItemUp.InvokeAsync(item)"
+                                            disabled="@(IsSubmittingAction || item.Position == 1)">
+                                        Up
+                                    </button>
+                                    <button type="button"
+                                            class="secondary outline"
+                                            @onclick="() => OnMoveQueueItemDown.InvokeAsync(item)"
+                                            disabled="@(IsSubmittingAction || item.Position == Session.Queue.Count)">
+                                        Down
+                                    </button>
+                                    <button type="button"
+                                            class="secondary outline"
+                                            @onclick="() => OnRemoveQueueItem.InvokeAsync(item)"
+                                            disabled="@IsSubmittingAction">
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </li>
+                    }
+                </ol>
+            }
+        </article>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public ActiveMusicSession? Session { get; set; }
+
+    [Parameter]
+    public bool IsSubmittingAction { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicQueueItemSnapshot> OnRemoveQueueItem { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicQueueItemSnapshot> OnMoveQueueItemUp { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicQueueItemSnapshot> OnMoveQueueItemDown { get; set; }
+
+    [Parameter]
+    public EventCallback OnClearQueue { get; set; }
+}
