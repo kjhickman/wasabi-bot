@@ -3,7 +3,7 @@ using WasabiBot.Api.Features.Radio;
 
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed record MusicDashboardSongSearchResult(
+public sealed record MusicDashboardSongSearchResult(
     string Title,
     string Author,
     string DurationText,
@@ -12,7 +12,7 @@ internal sealed record MusicDashboardSongSearchResult(
     string? SourceName,
     LavalinkTrack Track);
 
-internal sealed record MusicDashboardRadioSearchResult(
+public sealed record MusicDashboardRadioSearchResult(
     string Name,
     string Country,
     string Tags,
@@ -20,7 +20,7 @@ internal sealed record MusicDashboardRadioSearchResult(
     string? HomepageUrl,
     RadioBrowserStation Station);
 
-internal sealed record MusicDashboardSearchResults(
+public sealed record MusicDashboardSearchResults(
     IReadOnlyList<MusicDashboardSongSearchResult> Songs,
     IReadOnlyList<MusicDashboardRadioSearchResult> Stations,
     string? ErrorMessage);

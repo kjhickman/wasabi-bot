@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace WasabiBot.Api.Features.Radio;
 
-internal sealed record RadioBrowserStation
+public sealed record RadioBrowserStation
 {
     [JsonPropertyName("stationuuid")]
     public string StationUuid { get; init; } = string.Empty;

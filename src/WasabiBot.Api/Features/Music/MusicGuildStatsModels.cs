@@ -1,6 +1,6 @@
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed record GuildTopTrackSummary(
+public sealed record GuildTopTrackSummary(
     string Title,
     string Artist,
     string SourceName,

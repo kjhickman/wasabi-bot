@@ -7,15 +7,21 @@ using WasabiBot.Api.Features.Music;
 
 namespace WasabiBot.Api.Components.Features.Music;
 
-public partial class Music : ComponentBase, IAsyncDisposable
+public partial class MusicShell : ComponentBase, IAsyncDisposable
 {
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(3);
 
     private CancellationTokenSource? _refreshCancellationTokenSource;
     private Task? _refreshTask;
 
+    [Parameter]
+    public MusicPageKind ActivePage { get; set; }
+
     [Inject]
     private IAuthorizationService AuthorizationService { get; set; } = default!;
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
 
     [Inject]
     private IMusicDashboardService MusicDashboardService { get; set; } = default!;
@@ -41,7 +47,6 @@ public partial class Music : ComponentBase, IAsyncDisposable
     private bool IsAuthenticated { get; set; }
     private bool HasGuildAccess { get; set; }
     private ulong? UserId { get; set; }
-    private string? DisplayName { get; set; }
     private string? LoadError { get; set; }
     private string? ActionMessage { get; set; }
     private bool ActionIsError { get; set; }
@@ -56,7 +61,27 @@ public partial class Music : ComponentBase, IAsyncDisposable
     private bool IsLoadingMostPlayed { get; set; }
     private bool IsLoading { get; set; } = true;
     private ActiveMusicSession? Session { get; set; }
-    private string PageTitleText => !IsAuthenticated ? "Sign In" : HasGuildAccess ? "Music Dashboard" : "Access Restricted";
+
+    private string PageTitleText => !IsAuthenticated ? "Sign In" : HasGuildAccess ? PageHeading : "Access Restricted";
+    private string LoginHref => BuildLoginHref();
+
+    private string PageHeading => ActivePage switch
+    {
+        MusicPageKind.Live => "Live control room",
+        MusicPageKind.Search => "Find your next track",
+        MusicPageKind.Library => "Your saved library",
+        MusicPageKind.Stats => "Guild listening stats",
+        _ => "Music"
+    };
+
+    private string PageDescription => ActivePage switch
+    {
+        MusicPageKind.Live => "Keep the active queue moving with a player-focused view built for the room you're in right now.",
+        MusicPageKind.Search => "Search SoundCloud and live radio without losing sight of what the bot is already playing.",
+        MusicPageKind.Library => "Jump back to favorites fast and queue familiar tracks without re-running searches.",
+        MusicPageKind.Stats => "See what this guild actually plays the most once tracks have started for real.",
+        _ => "Music controls and discovery for Wasabi Bot."
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,7 +95,6 @@ public partial class Music : ComponentBase, IAsyncDisposable
             return;
         }
 
-        DisplayName = user.DisplayName;
         HasGuildAccess = (await AuthorizationService.AuthorizeAsync(user, policyName: "DiscordGuildMember")).Succeeded;
         if (!HasGuildAccess)
         {
@@ -87,8 +111,7 @@ public partial class Music : ComponentBase, IAsyncDisposable
 
         UserId = userId;
         await RefreshSessionAsync();
-        await RefreshFavoritesAsync();
-        await RefreshMostPlayedAsync();
+        await EnsureActivePageDataAsync();
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -133,7 +156,26 @@ public partial class Music : ComponentBase, IAsyncDisposable
         while (await timer.WaitForNextTickAsync(cancellationToken))
         {
             await RefreshSessionAsync(cancellationToken);
+
+            if (ActivePage == MusicPageKind.Stats && Session is not null)
+            {
+                await RefreshMostPlayedAsync(cancellationToken);
+            }
+
             await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task EnsureActivePageDataAsync(CancellationToken cancellationToken = default)
+    {
+        switch (ActivePage)
+        {
+            case MusicPageKind.Library:
+                await RefreshFavoritesAsync(cancellationToken);
+                break;
+            case MusicPageKind.Stats when Session is not null:
+                await RefreshMostPlayedAsync(cancellationToken);
+                break;
         }
     }
 
@@ -149,7 +191,6 @@ public partial class Music : ComponentBase, IAsyncDisposable
         {
             Session = await MusicDashboardService.GetActiveSessionAsync(UserId.Value, cancellationToken);
             LoadError = null;
-            await RefreshMostPlayedAsync(cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -165,12 +206,6 @@ public partial class Music : ComponentBase, IAsyncDisposable
         }
     }
 
-    private static bool TryGetUserId(ClaimsPrincipal user, out ulong userId)
-    {
-        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        return ulong.TryParse(userIdClaim, out userId);
-    }
-
     private async Task TogglePauseAsync()
     {
         await ExecuteActionAsync(ct => MusicDashboardControlService.TogglePauseAsync(UserId!.Value, ct));
@@ -184,6 +219,11 @@ public partial class Music : ComponentBase, IAsyncDisposable
     private async Task StopAsync()
     {
         await ExecuteActionAsync(ct => MusicDashboardControlService.StopAsync(UserId!.Value, ct));
+    }
+
+    private void OnSearchQueryChanged(string value)
+    {
+        SearchQuery = value;
     }
 
     private async Task SearchAsync()
@@ -256,7 +296,6 @@ public partial class Music : ComponentBase, IAsyncDisposable
         await ExecuteActionAsync(async ct =>
         {
             var actionResult = await MusicFavoritesService.AddSongAsync((long)UserId!.Value, result.Track, ct);
-            await RefreshFavoritesAsync(ct);
             return actionResult;
         });
     }
@@ -266,7 +305,6 @@ public partial class Music : ComponentBase, IAsyncDisposable
         await ExecuteActionAsync(async ct =>
         {
             var actionResult = await MusicFavoritesService.AddRadioAsync((long)UserId!.Value, result.Station, ct);
-            await RefreshFavoritesAsync(ct);
             return actionResult;
         });
     }
@@ -306,6 +344,16 @@ public partial class Music : ComponentBase, IAsyncDisposable
             ActionMessage = result.Message;
             ActionIsError = result.Ephemeral;
             await RefreshSessionAsync();
+
+            if (ActivePage == MusicPageKind.Library)
+            {
+                await RefreshFavoritesAsync();
+            }
+
+            if (ActivePage == MusicPageKind.Stats && Session is not null)
+            {
+                await RefreshMostPlayedAsync();
+            }
         }
         catch
         {
@@ -398,5 +446,22 @@ public partial class Music : ComponentBase, IAsyncDisposable
         }
 
         return new MusicCommandResult("That favorite can't be played right now.", Ephemeral: true);
+    }
+
+    private static bool TryGetUserId(ClaimsPrincipal user, out ulong userId)
+    {
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return ulong.TryParse(userIdClaim, out userId);
+    }
+
+    private string BuildLoginHref()
+    {
+        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return "/login-discord";
+        }
+
+        return $"/login-discord?returnUrl=/{Uri.EscapeDataString(relativePath)}";
     }
 }

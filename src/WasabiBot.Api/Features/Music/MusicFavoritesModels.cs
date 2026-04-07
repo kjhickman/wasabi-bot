@@ -2,14 +2,14 @@ using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed record MusicFavoriteSongMetadata(
+public sealed record MusicFavoriteSongMetadata(
     string TrackIdentifier,
     string SourceName,
     string SourceUrl,
     string ArtworkUrl,
     string DurationText);
 
-internal sealed record MusicFavoriteRadioMetadata(
+public sealed record MusicFavoriteRadioMetadata(
     string StationUuid,
     string StreamUrl,
     string HomepageUrl,
@@ -17,7 +17,7 @@ internal sealed record MusicFavoriteRadioMetadata(
     string Country,
     string Tags);
 
-internal sealed record MusicFavoriteSummary(
+public sealed record MusicFavoriteSummary(
     long Id,
     MusicFavoriteKind Kind,
     string Title,
@@ -29,6 +29,6 @@ internal sealed record MusicFavoriteSummary(
     MusicFavoriteSongMetadata? Song,
     MusicFavoriteRadioMetadata? Radio);
 
-internal sealed record MusicFavoritesSnapshot(
+public sealed record MusicFavoritesSnapshot(
     IReadOnlyList<MusicFavoriteSummary> Songs,
     IReadOnlyList<MusicFavoriteSummary> RadioStations);

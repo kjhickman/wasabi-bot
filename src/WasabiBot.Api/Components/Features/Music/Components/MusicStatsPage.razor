@@ -1,0 +1,61 @@
+@namespace WasabiBot.Api.Components.Features.Music
+@using WasabiBot.Api.Features.Music
+
+<article class="surface-card stack-md" aria-labelledby="music-most-played-heading">
+    <header class="stack-sm">
+        <p class="eyebrow">Guild Stats</p>
+        <h2 id="music-most-played-heading">Most played in this guild</h2>
+        <p class="section-copy">Playback starts drive these rankings, so they reflect what the room actually listened to.</p>
+    </header>
+
+    @if (Session is null)
+    {
+        <p id="music-most-played-empty">Join the bot in a voice channel to load guild-specific listening stats.</p>
+    }
+    else if (IsLoadingMostPlayed)
+    {
+        <p id="music-most-played-loading">Loading most played songs...</p>
+    }
+    else if (MostPlayedTracks.Count == 0)
+    {
+        <p id="music-most-played-empty">No songs have been tracked in this guild yet.</p>
+    }
+    else
+    {
+        <ol id="music-most-played-list" class="music-stats-list">
+            @for (var index = 0; index < MostPlayedTracks.Count; index++)
+            {
+                var track = MostPlayedTracks[index];
+                <li class="music-stats-item">
+                    <span class="music-stats-item__rank">@(index + 1)</span>
+                    <div class="music-stats-item__body">
+                        <strong>@track.Title</strong>
+                        <span>by @track.Artist</span>
+                        <div class="music-now-playing__meta-row">
+                            <span class="music-track-meta">@track.PlayCount play(s)</span>
+                            @if (!string.IsNullOrWhiteSpace(track.SourceName))
+                            {
+                                <span class="music-track-meta">@MusicDisplayFormatting.FormatSourceName(track.SourceName)</span>
+                            }
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(track.SourceUrl))
+                    {
+                        <a href="@track.SourceUrl" target="_blank" rel="noopener noreferrer">Open source</a>
+                    }
+                </li>
+            }
+        </ol>
+    }
+</article>
+
+@code {
+    [Parameter]
+    public ActiveMusicSession? Session { get; set; }
+
+    [Parameter]
+    public bool IsLoadingMostPlayed { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<GuildTopTrackSummary> MostPlayedTracks { get; set; } = [];
+}
