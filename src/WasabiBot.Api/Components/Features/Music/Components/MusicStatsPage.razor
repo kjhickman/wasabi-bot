@@ -1,11 +1,11 @@
 @namespace WasabiBot.Api.Components.Features.Music
+@using WasabiBot.Api.Components.Shared
 @using WasabiBot.Api.Features.Music
 
 <article class="surface-card stack-md" aria-labelledby="music-most-played-heading">
     <header class="stack-sm">
         <p class="eyebrow">Guild Stats</p>
-        <h2 id="music-most-played-heading">Most played in this guild</h2>
-        <p class="section-copy">Playback starts drive these rankings, so they reflect what the room actually listened to.</p>
+        <h2 id="music-most-played-heading">Most played in @(Session?.Channel.GuildName ?? "this guild")</h2>
     </header>
 
     @if (Session is null)
@@ -28,21 +28,36 @@
                 var track = MostPlayedTracks[index];
                 <li class="music-stats-item">
                     <span class="music-stats-item__rank">@(index + 1)</span>
-                    <div class="music-stats-item__body">
-                        <strong>@track.Title</strong>
-                        <span>by @track.Artist</span>
-                        <div class="music-now-playing__meta-row">
-                            <span class="music-track-meta">@track.PlayCount play(s)</span>
-                            @if (!string.IsNullOrWhiteSpace(track.SourceName))
+                    <div class="music-search-result-item__row">
+                        <div class="music-search-result-item__content">
+                            @if (!string.IsNullOrWhiteSpace(track.ArtworkUrl))
                             {
-                                <span class="music-track-meta">@MusicDisplayFormatting.FormatSourceName(track.SourceName)</span>
+                                <img class="music-search-result-item__artwork" src="@track.ArtworkUrl" alt="Artwork for @track.Title" />
                             }
+                            else
+                            {
+                                <div class="music-artwork-placeholder music-search-result-item__artwork" aria-hidden="true">
+                                    <LucideIcon Name="LucideIconName.Disc3" Class="size-7" />
+                                </div>
+                            }
+
+                            <div class="music-stats-item__body">
+                                <strong>@track.Title</strong>
+                                <span>by @track.Artist</span>
+                                <div class="music-now-playing__meta-row">
+                                    <span class="music-track-meta">Played @track.PlayCount time(s)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="music-search-result-item__actions music-search-result-item__actions--right">
+                            <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueTrack.InvokeAsync(track)">Add to queue</button>
+                            <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayTrackNext.InvokeAsync(track)">Play next</button>
+                            <button class="btn btn-sm @(track.IsFavorited ? "btn-primary" : "btn-outline")" type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveTrackFavorite.InvokeAsync(track)" aria-label="@(track.IsFavorited ? $"Remove {track.Title} from favorites" : $"Favorite {track.Title}")">
+                                <LucideIcon Name="@(track.IsFavorited ? LucideIconName.HeartMinus : LucideIconName.HeartPlus)" Class="size-4" />
+                            </button>
                         </div>
                     </div>
-                    @if (!string.IsNullOrWhiteSpace(track.SourceUrl))
-                    {
-                        <a href="@track.SourceUrl" target="_blank" rel="noopener noreferrer">Open source</a>
-                    }
                 </li>
             }
         </ol>
@@ -58,4 +73,19 @@
 
     [Parameter]
     public IReadOnlyList<GuildTopTrackSummary> MostPlayedTracks { get; set; } = [];
+
+    [Parameter]
+    public bool IsSubmittingAction { get; set; }
+
+    [Parameter]
+    public bool HasSharedSession { get; set; }
+
+    [Parameter]
+    public EventCallback<GuildTopTrackSummary> OnQueueTrack { get; set; }
+
+    [Parameter]
+    public EventCallback<GuildTopTrackSummary> OnPlayTrackNext { get; set; }
+
+    [Parameter]
+    public EventCallback<GuildTopTrackSummary> OnSaveTrackFavorite { get; set; }
 }

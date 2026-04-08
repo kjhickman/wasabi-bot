@@ -68,7 +68,7 @@
                                         <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueSong.InvokeAsync(song)">Add to queue</button>
                                         <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlaySongNext.InvokeAsync(song)">Play next</button>
                                         <button class="btn btn-sm @(song.IsFavorited ? "btn-primary" : "btn-outline")" type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveSongFavorite.InvokeAsync(song)" aria-label="@(song.IsFavorited ? $"Remove {song.Title} from favorites" : $"Favorite {song.Title}")">
-                                            <LucideIcon Name="LucideIconName.Heart" Class="size-4" Filled="@song.IsFavorited" />
+                                            <LucideIcon Name="@(song.IsFavorited ? LucideIconName.HeartMinus : LucideIconName.HeartPlus)" Class="size-4" />
                                         </button>
                                     </div>
                                 </div>
@@ -120,7 +120,7 @@
                                         <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueStation.InvokeAsync(station)">Add to queue</button>
                                         <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayStationNext.InvokeAsync(station)">Play next</button>
                                         <button class="btn btn-sm @(station.IsFavorited ? "btn-primary" : "btn-outline")" type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveRadioFavorite.InvokeAsync(station)" aria-label="@(station.IsFavorited ? $"Remove {station.Name} from favorites" : $"Favorite {station.Name}")">
-                                            <LucideIcon Name="LucideIconName.Heart" Class="size-4" Filled="@station.IsFavorited" />
+                                            <LucideIcon Name="@(station.IsFavorited ? LucideIconName.HeartMinus : LucideIconName.HeartPlus)" Class="size-4" />
                                         </button>
                                     </div>
                                 </div>
