@@ -5,8 +5,27 @@
 }
 
 @layer base {
-  :root {
+  html:root:not([data-theme]) {
     color-scheme: light dark;
+    --color-primary: oklch(62% 0.17 145);
+    --color-primary-content: oklch(98% 0.01 145);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html:root:not([data-theme]) {
+      --color-primary: oklch(72% 0.15 145);
+      --color-primary-content: oklch(18% 0.02 145);
+    }
+  }
+
+  html:root[data-theme="light"] {
+    --color-primary: oklch(62% 0.17 145);
+    --color-primary-content: oklch(98% 0.01 145);
+  }
+
+  html:root[data-theme="dark"] {
+    --color-primary: oklch(72% 0.15 145);
+    --color-primary-content: oklch(18% 0.02 145);
   }
 
   body {
