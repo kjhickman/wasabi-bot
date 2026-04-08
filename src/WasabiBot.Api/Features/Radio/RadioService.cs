@@ -1,7 +1,5 @@
-using System.Net.Http.Json;
 using Lavalink4NET;
 using Lavalink4NET.Rest.Entities.Tracks;
-using Lavalink4NET.Tracks;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
