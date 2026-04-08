@@ -51,6 +51,7 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
     private bool IsSubmittingAction { get; set; }
     private string SearchQuery { get; set; } = string.Empty;
     private bool IsSearching { get; set; }
+    private bool HasSearchAttempt { get; set; }
     private string? SearchError { get; set; }
     private MusicDashboardSearchResults? SearchResults { get; set; }
     private MusicFavoritesSnapshot Favorites { get; set; } = new([], []);
@@ -236,12 +237,23 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
             return;
         }
 
+        var query = SearchQuery.Trim();
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            HasSearchAttempt = false;
+            SearchError = null;
+            SearchResults = null;
+            return;
+        }
+
         IsSearching = true;
+        HasSearchAttempt = true;
         SearchError = null;
 
         try
         {
-            SearchResults = await MusicDashboardSearchService.SearchAsync(SearchQuery, CancellationToken.None);
+            SearchResults = await MusicDashboardSearchService.SearchAsync(query, CancellationToken.None);
+            await RefreshFavoritesAsync(CancellationToken.None);
             SearchError = SearchResults.ErrorMessage;
         }
         catch
@@ -296,18 +308,48 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
 
     private async Task SaveSongFavoriteAsync(MusicDashboardSongSearchResult result)
     {
+        if (result.IsFavorited && result.FavoriteId is { } favoriteId)
+        {
+            await ExecuteActionAsync(async ct =>
+            {
+                var actionResult = await MusicFavoritesService.RemoveAsync((long)UserId!.Value, favoriteId, ct);
+                await RefreshFavoritesAsync(ct);
+                await RefreshSearchFavoriteStateAsync(ct);
+                return actionResult;
+            });
+
+            return;
+        }
+
         await ExecuteActionAsync(async ct =>
         {
             var actionResult = await MusicFavoritesService.AddSongAsync((long)UserId!.Value, result.Track, ct);
+            await RefreshFavoritesAsync(ct);
+            await RefreshSearchFavoriteStateAsync(ct);
             return actionResult;
         });
     }
 
     private async Task SaveRadioFavoriteAsync(MusicDashboardRadioSearchResult result)
     {
+        if (result.IsFavorited && result.FavoriteId is { } favoriteId)
+        {
+            await ExecuteActionAsync(async ct =>
+            {
+                var actionResult = await MusicFavoritesService.RemoveAsync((long)UserId!.Value, favoriteId, ct);
+                await RefreshFavoritesAsync(ct);
+                await RefreshSearchFavoriteStateAsync(ct);
+                return actionResult;
+            });
+
+            return;
+        }
+
         await ExecuteActionAsync(async ct =>
         {
             var actionResult = await MusicFavoritesService.AddRadioAsync((long)UserId!.Value, result.Station, ct);
+            await RefreshFavoritesAsync(ct);
+            await RefreshSearchFavoriteStateAsync(ct);
             return actionResult;
         });
     }
@@ -378,6 +420,7 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
         try
         {
             Favorites = await MusicFavoritesService.ListAsync((long)UserId.Value, cancellationToken);
+            ApplyFavoriteStateToSearchResults();
         }
         finally
         {
@@ -467,5 +510,57 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
     private string GetMusicTabClass(MusicPageKind pageKind)
     {
         return pageKind == ActivePage ? "tab tab-active" : "tab";
+    }
+
+    private async Task RefreshSearchFavoriteStateAsync(CancellationToken cancellationToken = default)
+    {
+        if (UserId is null || SearchResults is null)
+        {
+            return;
+        }
+
+        Favorites = await MusicFavoritesService.ListAsync((long)UserId.Value, cancellationToken);
+        ApplyFavoriteStateToSearchResults();
+    }
+
+    private void ApplyFavoriteStateToSearchResults()
+    {
+        if (SearchResults is null)
+        {
+            return;
+        }
+
+        var songFavoritesByExternalId = Favorites.Songs
+            .Where(favorite => favorite.Song is not null)
+            .ToDictionary(
+                favorite => !string.IsNullOrWhiteSpace(favorite.SourceUrl)
+                    ? favorite.SourceUrl
+                    : $"{favorite.SourceName}:{favorite.Song!.TrackIdentifier}",
+                favorite => favorite,
+                StringComparer.Ordinal);
+
+        var radioFavoritesByStationId = Favorites.RadioStations
+            .Where(favorite => favorite.Radio is not null)
+            .ToDictionary(favorite => favorite.Radio!.StationUuid, favorite => favorite, StringComparer.Ordinal);
+
+        SearchResults = SearchResults with
+        {
+            Songs = SearchResults.Songs.Select(song =>
+            {
+                var externalId = !string.IsNullOrWhiteSpace(song.SourceUrl)
+                    ? song.SourceUrl
+                    : $"{song.SourceName}:{song.Track.Identifier}";
+
+                return songFavoritesByExternalId.TryGetValue(externalId, out var favorite)
+                    ? song with { IsFavorited = true, FavoriteId = favorite.Id }
+                    : song with { IsFavorited = false, FavoriteId = null };
+            }).ToArray(),
+            Stations = SearchResults.Stations.Select(station =>
+            {
+                return radioFavoritesByStationId.TryGetValue(station.Station.StationUuid, out var favorite)
+                    ? station with { IsFavorited = true, FavoriteId = favorite.Id }
+                    : station with { IsFavorited = false, FavoriteId = null };
+            }).ToArray(),
+        };
     }
 }

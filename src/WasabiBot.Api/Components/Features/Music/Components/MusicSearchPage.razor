@@ -1,56 +1,41 @@
 @namespace WasabiBot.Api.Components.Features.Music
+@using WasabiBot.Api.Components.Shared
 @using WasabiBot.Api.Features.Music
 
 <div class="music-page-stack stack-lg">
-    <article class="surface-card music-search-card stack-md" aria-labelledby="music-search-heading">
-        <header class="stack-sm">
-            <p class="eyebrow">Discover</p>
-            <h2 id="music-search-heading">Search songs and radio</h2>
-            <p class="section-copy">Queue instantly when you're in the room, or scout what you want to hear next before you join.</p>
-        </header>
+    <form class="music-search-form music-search-form--hero" @onsubmit="OnSubmitAsync" @onsubmit:preventDefault>
+        <label class="music-search-form__field" for="music-search-query">
+            <span class="sr-only">Search query</span>
+            <input id="music-search-query"
+                   class="input input-bordered w-full"
+                   type="search"
+                   value="@SearchQuery"
+                   placeholder="Search songs or radio stations"
+                   @oninput="OnSearchInput" />
+        </label>
+        <button id="music-search-submit"
+                class="btn btn-primary"
+                type="submit"
+                disabled="@IsSearching">
+            <LucideIcon Name="LucideIconName.Search" Class="size-4" />
+            <span>@(IsSearching ? "Searching..." : "Search")</span>
+        </button>
+    </form>
 
-        <div class="music-search-form music-search-form--hero">
-            <label class="music-search-form__field" for="music-search-query">
-                <span class="sr-only">Search query</span>
-                <input id="music-search-query"
-                       class="input input-bordered w-full"
-                       type="search"
-                       value="@SearchQuery"
-                       placeholder="Search SoundCloud songs or radio stations"
-                       @oninput="OnSearchInput" />
-            </label>
-            <button id="music-search-submit"
-                    class="btn btn-primary"
-                    type="button"
-                    disabled="@IsSearching"
-                    @onclick="OnSearch">
-                @(IsSearching ? "Searching..." : "Search")
-            </button>
-        </div>
-
-        @if (!HasSharedSession)
-        {
-            <p class="music-callout">Join the bot in voice to queue results directly from here.</p>
-        }
-
-        @if (!string.IsNullOrWhiteSpace(SearchError))
-        {
-            <p id="music-search-error" class="app-alert app-alert--error">@SearchError</p>
-        }
-    </article>
+    @if (HasSearchAttempt && !string.IsNullOrWhiteSpace(SearchError))
+    {
+        <p id="music-search-error" class="app-alert app-alert--error">@SearchError</p>
+    }
 
     @if (SearchResults is not null)
     {
         <div class="music-results-grid">
             <article class="surface-card stack-md" aria-labelledby="music-song-results-heading">
-                <header class="stack-sm">
-                    <p class="eyebrow">Songs</p>
-                    <h2 id="music-song-results-heading">SoundCloud matches</h2>
-                </header>
+                <p id="music-song-results-heading" class="eyebrow">Songs</p>
 
                 @if (SearchResults.Songs.Count == 0)
                 {
-                    <p id="music-song-results-empty">No SoundCloud songs found.</p>
+                    <p id="music-song-results-empty">No songs found.</p>
                 }
                 else
                 {
@@ -58,27 +43,34 @@
                         @foreach (var song in SearchResults.Songs)
                         {
                             <li class="music-search-result-item music-search-result-item--dense">
-                                <div class="music-search-result-item__content">
+                                <div class="music-search-result-item__row">
+                                    <div class="music-search-result-item__content">
                                     @if (!string.IsNullOrWhiteSpace(song.ArtworkUrl))
                                     {
                                         <img class="music-search-result-item__artwork" src="@song.ArtworkUrl" alt="Artwork for @song.Title" />
                                     }
-                                    <div class="music-search-result-item__details">
-                                        <strong>@song.Title</strong>
-                                        <span>by @song.Author</span>
-                                        <div class="music-now-playing__meta-row">
-                                            <span class="music-track-meta">@song.DurationText</span>
-                                            @if (!string.IsNullOrWhiteSpace(song.SourceName))
-                                            {
-                                                <span class="music-track-meta">@MusicDisplayFormatting.FormatSourceName(song.SourceName)</span>
-                                            }
+                                    else
+                                    {
+                                        <div class="music-artwork-placeholder music-search-result-item__artwork" aria-hidden="true">
+                                            <LucideIcon Name="LucideIconName.Disc3" Class="size-7" />
+                                        </div>
+                                    }
+                                        <div class="music-search-result-item__details">
+                                            <strong>@song.Title</strong>
+                                            <span>by @song.Author</span>
+                                            <div class="music-now-playing__meta-row">
+                                                <span class="music-track-meta">@song.DurationText</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="music-search-result-item__actions">
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueSong.InvokeAsync(song)">Add to queue</button>
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlaySongNext.InvokeAsync(song)">Play next</button>
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveSongFavorite.InvokeAsync(song)">Favorite</button>
+
+                                    <div class="music-search-result-item__actions music-search-result-item__actions--right">
+                                        <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueSong.InvokeAsync(song)">Add to queue</button>
+                                        <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlaySongNext.InvokeAsync(song)">Play next</button>
+                                        <button class="btn btn-sm @(song.IsFavorited ? "btn-primary" : "btn-outline")" type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveSongFavorite.InvokeAsync(song)" aria-label="@(song.IsFavorited ? $"Remove {song.Title} from favorites" : $"Favorite {song.Title}")">
+                                            <LucideIcon Name="LucideIconName.Heart" Class="size-4" Filled="@song.IsFavorited" />
+                                        </button>
+                                    </div>
                                 </div>
                             </li>
                         }
@@ -87,10 +79,7 @@
             </article>
 
             <article class="surface-card stack-md" aria-labelledby="music-radio-results-heading">
-                <header class="stack-sm">
-                    <p class="eyebrow">Radio</p>
-                    <h2 id="music-radio-results-heading">Live stations</h2>
-                </header>
+                <p id="music-radio-results-heading" class="eyebrow">Radio</p>
 
                 @if (SearchResults.Stations.Count == 0)
                 {
@@ -102,31 +91,38 @@
                         @foreach (var station in SearchResults.Stations)
                         {
                             <li class="music-search-result-item music-search-result-item--dense">
-                                <div class="music-search-result-item__content">
+                                <div class="music-search-result-item__row">
+                                    <div class="music-search-result-item__content">
                                     @if (!string.IsNullOrWhiteSpace(station.ArtworkUrl))
                                     {
                                         <img class="music-search-result-item__artwork" src="@station.ArtworkUrl" alt="Artwork for @station.Name" />
                                     }
-                                    <div class="music-search-result-item__details">
-                                        <strong>@station.Name</strong>
-                                        @if (!string.IsNullOrWhiteSpace(station.Country))
-                                        {
-                                            <span>@station.Country</span>
-                                        }
-                                        @if (!string.IsNullOrWhiteSpace(station.Tags))
-                                        {
-                                            <span class="music-track-meta">@MusicDisplayFormatting.FormatStationTags(station.Tags)</span>
-                                        }
-                                    </div>
-                                </div>
-                                <div class="music-search-result-item__actions">
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueStation.InvokeAsync(station)">Add to queue</button>
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayStationNext.InvokeAsync(station)">Play next</button>
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveRadioFavorite.InvokeAsync(station)">Favorite</button>
-                                    @if (!string.IsNullOrWhiteSpace(station.HomepageUrl))
+                                    else
                                     {
-                                        <a class="btn btn-sm btn-ghost" href="@station.HomepageUrl" target="_blank" rel="noopener noreferrer">Homepage</a>
+                                        <div class="music-artwork-placeholder music-search-result-item__artwork" aria-hidden="true">
+                                            <LucideIcon Name="LucideIconName.Disc3" Class="size-7" />
+                                        </div>
                                     }
+                                        <div class="music-search-result-item__details">
+                                            <strong>@station.Name</strong>
+                                            @if (!string.IsNullOrWhiteSpace(station.Country))
+                                            {
+                                                <span>@station.Country</span>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(station.Tags))
+                                            {
+                                                <span class="music-track-meta">@MusicDisplayFormatting.FormatStationTags(station.Tags)</span>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div class="music-search-result-item__actions music-search-result-item__actions--right">
+                                        <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueStation.InvokeAsync(station)">Add to queue</button>
+                                        <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayStationNext.InvokeAsync(station)">Play next</button>
+                                        <button class="btn btn-sm @(station.IsFavorited ? "btn-primary" : "btn-outline")" type="button" disabled="@IsSubmittingAction" @onclick="() => OnSaveRadioFavorite.InvokeAsync(station)" aria-label="@(station.IsFavorited ? $"Remove {station.Name} from favorites" : $"Favorite {station.Name}")">
+                                            <LucideIcon Name="LucideIconName.Heart" Class="size-4" Filled="@station.IsFavorited" />
+                                        </button>
+                                    </div>
                                 </div>
                             </li>
                         }
@@ -149,6 +145,9 @@
 
     [Parameter]
     public string? SearchError { get; set; }
+
+    [Parameter]
+    public bool HasSearchAttempt { get; set; }
 
     [Parameter]
     public MusicDashboardSearchResults? SearchResults { get; set; }
@@ -183,5 +182,10 @@
     private Task OnSearchInput(ChangeEventArgs args)
     {
         return SearchQueryChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+    }
+
+    private Task OnSubmitAsync()
+    {
+        return OnSearch.InvokeAsync();
     }
 }

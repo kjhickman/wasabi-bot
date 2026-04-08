@@ -52,7 +52,6 @@ else
                                            IsSubmittingAction="IsSubmittingAction"
                                            OnTogglePause="TogglePauseAsync"
                                            OnSkip="SkipAsync"
-                                           OnStop="StopAsync"
                                            OnRemoveQueueItem="RemoveQueueItemAsync"
                                            OnMoveQueueItemUp="MoveQueueItemUpAsync"
                                            OnMoveQueueItemDown="MoveQueueItemDownAsync"
@@ -61,10 +60,11 @@ else
                         break;
                     case MusicPageKind.Search:
                         <div id="music-tabpanel-search" role="tabpanel">
-                            <MusicSearchPage SearchQuery="SearchQuery"
+                            <MusicSearchPage SearchQuery="@SearchQuery"
                                              SearchQueryChanged="OnSearchQueryChanged"
                                              IsSearching="IsSearching"
-                                             SearchError="SearchError"
+                                             HasSearchAttempt="@HasSearchAttempt"
+                                             SearchError="@SearchError"
                                              SearchResults="SearchResults"
                                              IsSubmittingAction="IsSubmittingAction"
                                              HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"

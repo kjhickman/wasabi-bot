@@ -129,13 +129,14 @@ public class MusicComponentTests : IDisposable
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
         await Assert.That(cut.Find("#music-now-playing-track").TextContent).Contains("Current Song");
-        await Assert.That(cut.Find("#music-source-name").TextContent.Trim()).IsEqualTo("SoundCloud");
+        await Assert.That(cut.FindAll("#music-source-name").Count).IsEqualTo(0);
         await Assert.That(cut.Find("#music-artwork").GetAttribute("src")).IsEqualTo("https://cdn.example.com/current-song.jpg");
         await Assert.That(cut.Find("#music-progress-position").TextContent.Trim()).IsEqualTo("01:30");
         await Assert.That(cut.Find("#music-progress-duration").TextContent.Trim()).IsEqualTo("03:00");
         await Assert.That(cut.Find("#music-queue-list").TextContent).Contains("Next Song");
         await Assert.That(cut.Find("#music-skip").HasAttribute("disabled")).IsFalse();
-        await Assert.That(cut.Find("#music-stop").HasAttribute("disabled")).IsFalse();
+        await Assert.That(cut.FindAll("#music-stop").Count).IsEqualTo(0);
+        await Assert.That(cut.FindAll("#music-queue-list svg").Count).IsGreaterThanOrEqualTo(2);
     }
 
     [Test]
@@ -278,8 +279,157 @@ public class MusicComponentTests : IDisposable
         cut.Find("#music-search-query").Input("radiohead");
         await cut.InvokeAsync(() => cut.Find("#music-search-submit").Click());
 
+        await Assert.That(cut.Find("#music-search-query").GetAttribute("placeholder")).IsEqualTo("Search songs or radio stations");
+        await Assert.That(cut.Find("#music-song-results-heading").TextContent.Trim()).IsEqualTo("Results");
+        await Assert.That(cut.Find("#music-radio-results-heading").TextContent.Trim()).IsEqualTo("Stations");
         await Assert.That(cut.Find("#music-song-results").TextContent).Contains("Creep");
         await Assert.That(cut.Find("#music-radio-results").TextContent).Contains("Radiohead FM");
+        await Assert.That(cut.Find("#music-song-results").TextContent).DoesNotContain("SoundCloud");
+        await Assert.That(cut.FindAll("#music-search-error").Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUser_SearchTab_InitialStateHasEmptyQueryAndNoError()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+        var searchService = Substitute.For<IMusicDashboardSearchService>();
+        var queueService = Substitute.For<IMusicDashboardQueueService>();
+        var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
+
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Playing",
+                null,
+                new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
+
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Services.AddSingleton(searchService);
+        _context.Services.AddSingleton(queueService);
+        _context.Services.AddSingleton(favoritesService);
+        _context.Services.AddSingleton(guildStatsService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+
+        var cut = _context.RenderWithAuthentication<MusicShell>(new AuthenticationState(user), parameters => parameters
+            .Add(x => x.ActivePage, MusicPageKind.Search));
+
+        await Assert.That(cut.Find("#music-search-query").GetAttribute("value")).IsEqualTo(string.Empty);
+        await Assert.That(cut.FindAll("#music-search-error").Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUser_PressingEnterInSearchForm_SubmitsSearch()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+        var searchService = Substitute.For<IMusicDashboardSearchService>();
+        var queueService = Substitute.For<IMusicDashboardQueueService>();
+        var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
+
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Playing",
+                null,
+                new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
+        searchService.SearchAsync("radiohead", Arg.Any<CancellationToken>())
+            .Returns(new MusicDashboardSearchResults([], [], null));
+
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Services.AddSingleton(searchService);
+        _context.Services.AddSingleton(queueService);
+        _context.Services.AddSingleton(favoritesService);
+        _context.Services.AddSingleton(guildStatsService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+
+        var cut = _context.RenderWithAuthentication<MusicShell>(new AuthenticationState(user), parameters => parameters
+            .Add(x => x.ActivePage, MusicPageKind.Search));
+        cut.Find("#music-search-query").Input("radiohead");
+        await cut.InvokeAsync(() => cut.Find("form").Submit());
+
+        await searchService.Received(1).SearchAsync("radiohead", Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUser_SearchResults_ShowFavoritedStateAndCanUnfavorite()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+        var searchService = Substitute.For<IMusicDashboardSearchService>();
+        var queueService = Substitute.For<IMusicDashboardQueueService>();
+        var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
+
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Playing",
+                null,
+                new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
+
+        searchService.SearchAsync("radiohead", Arg.Any<CancellationToken>())
+            .Returns(new MusicDashboardSearchResults(
+                [new MusicDashboardSongSearchResult("Creep", "Radiohead", "03:58", null, "https://soundcloud.com/radiohead/creep", "scsearch", new Lavalink4NET.Tracks.LavalinkTrack { Identifier = "creep", Title = "Creep", Author = "Radiohead" })],
+                [],
+                null));
+
+        favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new MusicFavoritesSnapshot(
+                [new MusicFavoriteSummary(1, WasabiBot.Api.Persistence.Entities.MusicFavoriteKind.Song, "Creep", "Radiohead", "scsearch", "https://soundcloud.com/radiohead/creep", "", DateTimeOffset.UtcNow, new MusicFavoriteSongMetadata("creep", "scsearch", "https://soundcloud.com/radiohead/creep", "", "03:58"), null)],
+                []));
+
+        favoritesService.AddSongAsync(123456789, Arg.Any<Lavalink4NET.Tracks.LavalinkTrack>(), Arg.Any<CancellationToken>())
+            .Returns(new MusicCommandResult("Saved **Creep** to your song favorites."));
+        favoritesService.RemoveAsync(123456789, 1, Arg.Any<CancellationToken>())
+            .Returns(new MusicCommandResult("Removed **Creep** from your favorites."));
+
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Services.AddSingleton(searchService);
+        _context.Services.AddSingleton(queueService);
+        _context.Services.AddSingleton(favoritesService);
+        _context.Services.AddSingleton(guildStatsService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+
+        var cut = _context.RenderWithAuthentication<MusicShell>(new AuthenticationState(user), parameters => parameters
+            .Add(x => x.ActivePage, MusicPageKind.Search));
+        cut.Find("#music-search-query").Input("radiohead");
+        await cut.InvokeAsync(() => cut.Find("#music-search-submit").Click());
+
+        var favoriteButton = cut.Find("#music-song-results button[aria-label='Remove Creep from favorites']");
+
+        await cut.InvokeAsync(() => favoriteButton.Click());
+
+        await favoritesService.Received(1).RemoveAsync(123456789, 1, Arg.Any<CancellationToken>());
     }
 
     [Test]
