@@ -1,7 +1,7 @@
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using System.Security.Claims;
-using WasabiBot.Api.Components.Layout;
+using WasabiBot.Api.Frontend.Layout;
 using WasabiBot.UnitTests.Builders;
 
 namespace WasabiBot.UnitTests.Components;
@@ -44,7 +44,7 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.Find("#account-menu-panel").TextContent).DoesNotContain("Kyle");
         await Assert.That(cut.Find("#nav-link-creds").GetAttribute("href")).IsEqualTo("/creds");
         await Assert.That(cut.Find("#nav-link-music").GetAttribute("href")).IsEqualTo("/music");
-        await Assert.That(cut.Find("#account-menu-button").TagName).IsEqualTo("SUMMARY");
+        await Assert.That(cut.Find("#account-menu-button").TagName).IsEqualTo("BUTTON");
     }
 
     [Test]

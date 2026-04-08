@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using WasabiBot.Api.Components.Features.Music;
 using WasabiBot.Api.Features.Music;
+using WasabiBot.Api.Frontend.Modules.Music;
 using WasabiBot.UnitTests.Builders;
 
 namespace WasabiBot.UnitTests.Components;

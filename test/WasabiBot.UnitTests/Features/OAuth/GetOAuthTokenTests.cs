@@ -5,8 +5,10 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 using NSubstitute;
 using OpenTelemetry.Trace;
+using ApiTokenFactory = WasabiBot.Api.Infrastructure.Auth.ApiTokenFactory;
+using ApiTokenOptions = WasabiBot.Api.Infrastructure.Auth.ApiTokenOptions;
+using WasabiBot.Api.Features.ApiCredentials;
 using WasabiBot.Api.Features.OAuth;
-using WasabiBot.Api.Infrastructure.Auth;
 
 namespace WasabiBot.UnitTests.Features.OAuth;
 
