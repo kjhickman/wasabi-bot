@@ -8,7 +8,7 @@ using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed class PlaybackService(
+internal class PlaybackService(
     IAudioService audioService,
     RadioTrackMetadataStore radioTrackMetadataStore,
     ILogger<WasabiQueuedLavalinkPlayer> queuedPlayerLogger,

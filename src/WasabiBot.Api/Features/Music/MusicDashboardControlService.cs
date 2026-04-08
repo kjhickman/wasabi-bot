@@ -12,6 +12,42 @@ internal sealed class MusicDashboardControlService(
     private readonly PlaybackService _playbackService = playbackService;
     private readonly IMusicQueueMutationCoordinator _queueMutationCoordinator = queueMutationCoordinator;
 
+    public async Task<MusicCommandResult> JoinUserChannelAsync(ulong userId, CancellationToken cancellationToken = default)
+    {
+        var userVoiceChannel = _sharedVoiceChannelResolver.ResolveUserVoiceChannel(userId);
+        if (userVoiceChannel is null)
+        {
+            return new MusicCommandResult("Join a voice channel first, then try again.", Ephemeral: true);
+        }
+
+        if (userVoiceChannel.BotSharesChannel)
+        {
+            return new MusicCommandResult("I'm already connected to your voice channel.", Ephemeral: true);
+        }
+
+        if (userVoiceChannel.BotIsConnectedInGuild)
+        {
+            return new MusicCommandResult("I'm already connected to another voice channel in this server.", Ephemeral: true);
+        }
+
+        return await _queueMutationCoordinator.ExecuteAsync(userVoiceChannel.GuildId, async ct =>
+        {
+            var player = await _playbackService.GetExistingPlayerAsync(userVoiceChannel.GuildId, ct);
+            if (player is not null)
+            {
+                return new MusicCommandResult("I'm already connected to another voice channel in this server.", Ephemeral: true);
+            }
+
+            var retrieveResult = await _playbackService.RetrievePlaybackPlayerAsync(
+                userVoiceChannel.GuildId,
+                userVoiceChannel.VoiceChannelId,
+                PlayerChannelBehavior.Join,
+                ct);
+
+            return retrieveResult.Result ?? new MusicCommandResult($"Joined #{userVoiceChannel.VoiceChannelName}.");
+        }, cancellationToken);
+    }
+
     public async Task<MusicCommandResult> TogglePauseAsync(ulong userId, CancellationToken cancellationToken = default)
     {
         var player = await GetControllablePlayerAsync(userId, cancellationToken);

@@ -6,6 +6,14 @@ public sealed record SharedVoiceChannel(
     ulong VoiceChannelId,
     string VoiceChannelName);
 
+public sealed record UserVoiceChannel(
+    ulong GuildId,
+    string GuildName,
+    ulong VoiceChannelId,
+    string VoiceChannelName,
+    bool BotIsConnectedInGuild,
+    bool BotSharesChannel);
+
 public sealed record MusicTrackSnapshot(
     string Title,
     string Author,
@@ -29,4 +37,5 @@ public sealed record ActiveMusicSession(
     string PlaybackState,
     PlaybackProgressSnapshot? Progress,
     MusicTrackSnapshot? NowPlaying,
-    IReadOnlyList<MusicQueueItemSnapshot> Queue);
+    IReadOnlyList<MusicQueueItemSnapshot> Queue,
+    UserVoiceChannel? UserChannel);

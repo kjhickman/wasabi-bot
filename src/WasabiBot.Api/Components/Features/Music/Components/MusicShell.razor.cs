@@ -209,6 +209,11 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
         await ExecuteActionAsync(ct => MusicDashboardControlService.TogglePauseAsync(UserId!.Value, ct));
     }
 
+    private async Task JoinUserChannelAsync()
+    {
+        await ExecuteActionAsync(ct => MusicDashboardControlService.JoinUserChannelAsync(UserId!.Value, ct));
+    }
+
     private async Task SkipAsync()
     {
         await ExecuteActionAsync(ct => MusicDashboardControlService.SkipAsync(UserId!.Value, ct));

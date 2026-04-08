@@ -13,7 +13,8 @@ public class MusicDashboardControlServiceTests
     private static MusicDashboardControlService CreateService(
         ISharedVoiceChannelResolver? resolver = null,
         IAudioService? audioService = null,
-        IPlayerManager? playerManager = null)
+        IPlayerManager? playerManager = null,
+        PlaybackService? playbackService = null)
     {
         resolver ??= Substitute.For<ISharedVoiceChannelResolver>();
         audioService ??= Substitute.For<IAudioService>();
@@ -21,9 +22,15 @@ public class MusicDashboardControlServiceTests
 
         audioService.Players.Returns(playerManager);
 
+        playbackService ??= new PlaybackService(
+            audioService,
+            new RadioTrackMetadataStore(),
+            NullLogger<WasabiQueuedLavalinkPlayer>.Instance,
+            Substitute.For<IMusicPlaybackStatsRecorder>());
+
         return new MusicDashboardControlService(
             resolver,
-            new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()),
+            playbackService,
             new MusicQueueMutationCoordinator());
     }
 
@@ -38,6 +45,21 @@ public class MusicDashboardControlServiceTests
 
         await Assert.That(result.Ephemeral).IsTrue();
         await Assert.That(result.Message).IsEqualTo("You need to be in the same voice channel as the bot.");
+    }
+
+    [Test]
+    public async Task JoinUserChannelAsync_WhenBotAlreadyConnectedInGuild_ReturnsFriendlyError()
+    {
+        var resolver = Substitute.For<ISharedVoiceChannelResolver>();
+        resolver.ResolveUserVoiceChannel(123456789)
+            .Returns(new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: false));
+
+        var service = CreateService(resolver: resolver);
+
+        var result = await service.JoinUserChannelAsync(123456789);
+
+        await Assert.That(result.Ephemeral).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("I'm already connected to another voice channel in this server.");
     }
 
     [Test]
