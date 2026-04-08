@@ -5,6 +5,7 @@ public enum LucideIconName
     Heart,
     HeartPlus,
     HeartMinus,
+    LogOut,
     Pause,
     Play,
     SkipForward,

@@ -21,8 +21,11 @@
                         <NavLink id="nav-link-music" class="btn btn-ghost btn-sm" href="/music" Match="NavLinkMatch.Prefix" ActiveClass="btn-active">Music room</NavLink>
                         <NavLink id="nav-link-creds" class="btn btn-ghost btn-sm" href="/creds" Match="NavLinkMatch.Prefix" ActiveClass="btn-active">API access</NavLink>
 
-                        <details class="dropdown dropdown-end">
-                            <summary id="account-menu-button" class="btn btn-outline h-auto min-h-0 rounded-full border-base-300 bg-base-100 pl-2 pr-3 py-1.5 normal-case shadow-sm list-none hover:bg-base-200">
+                        <div class="dropdown dropdown-end">
+                            <button id="account-menu-button"
+                                    type="button"
+                                    class="btn btn-outline h-auto min-h-0 rounded-full border-base-300 bg-base-100 pl-2 pr-3 py-1.5 normal-case shadow-sm hover:bg-base-200"
+                                    aria-haspopup="menu">
                                 @if (!string.IsNullOrWhiteSpace(avatarUrl))
                                 {
                                     <img id="header-user-avatar" class="size-10 rounded-full object-cover" src="@avatarUrl" alt="" />
@@ -33,15 +36,49 @@
                                 }
 
                                 <span id="header-user-name" class="ml-1.5 text-sm font-medium">@displayName</span>
-                            </summary>
+                            </button>
 
-                            <div id="account-menu-panel" class="dropdown-content z-10 mt-3 w-56 rounded-box border border-base-300 bg-base-100 p-3 shadow-lg">
-                                <form class="mt-3" action="/logout" method="post">
+                            <div id="account-menu-panel"
+                                 tabindex="-1"
+                                 class="dropdown-content z-10 mt-3 w-64 rounded-box border border-base-300 bg-base-100 p-3 shadow-lg"
+                                 role="menu"
+                                 aria-labelledby="account-menu-button">
+                                <fieldset class="stack-sm">
+                                    <legend class="text-xs font-semibold uppercase tracking-[0.2em] text-base-content/60">Theme</legend>
+                                    <div class="join w-full">
+                                        <input id="theme-preference-light"
+                                               class="btn btn-sm join-item flex-1"
+                                               type="radio"
+                                               name="theme-preference"
+                                               value="light"
+                                               aria-label="Light"
+                                               data-theme-preference />
+                                        <input id="theme-preference-dark"
+                                               class="btn btn-sm join-item flex-1"
+                                               type="radio"
+                                               name="theme-preference"
+                                               value="dark"
+                                               aria-label="Dark"
+                                               data-theme-preference />
+                                        <input id="theme-preference-system"
+                                               class="btn btn-sm join-item flex-1"
+                                               type="radio"
+                                               name="theme-preference"
+                                               value="system"
+                                               aria-label="System"
+                                               data-theme-preference />
+                                    </div>
+                                </fieldset>
+
+                                <form class="mt-3 border-t border-base-300 pt-3" action="/logout" method="post">
                                     <AntiforgeryToken />
-                                    <button id="logout-button" class="btn btn-ghost btn-sm w-full justify-start" type="submit">Log out</button>
+                                    <button id="logout-button" class="btn btn-ghost btn-sm w-full justify-start gap-2" type="submit">
+                                        <LucideIcon Name="LucideIconName.LogOut" Class="size-4 shrink-0" />
+                                        <span>Log out</span>
+                                    </button>
                                 </form>
                             </div>
-                        </details>
+                        </div>
                     </div>
                 </Authorized>
             </AuthorizeView>
