@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Infrastructure.Auth;
 using WasabiBot.Api.Persistence;
 using WasabiBot.Api.Persistence.Entities;
 
-namespace WasabiBot.Api.Infrastructure.Auth;
+namespace WasabiBot.Api.Features.ApiCredentials;
 
 public sealed class ApiCredentialService(
     WasabiBotContext context,

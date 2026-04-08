@@ -1,11 +1,11 @@
-using WasabiBot.Api.Infrastructure.Auth;
+using WasabiBot.Api.Features.ApiCredentials;
 using OpenTelemetry.Trace;
 
 namespace WasabiBot.Api.Features.OAuth;
 
 public static class GetOAuthToken
 {
-    public static async Task<IResult> Handle(HttpContext httpContext, IApiCredentialService credentialService, ApiTokenFactory tokenFactory)
+    public static async Task<IResult> Handle(HttpContext httpContext, IApiCredentialService credentialService, WasabiBot.Api.Infrastructure.Auth.ApiTokenFactory tokenFactory)
     {
         var tracer = httpContext.RequestServices.GetRequiredService<Tracer>();
         using var span = tracer.StartActiveSpan("auth.oauth.token.issue");

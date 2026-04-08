@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using WasabiBot.Api.Core.Extensions;
+using WasabiBot.Api.Features.ApiCredentials;
 
 namespace WasabiBot.Api.Infrastructure.Auth;
 
