@@ -1,7 +1,7 @@
 using Bunit;
 using WasabiBot.Api.Frontend.Pages;
 
-namespace WasabiBot.UnitTests.Components;
+namespace WasabiBot.UnitTests.Frontend;
 
 public class NotFoundComponentTests : IDisposable
 {

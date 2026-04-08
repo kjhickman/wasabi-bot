@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WasabiBot.Api.Frontend.Pages;
 using WasabiBot.UnitTests.Builders;
 
-namespace WasabiBot.UnitTests.Components;
+namespace WasabiBot.UnitTests.Frontend;
 
 public class HomeComponentTests : IDisposable
 {

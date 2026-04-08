@@ -9,7 +9,7 @@ using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Frontend.Modules.Music;
 using WasabiBot.UnitTests.Builders;
 
-namespace WasabiBot.UnitTests.Components;
+namespace WasabiBot.UnitTests.Frontend;
 
 public class MusicComponentTests : IDisposable
 {
