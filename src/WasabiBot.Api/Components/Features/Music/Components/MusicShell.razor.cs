@@ -65,19 +65,19 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
 
     private string PageHeading => ActivePage switch
     {
-        MusicPageKind.Live => "Live control room",
-        MusicPageKind.Search => "Find your next track",
-        MusicPageKind.Library => "Your saved library",
-        MusicPageKind.Stats => "Guild listening stats",
+        MusicPageKind.Live => "Music room",
+        MusicPageKind.Search => "Music room",
+        MusicPageKind.Library => "Music room",
+        MusicPageKind.Stats => "Music room",
         _ => "Music"
     };
 
     private string PageDescription => ActivePage switch
     {
-        MusicPageKind.Live => "Keep the active queue moving with a player-focused view built for the room you're in right now.",
-        MusicPageKind.Search => "Search SoundCloud and live radio without losing sight of what the bot is already playing.",
-        MusicPageKind.Library => "Jump back to favorites fast and queue familiar tracks without re-running searches.",
-        MusicPageKind.Stats => "See what this guild actually plays the most once tracks have started for real.",
+        MusicPageKind.Live => "Control playback, search tracks, and grow the room from one place.",
+        MusicPageKind.Search => "Control playback, search tracks, and grow the room from one place.",
+        MusicPageKind.Library => "Control playback, search tracks, and grow the room from one place.",
+        MusicPageKind.Stats => "Control playback, search tracks, and grow the room from one place.",
         _ => "Music controls and discovery for Wasabi Bot."
     };
 
@@ -462,5 +462,10 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
         }
 
         return $"/login-discord?returnUrl=/{Uri.EscapeDataString(relativePath)}";
+    }
+
+    private string GetMusicTabClass(MusicPageKind pageKind)
+    {
+        return pageKind == ActivePage ? "tab tab-active" : "tab";
     }
 }

@@ -18,25 +18,7 @@ else if (!HasGuildAccess)
 }
 else
 {
-    <section id="music-shell" class="space-y-6" aria-label="Music">
-        <div class="space-y-4 md:flex md:items-start md:justify-between md:gap-6 md:space-y-0">
-            @if (ActivePage is not MusicPageKind.Live)
-            {
-                <div class="space-y-2">
-                    <p class="eyebrow">Music</p>
-                    <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">Dashboard</h1>
-                    <p class="max-w-2xl text-base leading-7 text-base-content/70">Search, queue, and monitor playback without losing the basic structural frame.</p>
-                </div>
-            }
-
-            @if (Session is not null)
-            {
-                <div class="flex flex-wrap gap-2">
-                    <span id="music-guild-name" class="badge badge-outline badge-lg">@Session.Channel.GuildName</span>
-                </div>
-            }
-        </div>
-
+    <section id="music-shell" class="-mt-2 space-y-6 md:-mt-4" aria-label="Music">
         <div>
             @if (!string.IsNullOrWhiteSpace(LoadError))
             {
@@ -53,51 +35,68 @@ else
                 </article>
             }
 
-            @switch (ActivePage)
-            {
-                case MusicPageKind.Live:
-                    <MusicLivePage Session="Session"
-                                   OnJoinUserChannel="JoinUserChannelAsync"
-                                   IsSubmittingAction="IsSubmittingAction"
-                                   OnTogglePause="TogglePauseAsync"
-                                   OnSkip="SkipAsync"
-                                   OnStop="StopAsync"
-                                   OnRemoveQueueItem="RemoveQueueItemAsync"
-                                   OnMoveQueueItemUp="MoveQueueItemUpAsync"
-                                   OnMoveQueueItemDown="MoveQueueItemDownAsync"
-                                   OnClearQueue="ClearQueueAsync" />
-                    break;
-                case MusicPageKind.Search:
-                    <MusicSearchPage SearchQuery="SearchQuery"
-                                     SearchQueryChanged="OnSearchQueryChanged"
-                                     IsSearching="IsSearching"
-                                     SearchError="SearchError"
-                                     SearchResults="SearchResults"
-                                     IsSubmittingAction="IsSubmittingAction"
-                                     HasSharedSession="@(Session is not null)"
-                                     OnSearch="SearchAsync"
-                                     OnQueueSong="QueueSongAsync"
-                                     OnPlaySongNext="PlaySongNextAsync"
-                                     OnSaveSongFavorite="SaveSongFavoriteAsync"
-                                     OnQueueStation="QueueStationAsync"
-                                     OnPlayStationNext="PlayStationNextAsync"
-                                     OnSaveRadioFavorite="SaveRadioFavoriteAsync" />
-                    break;
-                case MusicPageKind.Library:
-                    <MusicLibraryPage IsLoadingFavorites="IsLoadingFavorites"
-                                      Favorites="Favorites"
-                                      IsSubmittingAction="IsSubmittingAction"
-                                      HasSharedSession="@(Session is not null)"
-                                      OnQueueFavorite="QueueFavoriteAsync"
-                                      OnPlayFavoriteNext="PlayFavoriteNextAsync"
-                                      OnRemoveFavorite="RemoveFavoriteAsync" />
-                    break;
-                case MusicPageKind.Stats:
-                    <MusicStatsPage Session="Session"
-                                    IsLoadingMostPlayed="IsLoadingMostPlayed"
-                                    MostPlayedTracks="MostPlayedTracks" />
-                    break;
-            }
+            <div class="space-y-6">
+                <div role="tablist" class="tabs tabs-box bg-base-200 p-1">
+                    <a id="music-tab-live" href="/music" role="tab" class="@GetMusicTabClass(MusicPageKind.Live)">Live</a>
+                    <a id="music-tab-search" href="/music/search" role="tab" class="@GetMusicTabClass(MusicPageKind.Search)">Search</a>
+                    <a id="music-tab-favorites" href="/music/library" role="tab" class="@GetMusicTabClass(MusicPageKind.Library)">Favorites</a>
+                    <a id="music-tab-top-played" href="/music/stats" role="tab" class="@GetMusicTabClass(MusicPageKind.Stats)">Top played</a>
+                </div>
+
+                @switch (ActivePage)
+                {
+                    case MusicPageKind.Live:
+                        <div id="music-tabpanel-live" role="tabpanel">
+                            <MusicLivePage Session="Session"
+                                           OnJoinUserChannel="JoinUserChannelAsync"
+                                           IsSubmittingAction="IsSubmittingAction"
+                                           OnTogglePause="TogglePauseAsync"
+                                           OnSkip="SkipAsync"
+                                           OnStop="StopAsync"
+                                           OnRemoveQueueItem="RemoveQueueItemAsync"
+                                           OnMoveQueueItemUp="MoveQueueItemUpAsync"
+                                           OnMoveQueueItemDown="MoveQueueItemDownAsync"
+                                           OnClearQueue="ClearQueueAsync" />
+                        </div>
+                        break;
+                    case MusicPageKind.Search:
+                        <div id="music-tabpanel-search" role="tabpanel">
+                            <MusicSearchPage SearchQuery="SearchQuery"
+                                             SearchQueryChanged="OnSearchQueryChanged"
+                                             IsSearching="IsSearching"
+                                             SearchError="SearchError"
+                                             SearchResults="SearchResults"
+                                             IsSubmittingAction="IsSubmittingAction"
+                                             HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
+                                             OnSearch="SearchAsync"
+                                             OnQueueSong="QueueSongAsync"
+                                             OnPlaySongNext="PlaySongNextAsync"
+                                             OnSaveSongFavorite="SaveSongFavoriteAsync"
+                                             OnQueueStation="QueueStationAsync"
+                                             OnPlayStationNext="PlayStationNextAsync"
+                                             OnSaveRadioFavorite="SaveRadioFavoriteAsync" />
+                        </div>
+                        break;
+                    case MusicPageKind.Library:
+                        <div id="music-tabpanel-favorites" role="tabpanel">
+                            <MusicLibraryPage IsLoadingFavorites="IsLoadingFavorites"
+                                              Favorites="Favorites"
+                                              IsSubmittingAction="IsSubmittingAction"
+                                              HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
+                                              OnQueueFavorite="QueueFavoriteAsync"
+                                              OnPlayFavoriteNext="PlayFavoriteNextAsync"
+                                              OnRemoveFavorite="RemoveFavoriteAsync" />
+                        </div>
+                        break;
+                    case MusicPageKind.Stats:
+                        <div id="music-tabpanel-top-played" role="tabpanel">
+                            <MusicStatsPage Session="Session"
+                                            IsLoadingMostPlayed="IsLoadingMostPlayed"
+                                            MostPlayedTracks="MostPlayedTracks" />
+                        </div>
+                        break;
+                }
+            </div>
         </div>
     </section>
 }
