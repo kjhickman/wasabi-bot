@@ -42,7 +42,7 @@
       <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/Styles/**/*.css" />
       <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/**/*.razor" />
       <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/**/*.cs" />
-      <FrontendScriptSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/Scripts/WasabiBot.Api.lib.module.js" />
+      <FrontendScriptSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/Scripts/*.js" />
     </ItemGroup>
 
     <Target Name="BunInstall"
@@ -67,7 +67,8 @@
             Inputs="@(FrontendScriptSourceFiles)"
             Outputs="$(GeneratedAppModule)"
             Condition="'$(DesignTimeBuild)' != 'true'">
-      <Copy SourceFiles="@(FrontendScriptSourceFiles)" DestinationFiles="$(GeneratedAppModule)" />
+      <Copy SourceFiles="@(FrontendScriptSourceFiles)"
+            DestinationFolder="$(MSBuildProjectDirectory)/wwwroot" />
     </Target>
 
 </Project>
