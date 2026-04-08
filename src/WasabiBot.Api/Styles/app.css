@@ -1,7 +1,7 @@
 @import "tailwindcss" source("../");
 
 @plugin "daisyui" {
-  themes: wireframe --default, dim --prefersdark;
+  themes: light --default, dark --prefersdark;
 }
 
 @layer base {

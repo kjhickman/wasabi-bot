@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <meta name="description" content="Sign in with Discord to manage your Wasabi Bot API access.">
+    <script>
+        (function() {
+            const storageKey = 'wasabi-theme-preference';
+
+            try {
+                const preference = window.localStorage.getItem(storageKey);
+                if (preference === 'light' || preference === 'dark') {
+                    document.documentElement.setAttribute('data-theme', preference);
+                    return;
+                }
+            } catch {
+            }
+
+            document.documentElement.removeAttribute('data-theme');
+        })();
+    </script>
     <base href="/" />
     <title>Wasabi Bot</title>
     <link rel="stylesheet" href="@Assets["app.css"]" />
