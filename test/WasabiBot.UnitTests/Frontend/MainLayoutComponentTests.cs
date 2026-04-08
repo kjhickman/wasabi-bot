@@ -4,7 +4,7 @@ using System.Security.Claims;
 using WasabiBot.Api.Frontend.Layout;
 using WasabiBot.UnitTests.Builders;
 
-namespace WasabiBot.UnitTests.Components;
+namespace WasabiBot.UnitTests.Frontend;
 
 public class MainLayoutComponentTests : IDisposable
 {

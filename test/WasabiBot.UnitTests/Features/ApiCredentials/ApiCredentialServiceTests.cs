@@ -8,7 +8,7 @@ using WasabiBot.Api.Infrastructure.Auth;
 using WasabiBot.Api.Persistence;
 using WasabiBot.Api.Persistence.Entities;
 
-namespace WasabiBot.UnitTests.Infrastructure.Auth;
+namespace WasabiBot.UnitTests.Features.ApiCredentials;
 
 public class ApiCredentialServiceTests
 {

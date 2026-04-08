@@ -8,7 +8,7 @@ using WasabiBot.Api.Features.ApiCredentials;
 using WasabiBot.Api.Frontend.Modules.Credentials;
 using WasabiBot.UnitTests.Builders;
 
-namespace WasabiBot.UnitTests.Components;
+namespace WasabiBot.UnitTests.Frontend;
 
 public class CredentialsComponentTests : IDisposable
 {

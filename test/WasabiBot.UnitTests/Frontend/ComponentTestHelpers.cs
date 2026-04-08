@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using WasabiBot.Api.Infrastructure.Auth;
 
-namespace WasabiBot.UnitTests.Components;
+namespace WasabiBot.UnitTests.Frontend;
 
 internal static class ComponentTestHelpers
 {
