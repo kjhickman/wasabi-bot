@@ -3,7 +3,7 @@ using Bunit;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
-using WasabiBot.Api.Components.Pages;
+using WasabiBot.Api.Frontend.Pages;
 using WasabiBot.UnitTests.Builders;
 
 namespace WasabiBot.UnitTests.Components;

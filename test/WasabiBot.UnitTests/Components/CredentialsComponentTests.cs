@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using WasabiBot.Api.Components.Features.Credentials;
-using WasabiBot.Api.Infrastructure.Auth;
+using WasabiBot.Api.Features.ApiCredentials;
+using WasabiBot.Api.Frontend.Modules.Credentials;
 using WasabiBot.UnitTests.Builders;
 
 namespace WasabiBot.UnitTests.Components;

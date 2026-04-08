@@ -1,5 +1,5 @@
 using Bunit;
-using WasabiBot.Api.Components.Pages;
+using WasabiBot.Api.Frontend.Pages;
 
 namespace WasabiBot.UnitTests.Components;
 

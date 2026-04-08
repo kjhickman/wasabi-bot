@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
-using WasabiBot.Api.Infrastructure.Auth;
+using ApiTokenFactory = WasabiBot.Api.Infrastructure.Auth.ApiTokenFactory;
+using ApiTokenOptions = WasabiBot.Api.Infrastructure.Auth.ApiTokenOptions;
+using WasabiBot.Api.Features.ApiCredentials;
 
 namespace WasabiBot.UnitTests.Infrastructure.Auth;
 
