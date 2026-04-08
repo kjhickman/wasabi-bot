@@ -1,4 +1,4 @@
-namespace WasabiBot.Api.Infrastructure.Auth;
+namespace WasabiBot.Api.Features.ApiCredentials;
 
 public sealed record ApiCredentialSummary(
     long Id,

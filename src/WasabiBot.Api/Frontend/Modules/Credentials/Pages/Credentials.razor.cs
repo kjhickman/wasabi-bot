@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using WasabiBot.Api.Core.Extensions;
-using WasabiBot.Api.Infrastructure.Auth;
+using WasabiBot.Api.Features.ApiCredentials;
 
 namespace WasabiBot.Api.Frontend.Modules.Credentials;
 
