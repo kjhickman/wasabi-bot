@@ -10,7 +10,9 @@ public sealed record MusicDashboardSongSearchResult(
     string? ArtworkUrl,
     string? SourceUrl,
     string? SourceName,
-    LavalinkTrack Track);
+    LavalinkTrack Track,
+    bool IsFavorited = false,
+    long? FavoriteId = null);
 
 public sealed record MusicDashboardRadioSearchResult(
     string Name,
@@ -18,7 +20,9 @@ public sealed record MusicDashboardRadioSearchResult(
     string Tags,
     string? ArtworkUrl,
     string? HomepageUrl,
-    RadioBrowserStation Station);
+    RadioBrowserStation Station,
+    bool IsFavorited = false,
+    long? FavoriteId = null);
 
 public sealed record MusicDashboardSearchResults(
     IReadOnlyList<MusicDashboardSongSearchResult> Songs,

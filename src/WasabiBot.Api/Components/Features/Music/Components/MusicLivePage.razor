@@ -1,4 +1,5 @@
 @namespace WasabiBot.Api.Components.Features.Music
+@using WasabiBot.Api.Components.Shared
 @using WasabiBot.Api.Features.Music
 
 @if (Session is null)
@@ -44,6 +45,12 @@ else
                              src="@Session.NowPlaying.ArtworkUrl"
                              alt="Artwork for @Session.NowPlaying.Title" />
                     }
+                    else
+                    {
+                        <div id="music-artwork" class="music-artwork-placeholder music-live-player__artwork" aria-hidden="true">
+                            <LucideIcon Name="LucideIconName.Disc3" Class="size-10" />
+                        </div>
+                    }
 
                     <div id="music-now-playing-track" class="music-live-player__details stack-sm">
                         <div class="music-live-player__title">
@@ -51,14 +58,6 @@ else
                             @if (!Session.NowPlaying.IsRadio)
                             {
                                 <span>@($"by {Session.NowPlaying.Author}")</span>
-                            }
-                        </div>
-
-                        <div class="music-now-playing__meta-row">
-                            <span class="music-track-meta">@Session.NowPlaying.DurationText</span>
-                            @if (!string.IsNullOrWhiteSpace(Session.NowPlaying.SourceName))
-                            {
-                                <span id="music-source-name" class="music-track-meta">@MusicDisplayFormatting.FormatSourceName(Session.NowPlaying.SourceName)</span>
                             }
                         </div>
 
@@ -75,25 +74,20 @@ else
 
                         <section id="music-controls" class="music-controls" aria-label="Playback controls">
                             <button id="music-toggle-pause"
-                                    class="btn btn-sm btn-outline"
+                                    class="btn btn-sm btn-outline btn-square"
                                     type="button"
                                     disabled="@IsSubmittingAction"
+                                    aria-label="@(Session.PlaybackState == "Paused" ? "Resume playback" : "Pause playback")"
                                     @onclick="OnTogglePause">
-                                @(Session.PlaybackState == "Paused" ? "Resume" : "Pause")
+                                <LucideIcon Name="@(Session.PlaybackState == "Paused" ? LucideIconName.Play : LucideIconName.Pause)" Class="size-4" />
                             </button>
                             <button id="music-skip"
-                                    class="btn btn-sm btn-outline"
+                                    class="btn btn-sm btn-outline btn-square"
                                     type="button"
                                     disabled="@IsSubmittingAction"
+                                    aria-label="Skip track"
                                     @onclick="OnSkip">
-                                Skip
-                            </button>
-                            <button id="music-stop"
-                                    class="btn btn-sm btn-outline"
-                                    type="button"
-                                    disabled="@IsSubmittingAction"
-                                    @onclick="OnStop">
-                                Stop
+                                <LucideIcon Name="LucideIconName.SkipForward" Class="size-4" />
                             </button>
                         </section>
                     </div>
@@ -124,43 +118,51 @@ else
                                 <th scope="col">#</th>
                                 <th scope="col">Track</th>
                                 <th scope="col">Duration</th>
-                                <th scope="col">Actions</th>
+                                <th scope="col"></th>
                             </tr>
                         </thead>
                         <tbody id="music-queue-list">
                             @foreach (var item in Session.Queue)
                             {
                                 <tr class="music-queue-table__row">
-                                    <td class="music-queue-table__position">@item.Position</td>
+                                    <td class="music-queue-table__position music-queue-table__cell--middle">@item.Position</td>
                                     <td>
-                                        <div class="music-queue-table__track stack-xs">
-                                            <strong>@item.Track.Title</strong>
-                                            @if (!item.Track.IsRadio)
-                                            {
-                                                <span>@item.Track.Author</span>
-                                            }
+                                        <div class="music-queue-table__track-row">
+                                            <div class="music-queue-table__reorder-actions">
+                                                <button type="button"
+                                                        class="btn btn-xs btn-ghost btn-square"
+                                                        @onclick="() => OnMoveQueueItemUp.InvokeAsync(item)"
+                                                        disabled="@(IsSubmittingAction || item.Position == 1)"
+                                                        aria-label="Move @item.Track.Title up">
+                                                    <LucideIcon Name="LucideIconName.ChevronUp" Class="size-4" />
+                                                </button>
+                                                <button type="button"
+                                                        class="btn btn-xs btn-ghost btn-square"
+                                                        @onclick="() => OnMoveQueueItemDown.InvokeAsync(item)"
+                                                        disabled="@(IsSubmittingAction || item.Position == Session.Queue.Count)"
+                                                        aria-label="Move @item.Track.Title down">
+                                                    <LucideIcon Name="LucideIconName.ChevronDown" Class="size-4" />
+                                                </button>
+                                            </div>
+
+                                            <div class="music-queue-table__track stack-xs">
+                                                <strong>@item.Track.Title</strong>
+                                                @if (!item.Track.IsRadio)
+                                                {
+                                                    <span>@item.Track.Author</span>
+                                                }
+                                            </div>
                                         </div>
                                     </td>
-                                    <td class="music-track-meta">@item.Track.DurationText</td>
-                                    <td>
+                                    <td class="music-queue-table__cell--middle">@item.Track.DurationText</td>
+                                    <td class="music-queue-table__cell--middle">
                                         <div class="music-queue-table__actions">
                                             <button type="button"
-                                                    class="btn btn-xs btn-ghost"
-                                                    @onclick="() => OnMoveQueueItemUp.InvokeAsync(item)"
-                                                    disabled="@(IsSubmittingAction || item.Position == 1)">
-                                                Up
-                                            </button>
-                                            <button type="button"
-                                                    class="btn btn-xs btn-ghost"
-                                                    @onclick="() => OnMoveQueueItemDown.InvokeAsync(item)"
-                                                    disabled="@(IsSubmittingAction || item.Position == Session.Queue.Count)">
-                                                Down
-                                            </button>
-                                            <button type="button"
-                                                    class="btn btn-xs btn-ghost"
+                                                    class="btn btn-sm btn-ghost btn-square"
                                                     @onclick="() => OnRemoveQueueItem.InvokeAsync(item)"
-                                                    disabled="@IsSubmittingAction">
-                                                Delete
+                                                    disabled="@IsSubmittingAction"
+                                                    aria-label="Remove @item.Track.Title from queue">
+                                                <LucideIcon Name="LucideIconName.Trash2" Class="size-4" />
                                             </button>
                                         </div>
                                     </td>
@@ -189,9 +191,6 @@ else
 
     [Parameter]
     public EventCallback OnSkip { get; set; }
-
-    [Parameter]
-    public EventCallback OnStop { get; set; }
 
     [Parameter]
     public EventCallback<MusicQueueItemSnapshot> OnRemoveQueueItem { get; set; }
