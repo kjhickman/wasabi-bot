@@ -2,8 +2,8 @@
   "name": "wasabi-bot-api-styles",
   "private": true,
   "scripts": {
-    "build:css": "tailwindcss -i ./Styles/app.css -o ./wwwroot/app.css --minify",
-    "watch:css": "tailwindcss -i ./Styles/app.css -o ./wwwroot/app.css --watch"
+    "build:css": "tailwindcss -i ./Frontend/Styles/app.css -o ./wwwroot/app.css --minify",
+    "watch:css": "tailwindcss -i ./Frontend/Styles/app.css -o ./wwwroot/app.css --watch"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.2",

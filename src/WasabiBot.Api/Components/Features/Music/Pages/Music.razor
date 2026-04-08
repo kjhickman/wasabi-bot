@@ -1,7 +1,0 @@
-@namespace WasabiBot.Api.Components.Features.Music
-@page "/music"
-@page "/music/live"
-@attribute [Authorize(Policy = "DiscordGuildMember")]
-@rendermode InteractiveServer
-
-<MusicShell ActivePage="MusicPageKind.Live" />

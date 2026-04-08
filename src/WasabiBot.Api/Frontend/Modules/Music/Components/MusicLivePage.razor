@@ -1,0 +1,206 @@
+@namespace WasabiBot.Api.Frontend.Modules.Music
+@using WasabiBot.Api.Frontend.Shared
+@using WasabiBot.Api.Features.Music
+
+@if (Session is null)
+{
+    <article class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm space-y-2.5">
+        <h2>Waiting for a live room</h2>
+        <p>Once you and Wasabi Bot share a voice channel, this page becomes your control room for playback and queue edits.</p>
+    </article>
+}
+else
+{
+    <div class="music-live-layout">
+        <article class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm music-live-card" aria-label="Live player and queue">
+            @if (Session.UserChannel is { BotSharesChannel: false, BotIsConnectedInGuild: false } userChannel)
+            {
+                <section class="flex flex-wrap items-center justify-between gap-3 rounded-box border border-base-300 bg-base-200 p-4">
+                    <div class="space-y-1">
+                        <h2 class="text-base font-semibold">Ready to join your channel</h2>
+                        <p class="text-sm text-base-content/70">Wasabi Bot can join <strong>#@userChannel.VoiceChannelName</strong> in <strong>@userChannel.GuildName</strong>.</p>
+                    </div>
+
+                    <button id="music-join-channel"
+                            class="btn btn-primary btn-sm"
+                            type="button"
+                            disabled="@IsSubmittingAction"
+                            @onclick="OnJoinUserChannel">
+                        Join my channel
+                    </button>
+                </section>
+            }
+
+            @if (Session.NowPlaying is null)
+            {
+                <p id="music-now-playing-empty">Nothing is playing right now.</p>
+            }
+            else
+            {
+                <div class="music-live-player">
+                    @if (!string.IsNullOrWhiteSpace(Session.NowPlaying.ArtworkUrl))
+                    {
+                        <img id="music-artwork"
+                             class="music-live-player__artwork"
+                             src="@Session.NowPlaying.ArtworkUrl"
+                             alt="Artwork for @Session.NowPlaying.Title" />
+                    }
+                    else
+                    {
+                        <div id="music-artwork" class="music-artwork-placeholder music-live-player__artwork" aria-hidden="true">
+                            <LucideIcon Name="LucideIconName.Disc3" Class="size-10" />
+                        </div>
+                    }
+
+                    <div id="music-now-playing-track" class="music-live-player__details">
+                        <div class="music-live-player__title">
+                            <strong>@Session.NowPlaying.Title</strong>
+                            @if (!Session.NowPlaying.IsRadio)
+                            {
+                                <span>@($"by {Session.NowPlaying.Author}")</span>
+                            }
+                        </div>
+
+                        @if (Session.Progress is not null && Session.NowPlaying.Duration is { } duration)
+                        {
+                            <div id="music-progress" class="music-progress" aria-label="Playback progress">
+                                <progress class="progress progress-primary w-full" value="@Session.Progress.Position.TotalSeconds" max="@duration.TotalSeconds"></progress>
+                                <div class="music-progress__times">
+                                    <span id="music-progress-position">@Session.Progress.PositionText</span>
+                                    <span id="music-progress-duration">@Session.NowPlaying.DurationText</span>
+                                </div>
+                            </div>
+                        }
+
+                        <section id="music-controls" class="music-controls" aria-label="Playback controls">
+                            <button id="music-toggle-pause"
+                                    class="btn btn-sm btn-outline btn-square"
+                                    type="button"
+                                    disabled="@IsSubmittingAction"
+                                    aria-label="@(Session.PlaybackState == "Paused" ? "Resume playback" : "Pause playback")"
+                                    @onclick="OnTogglePause">
+                                <LucideIcon Name="@(Session.PlaybackState == "Paused" ? LucideIconName.Play : LucideIconName.Pause)" Class="size-4" />
+                            </button>
+                            <button id="music-skip"
+                                    class="btn btn-sm btn-outline btn-square"
+                                    type="button"
+                                    disabled="@IsSubmittingAction"
+                                    aria-label="Skip track"
+                                    @onclick="OnSkip">
+                                <LucideIcon Name="LucideIconName.SkipForward" Class="size-4" />
+                            </button>
+                        </section>
+                    </div>
+                </div>
+            }
+
+            <div class="music-live-card__divider" aria-hidden="true"></div>
+
+            <div class="music-live-card__queue-top">
+                <button type="button"
+                        class="btn btn-sm btn-ghost"
+                        @onclick="OnClearQueue"
+                        disabled="@(IsSubmittingAction || Session.Queue.Count == 0)">
+                    Clear queue
+                </button>
+            </div>
+
+            @if (Session.Queue.Count == 0)
+            {
+                <p id="music-queue-empty">The queue is empty.</p>
+            }
+            else
+            {
+                <div class="music-queue-table-wrap">
+                    <table class="music-queue-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Track</th>
+                                <th scope="col">Duration</th>
+                                <th scope="col"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="music-queue-list">
+                            @foreach (var item in Session.Queue)
+                            {
+                                <tr class="music-queue-table__row">
+                                    <td class="music-queue-table__position music-queue-table__cell--middle">@item.Position</td>
+                                    <td>
+                                        <div class="music-queue-table__track-row">
+                                            <div class="music-queue-table__reorder-actions">
+                                                <button type="button"
+                                                        class="btn btn-xs btn-ghost btn-square"
+                                                        @onclick="() => OnMoveQueueItemUp.InvokeAsync(item)"
+                                                        disabled="@(IsSubmittingAction || item.Position == 1)"
+                                                        aria-label="Move @item.Track.Title up">
+                                                    <LucideIcon Name="LucideIconName.ChevronUp" Class="size-4" />
+                                                </button>
+                                                <button type="button"
+                                                        class="btn btn-xs btn-ghost btn-square"
+                                                        @onclick="() => OnMoveQueueItemDown.InvokeAsync(item)"
+                                                        disabled="@(IsSubmittingAction || item.Position == Session.Queue.Count)"
+                                                        aria-label="Move @item.Track.Title down">
+                                                    <LucideIcon Name="LucideIconName.ChevronDown" Class="size-4" />
+                                                </button>
+                                            </div>
+
+                                            <div class="music-queue-table__track">
+                                                <strong>@item.Track.Title</strong>
+                                                @if (!item.Track.IsRadio)
+                                                {
+                                                    <span>@item.Track.Author</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="music-queue-table__cell--middle">@item.Track.DurationText</td>
+                                    <td class="music-queue-table__cell--middle">
+                                        <div class="music-queue-table__actions">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-ghost btn-square"
+                                                    @onclick="() => OnRemoveQueueItem.InvokeAsync(item)"
+                                                    disabled="@IsSubmittingAction"
+                                                    aria-label="Remove @item.Track.Title from queue">
+                                                <LucideIcon Name="LucideIconName.Trash2" Class="size-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </article>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public ActiveMusicSession? Session { get; set; }
+
+    [Parameter]
+    public bool IsSubmittingAction { get; set; }
+
+    [Parameter]
+    public EventCallback OnJoinUserChannel { get; set; }
+
+    [Parameter]
+    public EventCallback OnTogglePause { get; set; }
+
+    [Parameter]
+    public EventCallback OnSkip { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicQueueItemSnapshot> OnRemoveQueueItem { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicQueueItemSnapshot> OnMoveQueueItemUp { get; set; }
+
+    [Parameter]
+    public EventCallback<MusicQueueItemSnapshot> OnMoveQueueItemDown { get; set; }
+
+    [Parameter]
+    public EventCallback OnClearQueue { get; set; }
+}

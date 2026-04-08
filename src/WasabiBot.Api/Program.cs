@@ -1,4 +1,4 @@
-using WasabiBot.Api.Components;
+using WasabiBot.Api.Frontend;
 using WasabiBot.Api.Features.Routing;
 using Microsoft.Extensions.Caching.Hybrid;
 using WasabiBot.Api.Infrastructure.AI;
