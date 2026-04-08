@@ -38,7 +38,7 @@ internal class PlaybackService(
         PlayerChannelBehavior channelBehavior,
         CancellationToken cancellationToken)
     {
-        var result = await _audioService.Players.RetrieveAsync<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
+        var result = await _audioService.Players.RetrieveAsync(
             guildId,
             voiceChannelId,
             _playerFactory,

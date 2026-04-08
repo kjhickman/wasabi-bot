@@ -1,6 +1,5 @@
 using WasabiBot.Api.Frontend;
 using WasabiBot.Api.Features.Routing;
-using Microsoft.Extensions.Caching.Hybrid;
 using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Infrastructure.Discord;

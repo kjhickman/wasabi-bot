@@ -5,7 +5,7 @@ namespace WasabiBot.Api.Features.OAuth;
 
 public static class GetOAuthToken
 {
-    public static async Task<IResult> Handle(HttpContext httpContext, IApiCredentialService credentialService, WasabiBot.Api.Infrastructure.Auth.ApiTokenFactory tokenFactory)
+    public static async Task<IResult> Handle(HttpContext httpContext, IApiCredentialService credentialService, Infrastructure.Auth.ApiTokenFactory tokenFactory)
     {
         var tracer = httpContext.RequestServices.GetRequiredService<Tracer>();
         using var span = tracer.StartActiveSpan("auth.oauth.token.issue");
