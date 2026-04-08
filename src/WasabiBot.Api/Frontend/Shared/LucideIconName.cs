@@ -1,0 +1,17 @@
+namespace WasabiBot.Api.Frontend.Shared;
+
+public enum LucideIconName
+{
+    Heart,
+    HeartPlus,
+    HeartMinus,
+    LogOut,
+    Pause,
+    Play,
+    SkipForward,
+    ChevronUp,
+    ChevronDown,
+    Search,
+    Trash2,
+    Disc3,
+}

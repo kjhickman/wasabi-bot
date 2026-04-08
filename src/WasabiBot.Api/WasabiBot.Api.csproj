@@ -8,6 +8,7 @@
         <UserSecretsId>3fb4ccc6-b8c3-4dc0-90b8-ea6c79a0da21</UserSecretsId>
         <FrontendRoot>$(MSBuildProjectDirectory)</FrontendRoot>
         <GeneratedAppCss>$(MSBuildProjectDirectory)/wwwroot/app.css</GeneratedAppCss>
+        <GeneratedAppModule>$(MSBuildProjectDirectory)/wwwroot/WasabiBot.Api.lib.module.js</GeneratedAppModule>
         <FrontendInstallStamp>$(MSBuildProjectDirectory)/node_modules/.bun-install.stamp</FrontendInstallStamp>
     </PropertyGroup>
 
@@ -36,12 +37,12 @@
     </ItemGroup>
 
     <ItemGroup>
-      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/package.json" />
-      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/bun.lock" />
-      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/Styles/**/*.css" />
-      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/Components/**/*.razor" />
-      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/Components/**/*.cs" />
-      <TailwindSourceFiles Include="$(MSBuildProjectDirectory)/wwwroot/**/*.js" Exclude="$(GeneratedAppCss)" />
+      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/package.json" />
+      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/bun.lock" />
+      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/Styles/**/*.css" />
+      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/**/*.razor" />
+      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/**/*.cs" />
+      <FrontendScriptSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/Scripts/WasabiBot.Api.lib.module.js" />
     </ItemGroup>
 
     <Target Name="BunInstall"
@@ -55,10 +56,18 @@
     <Target Name="BuildFrontendCss"
             BeforeTargets="BeforeBuild"
             DependsOnTargets="BunInstall"
-            Inputs="@(TailwindSourceFiles)"
+            Inputs="@(FrontendCssSourceFiles)"
             Outputs="$(GeneratedAppCss)"
             Condition="'$(DesignTimeBuild)' != 'true'">
       <Exec Command="bun run build:css" WorkingDirectory="$(FrontendRoot)" />
+    </Target>
+
+    <Target Name="BuildFrontendScripts"
+            BeforeTargets="BeforeBuild"
+            Inputs="@(FrontendScriptSourceFiles)"
+            Outputs="$(GeneratedAppModule)"
+            Condition="'$(DesignTimeBuild)' != 'true'">
+      <Copy SourceFiles="@(FrontendScriptSourceFiles)" DestinationFiles="$(GeneratedAppModule)" />
     </Target>
 
 </Project>

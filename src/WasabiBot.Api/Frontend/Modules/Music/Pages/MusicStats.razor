@@ -1,0 +1,6 @@
+@namespace WasabiBot.Api.Frontend.Modules.Music
+@page "/music/stats"
+@attribute [Authorize(Policy = "DiscordGuildMember")]
+@rendermode InteractiveServer
+
+<MusicShell ActivePage="MusicPageKind.Stats" />
