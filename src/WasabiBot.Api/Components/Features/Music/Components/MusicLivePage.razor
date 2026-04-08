@@ -12,6 +12,24 @@ else
 {
     <div class="music-live-layout">
         <article class="surface-card music-live-card stack-lg" aria-label="Live player and queue">
+            @if (Session.UserChannel is { BotSharesChannel: false, BotIsConnectedInGuild: false } userChannel)
+            {
+                <section class="flex flex-wrap items-center justify-between gap-3 rounded-box border border-base-300 bg-base-200 p-4">
+                    <div class="space-y-1">
+                        <h2 class="text-base font-semibold">Ready to join your channel</h2>
+                        <p class="text-sm text-base-content/70">Wasabi Bot can join <strong>#@userChannel.VoiceChannelName</strong> in <strong>@userChannel.GuildName</strong>.</p>
+                    </div>
+
+                    <button id="music-join-channel"
+                            class="btn btn-primary btn-sm"
+                            type="button"
+                            disabled="@IsSubmittingAction"
+                            @onclick="OnJoinUserChannel">
+                        Join my channel
+                    </button>
+                </section>
+            }
+
             @if (Session.NowPlaying is null)
             {
                 <p id="music-now-playing-empty">Nothing is playing right now.</p>
@@ -53,13 +71,6 @@ else
                                     <span id="music-progress-duration">@Session.NowPlaying.DurationText</span>
                                 </div>
                             </div>
-                        }
-
-                        @if (!string.IsNullOrWhiteSpace(Session.NowPlaying.SourceUrl))
-                        {
-                            <p class="music-now-playing__source-link">
-                                <a id="music-source-link" href="@Session.NowPlaying.SourceUrl" target="_blank" rel="noopener noreferrer">Open source</a>
-                            </p>
                         }
 
                         <section id="music-controls" class="music-controls" aria-label="Playback controls">
@@ -169,6 +180,9 @@ else
 
     [Parameter]
     public bool IsSubmittingAction { get; set; }
+
+    [Parameter]
+    public EventCallback OnJoinUserChannel { get; set; }
 
     [Parameter]
     public EventCallback OnTogglePause { get; set; }

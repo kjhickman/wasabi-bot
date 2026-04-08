@@ -48,7 +48,13 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
         _context.Services.AddSingleton(Substitute.For<IMusicGuildStatsService>());
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
-            .Returns((ActiveMusicSession?)null);
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Idle",
+                null,
+                null,
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: false, BotSharesChannel: false)));
         _context.Services.AddSingleton(dashboardService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
@@ -60,8 +66,8 @@ public class MusicComponentTests : IDisposable
 
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
-        await Assert.That(cut.Markup).Contains("Waiting for a live room");
-        await Assert.That(cut.FindAll("#music-page-heading").Count).IsEqualTo(0);
+        await Assert.That(cut.Markup).Contains("Ready to join your channel");
+        await Assert.That(cut.Find("#music-join-channel").TextContent.Trim()).IsEqualTo("Join my channel");
     }
 
     [Test]
@@ -98,7 +104,8 @@ public class MusicComponentTests : IDisposable
                     IsRadio: false,
                     ArtworkUrl: null,
                     SourceUrl: "https://soundcloud.com/example/next-song",
-                    SourceName: "scsearch"))]));
+                    SourceName: "scsearch"))],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
         _context.Services.AddSingleton(dashboardService);
         _context.Services.AddSingleton(controlService);
         _context.Services.AddSingleton(searchService);
@@ -119,7 +126,6 @@ public class MusicComponentTests : IDisposable
 
         await Assert.That(cut.Find("#music-now-playing-track").TextContent).Contains("Current Song");
         await Assert.That(cut.Find("#music-source-name").TextContent.Trim()).IsEqualTo("SoundCloud");
-        await Assert.That(cut.Find("#music-source-link").GetAttribute("href")).IsEqualTo("https://soundcloud.com/example/current-song");
         await Assert.That(cut.Find("#music-artwork").GetAttribute("src")).IsEqualTo("https://cdn.example.com/current-song.jpg");
         await Assert.That(cut.Find("#music-progress-position").TextContent.Trim()).IsEqualTo("01:30");
         await Assert.That(cut.Find("#music-progress-duration").TextContent.Trim()).IsEqualTo("03:00");
@@ -153,7 +159,8 @@ public class MusicComponentTests : IDisposable
                 ArtworkUrl: null,
                 SourceUrl: null,
                 SourceName: "scsearch"),
-            []);
+            [],
+            new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true));
 
         dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
             .Returns(session);
@@ -184,6 +191,44 @@ public class MusicComponentTests : IDisposable
     }
 
     [Test]
+    public async Task Render_AuthenticatedUser_ClickingJoinMyChannel_CallsJoinService()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardSearchService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardQueueService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicGuildStatsService>());
+
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Idle",
+                null,
+                null,
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: false, BotSharesChannel: false)));
+        controlService.JoinUserChannelAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new MusicCommandResult("Joined #music-room."));
+
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+        var authState = new AuthenticationState(user);
+
+        var cut = _context.RenderWithAuthentication<Music>(authState);
+        await cut.InvokeAsync(() => cut.Find("#music-join-channel").Click());
+
+        await controlService.Received(1).JoinUserChannelAsync(123456789, Arg.Any<CancellationToken>());
+    }
+
+    [Test]
     public async Task Render_AuthenticatedUser_Searching_ShowsSongAndRadioResults()
     {
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
@@ -200,7 +245,8 @@ public class MusicComponentTests : IDisposable
                 "Playing",
                 null,
                 new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
-                []));
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
 
         searchService.SearchAsync("radiohead", Arg.Any<CancellationToken>())
             .Returns(new MusicDashboardSearchResults(
@@ -249,7 +295,8 @@ public class MusicComponentTests : IDisposable
                 "Playing",
                 null,
                 new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
-                []));
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
         favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot(
             [new MusicFavoriteSummary(1, WasabiBot.Api.Persistence.Entities.MusicFavoriteKind.Song, "Creep", "Radiohead", "scsearch", "https://soundcloud.com/radiohead/creep", "", DateTimeOffset.UtcNow, new MusicFavoriteSongMetadata("creep", "scsearch", "https://soundcloud.com/radiohead/creep", "", "03:58"), null)],
             [new MusicFavoriteSummary(2, WasabiBot.Api.Persistence.Entities.MusicFavoriteKind.Radio, "Radiohead FM", "UK", "Radio Browser", "https://example.com/radiohead", "", DateTimeOffset.UtcNow, null, new MusicFavoriteRadioMetadata("station-1", "https://stream.example.com/radiohead", "https://example.com/radiohead", "", "UK", "alternative, rock"))]));
@@ -292,7 +339,8 @@ public class MusicComponentTests : IDisposable
                 "Playing",
                 null,
                 new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
-                []));
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
         favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot([], []));
         guildStatsService.GetTopTracksAsync(42, Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([
             new GuildTopTrackSummary("Creep", "Radiohead", "scsearch", "https://soundcloud.com/radiohead/creep", "", 5, DateTimeOffset.UtcNow)

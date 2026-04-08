@@ -173,7 +173,7 @@
   }
 
   .music-queue-table__track {
-    @apply min-w-56;
+    @apply min-w-56 space-y-1;
   }
 
   .music-queue-table__track span {

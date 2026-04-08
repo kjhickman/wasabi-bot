@@ -30,6 +30,6 @@ primary_region = 'dfw'
     grace_period = '30s'
 
 [[vm]]
-  memory = '1gb'
+  memory = '768mb'
   cpu_kind = 'shared'
   cpus = 1

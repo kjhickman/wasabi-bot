@@ -8,7 +8,7 @@ internal sealed class SharedVoiceChannelResolver(GatewayClient gatewayClient) : 
 
     public SharedVoiceChannel? ResolveForUser(ulong userId)
     {
-        var botUserId = _gatewayClient.Cache.User?.Id ?? _gatewayClient.Id;
+        var botUserId = GetBotUserId();
         if (botUserId == 0)
         {
             return null;
@@ -33,5 +33,47 @@ internal sealed class SharedVoiceChannelResolver(GatewayClient gatewayClient) : 
         }
 
         return null;
+    }
+
+    public UserVoiceChannel? ResolveUserVoiceChannel(ulong userId)
+    {
+        var botUserId = GetBotUserId();
+        if (botUserId == 0)
+        {
+            return null;
+        }
+
+        foreach (var guild in _gatewayClient.Cache.Guilds.Values)
+        {
+            if (guild.IsUnavailable ||
+                !guild.VoiceStates.TryGetValue(userId, out var userVoiceState) ||
+                userVoiceState.ChannelId is not { } userChannelId)
+            {
+                continue;
+            }
+
+            var channelName = guild.Channels.TryGetValue(userChannelId, out var channel)
+                ? channel.Name
+                : "Unknown voice channel";
+
+            var botChannelId = guild.VoiceStates.TryGetValue(botUserId, out var botVoiceState)
+                ? botVoiceState.ChannelId
+                : null;
+
+            return new UserVoiceChannel(
+                guild.Id,
+                guild.Name,
+                userChannelId,
+                channelName,
+                BotIsConnectedInGuild: botChannelId.HasValue,
+                BotSharesChannel: botChannelId == userChannelId);
+        }
+
+        return null;
+    }
+
+    private ulong GetBotUserId()
+    {
+        return _gatewayClient.Cache.User?.Id ?? _gatewayClient.Id;
     }
 }

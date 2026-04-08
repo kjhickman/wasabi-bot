@@ -45,7 +45,7 @@ var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink"
     .WithEnvironment("SERVER_PORT", "2333")
     .WithEnvironment("LAVALINK_SERVER_PASSWORD", localLavalinkPassword)
     .WithEnvironment("_JAVA_OPTIONS", "-Xms256m -Xmx256m")
-    .WithLifetime(ContainerLifetime.Session);
+    .WithLifetime(ContainerLifetime.Persistent);
 
 var api = builder.AddProject("wasabi-bot", "src/WasabiBot.Api/WasabiBot.Api.csproj")
     .WithReference(database)

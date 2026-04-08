@@ -20,18 +20,19 @@ else
 {
     <section id="music-shell" class="space-y-6" aria-label="Music">
         <div class="space-y-4 md:flex md:items-start md:justify-between md:gap-6 md:space-y-0">
-            <div class="space-y-2">
-                <p class="eyebrow">Music</p>
-                <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">Dashboard</h1>
-                <p class="max-w-2xl text-base leading-7 text-base-content/70">Search, queue, and monitor playback without losing the basic structural frame.</p>
-            </div>
+            @if (ActivePage is not MusicPageKind.Live)
+            {
+                <div class="space-y-2">
+                    <p class="eyebrow">Music</p>
+                    <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">Dashboard</h1>
+                    <p class="max-w-2xl text-base leading-7 text-base-content/70">Search, queue, and monitor playback without losing the basic structural frame.</p>
+                </div>
+            }
 
             @if (Session is not null)
             {
                 <div class="flex flex-wrap gap-2">
                     <span id="music-guild-name" class="badge badge-outline badge-lg">@Session.Channel.GuildName</span>
-                    <span id="music-channel-name" class="badge badge-outline badge-lg">#@Session.Channel.VoiceChannelName</span>
-                    <span id="music-playback-state" class="badge badge-primary badge-lg">@Session.PlaybackState</span>
                 </div>
             }
         </div>
@@ -56,6 +57,7 @@ else
             {
                 case MusicPageKind.Live:
                     <MusicLivePage Session="Session"
+                                   OnJoinUserChannel="JoinUserChannelAsync"
                                    IsSubmittingAction="IsSubmittingAction"
                                    OnTogglePause="TogglePauseAsync"
                                    OnSkip="SkipAsync"

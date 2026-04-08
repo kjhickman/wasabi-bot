@@ -11,10 +11,19 @@ internal sealed class MusicDashboardService(
 
     public async Task<ActiveMusicSession?> GetActiveSessionAsync(ulong userId, CancellationToken cancellationToken = default)
     {
+        var userVoiceChannel = _sharedVoiceChannelResolver.ResolveUserVoiceChannel(userId);
         var sharedVoiceChannel = _sharedVoiceChannelResolver.ResolveForUser(userId);
         if (sharedVoiceChannel is null)
         {
-            return null;
+            return userVoiceChannel is null
+                ? null
+                : new ActiveMusicSession(
+                    new SharedVoiceChannel(userVoiceChannel.GuildId, userVoiceChannel.GuildName, userVoiceChannel.VoiceChannelId, userVoiceChannel.VoiceChannelName),
+                    "Idle",
+                    null,
+                    null,
+                    [],
+                    userVoiceChannel);
         }
 
         var player = await _playbackService.GetExistingPlayerAsync(sharedVoiceChannel.GuildId, cancellationToken);
@@ -23,7 +32,8 @@ internal sealed class MusicDashboardService(
             BuildPlaybackState(player),
             BuildProgress(player),
             _playbackService.CreateTrackSnapshot(player?.CurrentTrack),
-            BuildQueue(player));
+            BuildQueue(player),
+            userVoiceChannel);
     }
 
     private static string BuildPlaybackState(Lavalink4NET.Players.Queued.IQueuedLavalinkPlayer? player)

@@ -34,6 +34,7 @@ public class MusicDashboardServiceTests
     {
         var resolver = Substitute.For<ISharedVoiceChannelResolver>();
         resolver.ResolveForUser(123456789).Returns((SharedVoiceChannel?)null);
+        resolver.ResolveUserVoiceChannel(123456789).Returns((UserVoiceChannel?)null);
         var service = CreateService(resolver: resolver);
 
         var result = await service.GetActiveSessionAsync(123456789);
@@ -47,6 +48,8 @@ public class MusicDashboardServiceTests
         var resolver = Substitute.For<ISharedVoiceChannelResolver>();
         resolver.ResolveForUser(123456789)
             .Returns(new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"));
+        resolver.ResolveUserVoiceChannel(123456789)
+            .Returns(new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true));
 
         var playerManager = Substitute.For<IPlayerManager>();
         playerManager.GetPlayerAsync(42, Arg.Any<CancellationToken>())
@@ -63,6 +66,8 @@ public class MusicDashboardServiceTests
         await Assert.That(result.Progress).IsNull();
         await Assert.That(result.NowPlaying).IsNull();
         await Assert.That(result.Queue).IsEmpty();
+        await Assert.That(result.UserChannel).IsNotNull();
+        await Assert.That(result.UserChannel!.BotSharesChannel).IsTrue();
     }
 
     [Test]
@@ -71,6 +76,8 @@ public class MusicDashboardServiceTests
         var resolver = Substitute.For<ISharedVoiceChannelResolver>();
         resolver.ResolveForUser(123456789)
             .Returns(new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"));
+        resolver.ResolveUserVoiceChannel(123456789)
+            .Returns(new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true));
 
         var player = Substitute.For<IQueuedLavalinkPlayer>();
         var queue = Substitute.For<ITrackQueue>();
@@ -125,6 +132,27 @@ public class MusicDashboardServiceTests
         await Assert.That(result.Queue[0].Position).IsEqualTo(1);
         await Assert.That(result.Queue[0].Track.Title).IsEqualTo("Next Song");
         await Assert.That(result.Queue[0].Track.DurationText).IsEqualTo("01:35");
+        await Assert.That(result.UserChannel).IsNotNull();
+    }
+
+    [Test]
+    public async Task GetActiveSessionAsync_WhenUserIsInVoiceWithoutBot_ReturnsJoinableSnapshot()
+    {
+        var resolver = Substitute.For<ISharedVoiceChannelResolver>();
+        resolver.ResolveForUser(123456789).Returns((SharedVoiceChannel?)null);
+        resolver.ResolveUserVoiceChannel(123456789)
+            .Returns(new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: false, BotSharesChannel: false));
+
+        var service = CreateService(resolver: resolver);
+
+        var result = await service.GetActiveSessionAsync(123456789);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.PlaybackState).IsEqualTo("Idle");
+        await Assert.That(result.Queue).IsEmpty();
+        await Assert.That(result.UserChannel).IsNotNull();
+        await Assert.That(result.UserChannel!.VoiceChannelName).IsEqualTo("music-room");
+        await Assert.That(result.UserChannel.BotIsConnectedInGuild).IsFalse();
     }
 
     private static LavalinkTrack CreateTrack(

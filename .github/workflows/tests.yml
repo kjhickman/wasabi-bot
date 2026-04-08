@@ -33,19 +33,21 @@ jobs:
         with:
           sdk-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
+          bun-version: 1.2.9
 
       - name: Restore
         run: dotnet restore WasabiBot.slnx
 
       - name: Install frontend dependencies
-        run: npm ci --prefix src/WasabiBot.Api
+        run: bun install --frozen-lockfile
+        working-directory: src/WasabiBot.Api
 
       - name: Build frontend CSS
-        run: npm run build:css --prefix src/WasabiBot.Api
+        run: bun run build:css
+        working-directory: src/WasabiBot.Api
 
       - name: Test
         run: |
