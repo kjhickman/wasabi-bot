@@ -9,8 +9,8 @@
 else
 {
     <div class="music-results-grid">
-        <section class="surface-card stack-md" aria-labelledby="music-favorite-songs-heading">
-            <p id="music-favorite-songs-heading" class="eyebrow">Songs</p>
+        <section class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm space-y-4" aria-labelledby="music-favorite-songs-heading">
+            <p id="music-favorite-songs-heading" class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Songs</p>
 
             @if (Favorites.Songs.Count == 0)
             {
@@ -57,8 +57,8 @@ else
             }
         </section>
 
-        <section class="surface-card stack-md" aria-labelledby="music-favorite-radio-heading">
-            <p id="music-favorite-radio-heading" class="eyebrow">Radio</p>
+        <section class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm space-y-4" aria-labelledby="music-favorite-radio-heading">
+            <p id="music-favorite-radio-heading" class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Radio</p>
 
             @if (Favorites.RadioStations.Count == 0)
             {

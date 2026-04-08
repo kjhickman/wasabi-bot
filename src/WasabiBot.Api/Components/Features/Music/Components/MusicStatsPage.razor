@@ -2,9 +2,9 @@
 @using WasabiBot.Api.Components.Shared
 @using WasabiBot.Api.Features.Music
 
-<article class="surface-card stack-md" aria-labelledby="music-most-played-heading">
-    <header class="stack-sm">
-        <p class="eyebrow">Guild Stats</p>
+<article class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm space-y-4" aria-labelledby="music-most-played-heading">
+    <header class="space-y-2.5">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Guild Stats</p>
         <h2 id="music-most-played-heading">Most played in @(Session?.Channel.GuildName ?? "this guild")</h2>
     </header>
 

@@ -4,7 +4,7 @@
 
 @if (Session is null)
 {
-    <article class="surface-card stack-sm">
+    <article class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm space-y-2.5">
         <h2>Waiting for a live room</h2>
         <p>Once you and Wasabi Bot share a voice channel, this page becomes your control room for playback and queue edits.</p>
     </article>
@@ -12,7 +12,7 @@
 else
 {
     <div class="music-live-layout">
-        <article class="surface-card music-live-card stack-lg" aria-label="Live player and queue">
+        <article class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm music-live-card" aria-label="Live player and queue">
             @if (Session.UserChannel is { BotSharesChannel: false, BotIsConnectedInGuild: false } userChannel)
             {
                 <section class="flex flex-wrap items-center justify-between gap-3 rounded-box border border-base-300 bg-base-200 p-4">
@@ -52,7 +52,7 @@ else
                         </div>
                     }
 
-                    <div id="music-now-playing-track" class="music-live-player__details stack-sm">
+                    <div id="music-now-playing-track" class="music-live-player__details">
                         <div class="music-live-player__title">
                             <strong>@Session.NowPlaying.Title</strong>
                             @if (!Session.NowPlaying.IsRadio)
@@ -63,7 +63,7 @@ else
 
                         @if (Session.Progress is not null && Session.NowPlaying.Duration is { } duration)
                         {
-                            <div id="music-progress" class="music-progress stack-xs" aria-label="Playback progress">
+                            <div id="music-progress" class="music-progress" aria-label="Playback progress">
                                 <progress class="progress progress-primary w-full" value="@Session.Progress.Position.TotalSeconds" max="@duration.TotalSeconds"></progress>
                                 <div class="music-progress__times">
                                     <span id="music-progress-position">@Session.Progress.PositionText</span>
@@ -145,7 +145,7 @@ else
                                                 </button>
                                             </div>
 
-                                            <div class="music-queue-table__track stack-xs">
+                                            <div class="music-queue-table__track">
                                                 <strong>@item.Track.Title</strong>
                                                 @if (!item.Track.IsRadio)
                                                 {

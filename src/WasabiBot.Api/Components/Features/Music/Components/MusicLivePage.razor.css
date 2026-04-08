@@ -1,0 +1,152 @@
+.music-live-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.music-live-card {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.music-live-player {
+  display: grid;
+  gap: 1rem;
+}
+
+.music-live-player__artwork {
+  inline-size: 7rem;
+  block-size: 7rem;
+  border: 1px solid var(--color-base-300);
+  border-radius: 1rem;
+  background: var(--color-base-200);
+  object-fit: cover;
+}
+
+.music-artwork-placeholder {
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--color-base-content) 35%, transparent);
+}
+
+.music-live-player__details {
+  min-inline-size: 0;
+}
+
+.music-live-player__title {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.music-live-player__title strong {
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.music-live-player__title span {
+  color: color-mix(in srgb, var(--color-base-content) 70%, transparent);
+}
+
+.music-progress {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.music-progress__times {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: color-mix(in srgb, var(--color-base-content) 70%, transparent);
+  font-size: 0.875rem;
+}
+
+.music-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.music-live-card__divider {
+  border-top: 1px solid var(--color-base-300);
+}
+
+.music-live-card__queue-top {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.music-queue-table-wrap {
+  overflow-x: auto;
+}
+
+.music-queue-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.music-queue-table th {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-base-300);
+  color: color-mix(in srgb, var(--color-base-content) 70%, transparent);
+  font-weight: 600;
+  text-align: left;
+}
+
+.music-queue-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-base-300);
+  vertical-align: top;
+}
+
+.music-queue-table__position {
+  inline-size: 3rem;
+  color: color-mix(in srgb, var(--color-base-content) 70%, transparent);
+}
+
+.music-queue-table td.music-queue-table__cell--middle {
+  vertical-align: middle;
+}
+
+.music-queue-table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.music-queue-table__track {
+  display: grid;
+  gap: 0.25rem;
+  min-inline-size: 14rem;
+}
+
+.music-queue-table__track strong {
+  display: block;
+}
+
+.music-queue-table__track span {
+  color: color-mix(in srgb, var(--color-base-content) 70%, transparent);
+  font-size: 0.875rem;
+}
+
+.music-queue-table__track-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.music-queue-table__reorder-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+@media (min-width: 48rem) {
+  .music-live-player {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+}
