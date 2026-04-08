@@ -280,8 +280,8 @@ public class MusicComponentTests : IDisposable
         await cut.InvokeAsync(() => cut.Find("#music-search-submit").Click());
 
         await Assert.That(cut.Find("#music-search-query").GetAttribute("placeholder")).IsEqualTo("Search songs or radio stations");
-        await Assert.That(cut.Find("#music-song-results-heading").TextContent.Trim()).IsEqualTo("Results");
-        await Assert.That(cut.Find("#music-radio-results-heading").TextContent.Trim()).IsEqualTo("Stations");
+        await Assert.That(cut.Find("#music-song-results-heading").TextContent.Trim()).IsEqualTo("Songs");
+        await Assert.That(cut.Find("#music-radio-results-heading").TextContent.Trim()).IsEqualTo("Radio");
         await Assert.That(cut.Find("#music-song-results").TextContent).Contains("Creep");
         await Assert.That(cut.Find("#music-radio-results").TextContent).Contains("Radiohead FM");
         await Assert.That(cut.Find("#music-song-results").TextContent).DoesNotContain("SoundCloud");
@@ -516,8 +516,13 @@ public class MusicComponentTests : IDisposable
         var cut = _context.RenderWithAuthentication<MusicShell>(new AuthenticationState(user), parameters => parameters
             .Add(x => x.ActivePage, MusicPageKind.Stats));
 
+        await Assert.That(cut.Find("#music-most-played-heading").TextContent.Trim()).IsEqualTo("Most played in Wasabi HQ");
         await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("Creep");
-        await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("5 play(s)");
+        await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("by Radiohead");
+        await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("Played 5 time(s)");
+        await Assert.That(cut.Find("#music-most-played-list").TextContent).DoesNotContain("SoundCloud");
+        await Assert.That(cut.FindAll("#music-most-played-list a").Count).IsEqualTo(0);
+        await Assert.That(cut.FindAll("#music-most-played-list button").Count).IsGreaterThanOrEqualTo(3);
     }
 
     public void Dispose()

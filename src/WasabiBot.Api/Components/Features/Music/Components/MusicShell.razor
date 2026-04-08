@@ -92,7 +92,12 @@ else
                         <div id="music-tabpanel-top-played" role="tabpanel">
                             <MusicStatsPage Session="Session"
                                             IsLoadingMostPlayed="IsLoadingMostPlayed"
-                                            MostPlayedTracks="MostPlayedTracks" />
+                                            MostPlayedTracks="MostPlayedTracks"
+                                            IsSubmittingAction="IsSubmittingAction"
+                                            HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
+                                            OnQueueTrack="QueueMostPlayedTrackAsync"
+                                            OnPlayTrackNext="PlayMostPlayedTrackNextAsync"
+                                            OnSaveTrackFavorite="SaveMostPlayedTrackFavoriteAsync" />
                         </div>
                         break;
                 }

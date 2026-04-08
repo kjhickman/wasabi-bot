@@ -1,90 +1,86 @@
 @namespace WasabiBot.Api.Components.Features.Music
+@using WasabiBot.Api.Components.Shared
 @using WasabiBot.Api.Features.Music
 
-<article class="surface-card stack-md" aria-labelledby="music-favorites-heading">
-    <header class="stack-sm">
-        <p class="eyebrow">Library</p>
-        <h2 id="music-favorites-heading">Your saved songs and stations</h2>
-        @if (!HasSharedSession)
-        {
-            <p class="section-copy">You can manage favorites anytime. Queue actions unlock when you're sharing a voice channel with the bot.</p>
-        }
-    </header>
+@if (IsLoadingFavorites)
+{
+    <p id="music-favorites-loading">Loading favorites...</p>
+}
+else
+{
+    <div class="music-results-grid">
+        <section class="surface-card stack-md" aria-labelledby="music-favorite-songs-heading">
+            <p id="music-favorite-songs-heading" class="eyebrow">Songs</p>
 
-    @if (IsLoadingFavorites)
-    {
-        <p id="music-favorites-loading">Loading favorites...</p>
-    }
-    else
-    {
-        <div class="music-results-grid">
-            <section class="surface-card surface-card--nested stack-md" aria-labelledby="music-favorite-songs-heading">
-                <header class="stack-sm">
-                    <p class="eyebrow">Songs</p>
-                    <h3 id="music-favorite-songs-heading">Saved tracks</h3>
-                </header>
-
-                @if (Favorites.Songs.Count == 0)
-                {
-                    <p id="music-favorite-songs-empty">No favorite songs yet.</p>
-                }
-                else
-                {
-                    <ul id="music-favorite-songs" class="music-search-result-list">
-                        @foreach (var favorite in Favorites.Songs)
-                        {
-                            <li class="music-search-result-item music-search-result-item--dense">
+            @if (Favorites.Songs.Count == 0)
+            {
+                <p id="music-favorite-songs-empty">No favorite songs yet.</p>
+            }
+            else
+            {
+                <ul id="music-favorite-songs" class="music-search-result-list">
+                    @foreach (var favorite in Favorites.Songs)
+                    {
+                        <li class="music-search-result-item music-search-result-item--dense">
+                            <div class="music-search-result-item__row">
                                 <div class="music-search-result-item__content">
                                     @if (!string.IsNullOrWhiteSpace(favorite.ArtworkUrl))
                                     {
                                         <img class="music-search-result-item__artwork" src="@favorite.ArtworkUrl" alt="Artwork for @favorite.Title" />
                                     }
+                                    else
+                                    {
+                                        <div class="music-artwork-placeholder music-search-result-item__artwork" aria-hidden="true">
+                                            <LucideIcon Name="LucideIconName.Disc3" Class="size-7" />
+                                        </div>
+                                    }
                                     <div class="music-search-result-item__details">
                                         <strong>@favorite.Title</strong>
                                         <span>by @favorite.Subtitle</span>
-                                        <div class="music-now-playing__meta-row">
-                                            @if (!string.IsNullOrWhiteSpace(favorite.Song?.DurationText))
-                                            {
+                                        @if (!string.IsNullOrWhiteSpace(favorite.Song?.DurationText))
+                                        {
+                                            <div class="music-now-playing__meta-row">
                                                 <span class="music-track-meta">@favorite.Song.DurationText</span>
-                                            }
-                                            @if (!string.IsNullOrWhiteSpace(favorite.SourceName))
-                                            {
-                                                <span class="music-track-meta">@MusicDisplayFormatting.FormatSourceName(favorite.SourceName)</span>
-                                            }
-                                        </div>
+                                            </div>
+                                        }
                                     </div>
                                 </div>
-                                <div class="music-search-result-item__actions">
+                                <div class="music-search-result-item__actions music-search-result-item__actions--right">
                                     <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)">Add to queue</button>
                                     <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)">Play next</button>
                                     <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)">Remove</button>
                                 </div>
-                            </li>
-                        }
-                    </ul>
-                }
-            </section>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
 
-            <section class="surface-card surface-card--nested stack-md" aria-labelledby="music-favorite-radio-heading">
-                <header class="stack-sm">
-                    <p class="eyebrow">Radio</p>
-                    <h3 id="music-favorite-radio-heading">Saved stations</h3>
-                </header>
+        <section class="surface-card stack-md" aria-labelledby="music-favorite-radio-heading">
+            <p id="music-favorite-radio-heading" class="eyebrow">Radio</p>
 
-                @if (Favorites.RadioStations.Count == 0)
-                {
-                    <p id="music-favorite-radio-empty">No favorite radio stations yet.</p>
-                }
-                else
-                {
-                    <ul id="music-favorite-radio" class="music-search-result-list">
-                        @foreach (var favorite in Favorites.RadioStations)
-                        {
-                            <li class="music-search-result-item music-search-result-item--dense">
+            @if (Favorites.RadioStations.Count == 0)
+            {
+                <p id="music-favorite-radio-empty">No favorite radio stations yet.</p>
+            }
+            else
+            {
+                <ul id="music-favorite-radio" class="music-search-result-list">
+                    @foreach (var favorite in Favorites.RadioStations)
+                    {
+                        <li class="music-search-result-item music-search-result-item--dense">
+                            <div class="music-search-result-item__row">
                                 <div class="music-search-result-item__content">
                                     @if (!string.IsNullOrWhiteSpace(favorite.ArtworkUrl))
                                     {
                                         <img class="music-search-result-item__artwork" src="@favorite.ArtworkUrl" alt="Artwork for @favorite.Title" />
+                                    }
+                                    else
+                                    {
+                                        <div class="music-artwork-placeholder music-search-result-item__artwork" aria-hidden="true">
+                                            <LucideIcon Name="LucideIconName.Disc3" Class="size-7" />
+                                        </div>
                                     }
                                     <div class="music-search-result-item__details">
                                         <strong>@favorite.Title</strong>
@@ -98,23 +94,19 @@
                                         }
                                     </div>
                                 </div>
-                                <div class="music-search-result-item__actions">
+                                <div class="music-search-result-item__actions music-search-result-item__actions--right">
                                     <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)">Add to queue</button>
                                     <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)">Play next</button>
                                     <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)">Remove</button>
-                                    @if (!string.IsNullOrWhiteSpace(favorite.Radio?.HomepageUrl))
-                                    {
-                                        <a class="btn btn-sm btn-ghost" href="@favorite.Radio.HomepageUrl" target="_blank" rel="noopener noreferrer">Homepage</a>
-                                    }
                                 </div>
-                            </li>
-                        }
-                    </ul>
-                }
-            </section>
-        </div>
-    }
-</article>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+}
 
 @code {
     [Parameter]

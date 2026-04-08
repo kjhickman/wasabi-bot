@@ -7,4 +7,6 @@ public sealed record GuildTopTrackSummary(
     string SourceUrl,
     string ArtworkUrl,
     long PlayCount,
-    DateTimeOffset LastPlayedAt);
+    DateTimeOffset LastPlayedAt,
+    bool IsFavorited = false,
+    long? FavoriteId = null);
