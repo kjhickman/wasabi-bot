@@ -2,7 +2,7 @@
 @using WasabiBot.Api.Components.Shared
 @using WasabiBot.Api.Features.Music
 
-<div class="music-page-stack stack-lg">
+<div class="music-page-stack">
     <form class="music-search-form music-search-form--hero" @onsubmit="OnSubmitAsync" @onsubmit:preventDefault>
         <label class="music-search-form__field" for="music-search-query">
             <span class="sr-only">Search query</span>
@@ -24,14 +24,14 @@
 
     @if (HasSearchAttempt && !string.IsNullOrWhiteSpace(SearchError))
     {
-        <p id="music-search-error" class="app-alert app-alert--error">@SearchError</p>
+        <p id="music-search-error" class="rounded-box border border-error/40 bg-error/10 px-4 py-3 text-sm text-error">@SearchError</p>
     }
 
     @if (SearchResults is not null)
     {
         <div class="music-results-grid">
-            <article class="surface-card stack-md" aria-labelledby="music-song-results-heading">
-                <p id="music-song-results-heading" class="eyebrow">Songs</p>
+            <article class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm space-y-4" aria-labelledby="music-song-results-heading">
+                <p id="music-song-results-heading" class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Songs</p>
 
                 @if (SearchResults.Songs.Count == 0)
                 {
@@ -78,8 +78,8 @@
                 }
             </article>
 
-            <article class="surface-card stack-md" aria-labelledby="music-radio-results-heading">
-                <p id="music-radio-results-heading" class="eyebrow">Radio</p>
+            <article class="rounded-box border border-base-300 bg-base-100 p-5 shadow-sm space-y-4" aria-labelledby="music-radio-results-heading">
+                <p id="music-radio-results-heading" class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Radio</p>
 
                 @if (SearchResults.Stations.Count == 0)
                 {
