@@ -6,10 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <PublishReadyToRun>true</PublishReadyToRun>
         <UserSecretsId>3fb4ccc6-b8c3-4dc0-90b8-ea6c79a0da21</UserSecretsId>
-        <FrontendRoot>$(MSBuildProjectDirectory)</FrontendRoot>
-        <GeneratedAppCss>$(MSBuildProjectDirectory)/wwwroot/app.css</GeneratedAppCss>
         <GeneratedAppModule>$(MSBuildProjectDirectory)/wwwroot/WasabiBot.Api.lib.module.js</GeneratedAppModule>
-        <FrontendInstallStamp>$(MSBuildProjectDirectory)/node_modules/.bun-install.stamp</FrontendInstallStamp>
     </PropertyGroup>
 
     <ItemGroup>
@@ -37,30 +34,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/package.json" />
-      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/bun.lock" />
-      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/Styles/**/*.css" />
-      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/**/*.razor" />
-      <FrontendCssSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/**/*.cs" />
       <FrontendScriptSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/Scripts/*.js" />
     </ItemGroup>
-
-    <Target Name="BunInstall"
-            BeforeTargets="BeforeBuild"
-            Inputs="$(MSBuildProjectDirectory)/package.json;$(MSBuildProjectDirectory)/bun.lock"
-            Outputs="$(FrontendInstallStamp)"
-            Condition="'$(DesignTimeBuild)' != 'true'">
-      <Exec Command="bun install --frozen-lockfile &amp;&amp; touch &quot;$(FrontendInstallStamp)&quot;" WorkingDirectory="$(FrontendRoot)" />
-    </Target>
-
-    <Target Name="BuildFrontendCss"
-            BeforeTargets="BeforeBuild"
-            DependsOnTargets="BunInstall"
-            Inputs="@(FrontendCssSourceFiles)"
-            Outputs="$(GeneratedAppCss)"
-            Condition="'$(DesignTimeBuild)' != 'true'">
-      <Exec Command="bun run build:css" WorkingDirectory="$(FrontendRoot)" />
-    </Target>
 
     <Target Name="BuildFrontendScripts"
             BeforeTargets="BeforeBuild"
