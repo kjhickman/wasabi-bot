@@ -11,7 +11,8 @@ internal sealed class MusicService(
     PlaybackService playbackService,
     ILogger<MusicService> logger,
     Tracer tracer,
-    IMusicQueueMutationCoordinator queueMutationCoordinator) : IMusicService
+    IMusicQueueMutationCoordinator queueMutationCoordinator,
+    IMusicInactivityTracker? musicInactivityTracker = null) : IMusicService
 {
     private const int QueuePreviewLimit = 10;
 
@@ -20,6 +21,7 @@ internal sealed class MusicService(
     private readonly ILogger<MusicService> _logger = logger;
     private readonly Tracer _tracer = tracer;
     private readonly IMusicQueueMutationCoordinator _queueMutationCoordinator = queueMutationCoordinator;
+    private readonly IMusicInactivityTracker _musicInactivityTracker = musicInactivityTracker ?? NullMusicInactivityTracker.Instance;
 
     public async Task<MusicCommandResult> PlayAsync(ICommandContext ctx, string input, CancellationToken cancellationToken = default)
     {
@@ -211,6 +213,7 @@ internal sealed class MusicService(
             }
 
             await player.Player!.StopAsync(ct);
+            _musicInactivityTracker.ScheduleIdleDisconnect(ctx.GuildId.GetValueOrDefault());
             return new MusicCommandResult("Stopped playback and cleared the queue.");
         }, cancellationToken);
 
@@ -282,6 +285,7 @@ internal sealed class MusicService(
         }
 
         await result.Player!.DisconnectAsync(cancellationToken);
+        _musicInactivityTracker.CancelDisconnect(ctx.GuildId.GetValueOrDefault());
         span.SetAttribute("music.result", "disconnected");
         return new MusicCommandResult("Left the voice channel.");
     }

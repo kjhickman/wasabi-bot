@@ -6,11 +6,13 @@ namespace WasabiBot.Api.Features.Music;
 internal sealed class MusicDashboardControlService(
     ISharedVoiceChannelResolver sharedVoiceChannelResolver,
     PlaybackService playbackService,
-    IMusicQueueMutationCoordinator queueMutationCoordinator) : IMusicDashboardControlService
+    IMusicQueueMutationCoordinator queueMutationCoordinator,
+    IMusicInactivityTracker? musicInactivityTracker = null) : IMusicDashboardControlService
 {
     private readonly ISharedVoiceChannelResolver _sharedVoiceChannelResolver = sharedVoiceChannelResolver;
     private readonly PlaybackService _playbackService = playbackService;
     private readonly IMusicQueueMutationCoordinator _queueMutationCoordinator = queueMutationCoordinator;
+    private readonly IMusicInactivityTracker _musicInactivityTracker = musicInactivityTracker ?? NullMusicInactivityTracker.Instance;
 
     public async Task<MusicCommandResult> JoinUserChannelAsync(ulong userId, CancellationToken cancellationToken = default)
     {
@@ -64,10 +66,12 @@ internal sealed class MusicDashboardControlService(
         if (player.Player.State == PlayerState.Paused)
         {
             await player.Player.ResumeAsync(cancellationToken);
+            _musicInactivityTracker.CancelDisconnect(player.SharedVoiceChannel!.GuildId);
             return new MusicCommandResult("Resumed playback.");
         }
 
         await player.Player.PauseAsync(cancellationToken);
+        _musicInactivityTracker.SchedulePausedDisconnect(player.SharedVoiceChannel!.GuildId);
         return new MusicCommandResult("Paused playback.");
     }
 
@@ -114,6 +118,7 @@ internal sealed class MusicDashboardControlService(
             }
 
             await player.StopAsync(ct);
+            _musicInactivityTracker.ScheduleIdleDisconnect(sharedVoiceChannel.GuildId);
             return new MusicCommandResult("Stopped playback and cleared the queue.");
         }, cancellationToken);
     }

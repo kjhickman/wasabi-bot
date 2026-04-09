@@ -12,13 +12,15 @@ internal class PlaybackService(
     IAudioService audioService,
     RadioTrackMetadataStore radioTrackMetadataStore,
     ILogger<WasabiQueuedLavalinkPlayer> queuedPlayerLogger,
-    IMusicPlaybackStatsRecorder musicPlaybackStatsRecorder)
+    IMusicPlaybackStatsRecorder musicPlaybackStatsRecorder,
+    IMusicInactivityTracker? musicInactivityTracker = null)
 {
     private readonly IAudioService _audioService = audioService;
     private readonly RadioTrackMetadataStore _radioTrackMetadataStore = radioTrackMetadataStore;
+    private readonly IMusicInactivityTracker _musicInactivityTracker = musicInactivityTracker ?? NullMusicInactivityTracker.Instance;
     private readonly PlayerFactory<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions> _playerFactory
         = PlayerFactory.Create((IPlayerProperties<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions> properties)
-            => new WasabiQueuedLavalinkPlayer(properties, queuedPlayerLogger, musicPlaybackStatsRecorder));
+            => new WasabiQueuedLavalinkPlayer(properties, queuedPlayerLogger, musicPlaybackStatsRecorder, musicInactivityTracker ?? NullMusicInactivityTracker.Instance));
 
     public async Task<(IQueuedLavalinkPlayer? Player, MusicCommandResult? Result)> RetrievePlaybackPlayerAsync(
         ICommandContext ctx,
@@ -45,6 +47,11 @@ internal class PlaybackService(
             Options.Create(new QueuedLavalinkPlayerOptions()),
             new PlayerRetrieveOptions(ChannelBehavior: channelBehavior),
             cancellationToken);
+
+        if (result.IsSuccess && channelBehavior == PlayerChannelBehavior.Join && result.Player?.CurrentTrack is null)
+        {
+            _musicInactivityTracker.ScheduleIdleDisconnect(guildId);
+        }
 
         return result.IsSuccess
             ? (result.Player, null)

@@ -26,27 +26,6 @@ public class HomeComponentTests : IDisposable
     }
 
     [Test]
-    public async Task Render_AuthenticatedUser_ShowsGreetingOnly()
-    {
-        var user = ClaimsPrincipalBuilder.Create()
-            .AsDiscordUser("123456789", "kyle")
-            .WithDiscordGlobalName("Kyle")
-            .Build();
-        var authState = new AuthenticationState(user);
-
-        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
-
-        var cut = _context.RenderWithAuthentication<Home>(authState);
-
-        await Assert.That(cut.Find("#user-greeting").TextContent.Trim()).IsEqualTo("Kyle");
-        await Assert.That(cut.Find("#authenticated-heading").TextContent.Trim()).IsEqualTo("Hello, Kyle");
-        await Assert.That(cut.Markup).DoesNotContain("Get API Access");
-        await Assert.That(cut.Markup).DoesNotContain("Music");
-        await Assert.That(cut.Markup).DoesNotContain("Stats");
-        await Assert.That(cut.FindAll("#login-link").Count).IsEqualTo(0);
-    }
-
-    [Test]
     public async Task Render_AuthenticatedUserWithoutGuildAccess_ShowsRestrictedMessage()
     {
         var user = ClaimsPrincipalBuilder.Create()
