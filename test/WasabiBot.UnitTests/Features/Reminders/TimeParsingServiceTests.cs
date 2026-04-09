@@ -45,7 +45,7 @@ public class TimeParsingServiceTests
     {
         var chatClient = Substitute.For<IChatClient>();
         var response = ChatResponseBuilder.Create()
-            .WithAssistantText("2025-08-08T14:00:00Z")
+            .WithAssistantText("2025-08-08T09:00:00-05:00")
             .Build();
         chatClient.GetResponseAsync(Arg.Any<IList<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
             .Returns(response);
@@ -70,7 +70,7 @@ public class TimeParsingServiceTests
 
         var chatClient = Substitute.For<IChatClient>();
         var response = ChatResponseBuilder.Create()
-            .WithAssistantText("2025-08-08T14:00:00Z")
+            .WithAssistantText("2025-08-08T09:00:00-05:00")
             .Build();
         chatClient.GetResponseAsync(Arg.Any<IList<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
             .Returns(response);
@@ -92,7 +92,7 @@ public class TimeParsingServiceTests
         var chatClient = Substitute.For<IChatClient>();
         var expectedTime = new DateTimeOffset(2025, 8, 8, 14, 0, 0, TimeSpan.Zero);
         var response = ChatResponseBuilder.Create()
-            .WithAssistantText("2025-08-08T14:00:00Z")
+            .WithAssistantText("2025-08-08T09:00:00-05:00")
             .Build();
         chatClient.GetResponseAsync(Arg.Any<IList<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
             .Returns(response);
@@ -111,7 +111,7 @@ public class TimeParsingServiceTests
         var chatClient = Substitute.For<IChatClient>();
         var expectedTime = new DateTimeOffset(2025, 12, 25, 10, 30, 45, 123, TimeSpan.Zero);
         var response = ChatResponseBuilder.Create()
-            .WithAssistantText("2025-12-25T10:30:45.123Z")
+            .WithAssistantText("2025-12-25T04:30:45.123-06:00")
             .Build();
         chatClient.GetResponseAsync(Arg.Any<IList<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
             .Returns(response);
@@ -162,7 +162,7 @@ public class TimeParsingServiceTests
     {
         var chatClient = Substitute.For<IChatClient>();
         var response = ChatResponseBuilder.Create()
-            .WithAssistantText("2025-08-08T14:00:00Z")
+            .WithAssistantText("2025-08-08T09:00:00-05:00")
             .Build();
         chatClient.GetResponseAsync(Arg.Any<IList<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
             .Returns(response);
@@ -183,7 +183,7 @@ public class TimeParsingServiceTests
     {
         var chatClient = Substitute.For<IChatClient>();
         var response = ChatResponseBuilder.Create()
-            .WithAssistantText("2025-06-15T18:30:00Z")
+            .WithAssistantText("2025-06-15T13:30:00-05:00")
             .Build();
         chatClient.GetResponseAsync(Arg.Any<IList<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
             .Returns(response);
@@ -202,7 +202,7 @@ public class TimeParsingServiceTests
         var chatClient = Substitute.For<IChatClient>();
         var futureTime = DateTimeOffset.UtcNow.AddHours(3);
         var response = ChatResponseBuilder.Create()
-            .WithAssistantText(futureTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"))
+            .WithAssistantText(futureTime.ToOffset(TimeSpan.FromHours(-5)).ToString("yyyy-MM-dd'T'HH:mm:sszzz"))
             .Build();
         chatClient.GetResponseAsync(Arg.Any<IList<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
             .Returns(response);
@@ -220,7 +220,7 @@ public class TimeParsingServiceTests
     {
         var chatClient = Substitute.For<IChatClient>();
         var response = ChatResponseBuilder.Create()
-            .WithAssistantText("2025-03-20T15:45:30.500Z")
+            .WithAssistantText("2025-03-20T10:45:30.500-05:00")
             .Build();
         chatClient.GetResponseAsync(Arg.Any<IList<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
             .Returns(response);
@@ -232,5 +232,23 @@ public class TimeParsingServiceTests
         await Assert.That(result).IsNotNull();
         await Assert.That(result!.Value.Second).IsEqualTo(30);
         await Assert.That(result.Value.Millisecond).IsEqualTo(500);
+    }
+
+    [Test]
+    public async Task ParseTimeAsync_ConvertsCentralOffsetOutputToUtc()
+    {
+        var chatClient = Substitute.For<IChatClient>();
+        var response = ChatResponseBuilder.Create()
+            .WithAssistantText("2025-04-11T10:21:45-05:00")
+            .Build();
+        chatClient.GetResponseAsync(Arg.Any<IList<ChatMessage>>(), Arg.Any<ChatOptions>(), Arg.Any<CancellationToken>())
+            .Returns(response);
+
+        var service = CreateService(chatClient: chatClient);
+
+        var result = await service.ParseTimeAsync("1 day");
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Value).IsEqualTo(new DateTimeOffset(2025, 4, 11, 15, 21, 45, TimeSpan.Zero));
     }
 }
