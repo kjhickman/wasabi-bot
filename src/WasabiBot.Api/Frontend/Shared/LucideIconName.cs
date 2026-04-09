@@ -12,6 +12,7 @@ public enum LucideIconName
     ChevronUp,
     ChevronDown,
     Search,
+    RefreshCw,
     Trash2,
     Disc3,
 }
