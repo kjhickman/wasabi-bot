@@ -17,6 +17,25 @@ else if (!HasGuildAccess)
 else
 {
     <section id="authenticated" aria-labelledby="authenticated-heading">
-        <h1 id="authenticated-heading" class="text-3xl font-semibold tracking-tight md:text-4xl">Hello, <span id="user-greeting">@DisplayName</span></h1>
+        <article class="hero overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm">
+            <div class="hero-content w-full max-w-none px-6 py-8 md:px-8 md:py-10">
+                <div class="w-full space-y-4">
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Dashboard</p>
+                            <h1 id="authenticated-heading" class="text-3xl font-semibold tracking-tight outline-none md:text-4xl">Hello there, <span id="user-greeting">@DisplayName</span></h1>
+                            <p class="max-w-2xl text-base leading-7 text-base-content/70">
+                                Pick up where you left off in the music room or manage API Access for your automations.
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <a id="home-open-music" class="btn btn-primary" href="/music">Open Music room</a>
+                            <a id="home-open-creds" class="btn btn-outline" href="/creds">Manage API Access</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </article>
     </section>
 }
