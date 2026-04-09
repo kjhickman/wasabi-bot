@@ -53,13 +53,13 @@ internal sealed class TimeParsingService : ITimeParsingService
             }
 
             if (!DateTimeOffset.TryParse(timestampText, CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
-                    out var parsedUtc))
+                    DateTimeStyles.RoundtripKind,
+                    out var parsedCentral))
             {
-                throw new FormatException($"LLM response '{timestampText}' was not a valid ISO 8601 UTC timestamp.");
+                throw new FormatException($"LLM response '{timestampText}' was not a valid ISO 8601 Central timestamp.");
             }
 
-            return parsedUtc.ToUniversalTime();
+            return parsedCentral.ToUniversalTime();
         }
         catch (Exception ex)
         {
@@ -86,9 +86,9 @@ Rules:
 2. If a user supplies a month/day that has already passed this year, schedule it for the next year instead.
 3. If the user gives a relative day without a clock time (e.g., "tomorrow", "in 3 days"), preserve the current time of day ({currentTimeOfDay} Central) instead of switching to midnight.
 4. Relative expressions ("in 45 minutes") should offset from the provided current time.
-5. After you determine the correct Central reminder time, convert it to UTC by applying the Central-to-UTC offset. Example: Central {sampleLocal} becomes UTC {sampleUtc}.
-6. Output only the final reminder time as an ISO 8601 UTC timestamp like 2025-08-08T14:00:00Z. No prose, no timezone abbreviations, no markdown.
-7. The output must always end with 'Z' to indicate UTC.
+5. Output the final reminder time in Central time with its explicit ISO 8601 offset, not UTC. Example: Central {sampleLocal} converts to UTC {sampleUtc}, but your output must stay in Central as {sampleLocal}.
+6. Output only the final reminder time as an ISO 8601 timestamp like 2025-08-08T09:00:00-05:00 or 2025-12-08T09:00:00-06:00. No prose, no timezone abbreviations, no markdown.
+7. The output must include the explicit numeric UTC offset for Central time.
 """;
     }
 
