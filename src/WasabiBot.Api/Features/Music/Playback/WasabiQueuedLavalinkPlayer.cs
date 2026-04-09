@@ -8,13 +8,17 @@ namespace WasabiBot.Api.Features.Music;
 internal sealed class WasabiQueuedLavalinkPlayer(
     IPlayerProperties<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions> properties,
     ILogger<WasabiQueuedLavalinkPlayer> logger,
-    IMusicPlaybackStatsRecorder musicPlaybackStatsRecorder) : QueuedLavalinkPlayer(properties)
+    IMusicPlaybackStatsRecorder musicPlaybackStatsRecorder,
+    IMusicInactivityTracker musicInactivityTracker) : QueuedLavalinkPlayer(properties)
 {
     private readonly ILogger<WasabiQueuedLavalinkPlayer> _logger = logger;
     private readonly IMusicPlaybackStatsRecorder _musicPlaybackStatsRecorder = musicPlaybackStatsRecorder;
+    private readonly IMusicInactivityTracker _musicInactivityTracker = musicInactivityTracker;
 
     protected override async ValueTask NotifyTrackStartedAsync(ITrackQueueItem track, CancellationToken cancellationToken = default)
     {
+        _musicInactivityTracker.CancelDisconnect(GuildId);
+
         _logger.LogInformation(
             "Music track started: {Title} by {Author} ({Duration}) in guild {GuildId}",
             track.Track?.Title,
@@ -32,6 +36,11 @@ internal sealed class WasabiQueuedLavalinkPlayer(
 
     protected override ValueTask NotifyTrackEndedAsync(ITrackQueueItem track, TrackEndReason endReason, CancellationToken cancellationToken = default)
     {
+        if (Queue.Count == 0)
+        {
+            _musicInactivityTracker.ScheduleIdleDisconnect(GuildId);
+        }
+
         _logger.LogWarning(
             "Music track ended: {Title} by {Author}. Reason: {EndReason}. QueueCount: {QueueCount}. Guild: {GuildId}",
             track.Track?.Title,
