@@ -33,6 +33,11 @@ postgres.WithPgWeb(pgWeb => pgWeb.WithParentRelationship(postgres));
 
 var database = postgres.AddDatabase("wasabi-db", "wasabi_db");
 
+var frontendDependencies = builder.AddExecutable("frontend-deps", "bun", "src/WasabiBot.Api", "install", "--frozen-lockfile");
+
+var frontendCss = builder.AddExecutable("frontend-css", "bun", "src/WasabiBot.Api", "run", "build:css")
+    .WaitForCompletion(frontendDependencies);
+
 var migrations = builder.AddProject("migrations", "src/WasabiBot.Migrations/WasabiBot.Migrations.csproj")
     .WithReference(database)
     .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
@@ -51,6 +56,7 @@ var api = builder.AddProject("wasabi-bot", "src/WasabiBot.Api/WasabiBot.Api.cspr
     .WithReference(database)
     .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
     .WaitFor(database)
+    .WaitForCompletion(frontendCss)
     .WaitFor(lavalink)
     .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
     .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)

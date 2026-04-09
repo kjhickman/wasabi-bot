@@ -8,6 +8,7 @@ Wasabi Bot is a .NET Discord bot built using [NetCord](https://github.com/NetCor
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 - [Aspire CLI](https://aspire.dev/get-started/install-cli/)
+- [Bun](https://bun.sh/)
 - Docker
 
 ### Required parameters
