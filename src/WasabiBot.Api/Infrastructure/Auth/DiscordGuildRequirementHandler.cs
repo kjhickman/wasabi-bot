@@ -15,8 +15,8 @@ internal sealed class DiscordGuildRequirementHandler(
 
     private static readonly HybridCacheEntryOptions BotGuildsCacheOptions = new()
     {
-        Expiration = TimeSpan.FromMinutes(5),
-        LocalCacheExpiration = TimeSpan.FromMinutes(5)
+        Expiration = TimeSpan.FromMinutes(30),
+        LocalCacheExpiration = TimeSpan.FromMinutes(30)
     };
 
     private static readonly HybridCacheEntryOptions PositiveMembershipCacheOptions = new()
