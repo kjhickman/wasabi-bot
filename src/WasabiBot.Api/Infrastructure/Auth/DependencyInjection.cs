@@ -1,6 +1,7 @@
-﻿using System.Text;
+using System.Text;
 using AspNet.Security.OAuth.Discord;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +12,8 @@ namespace WasabiBot.Api.Infrastructure.Auth;
 
 public static class DependencyInjection
 {
+    private static readonly TimeSpan CookieLifetime = TimeSpan.FromDays(90);
+
     public static IServiceCollection AddAuthServices(this WebApplicationBuilder builder)
     {
         var configuration = builder.Configuration;
@@ -26,6 +29,10 @@ public static class DependencyInjection
         }
 
         var discordCallbackPath = discordAuthSection["CallbackPath"];
+
+        var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, ".data-protection-keys");
+
+        Directory.CreateDirectory(dataProtectionKeysPath);
 
         var tokenSection = configuration.GetSection("Authentication:Token");
         var tokenSigningKey = tokenSection["SigningKey"];
@@ -55,6 +62,10 @@ public static class DependencyInjection
 
         var apiCredentialSecretOptions = new ApiCredentialSecretOptions(apiCredentialPepper);
 
+        services.AddDataProtection()
+            .SetApplicationName("WasabiBot")
+            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+
         services.AddSingleton(apiTokenOptions);
         services.AddSingleton(apiCredentialSecretOptions);
         services.AddSingleton<ApiTokenFactory>();
@@ -71,6 +82,12 @@ public static class DependencyInjection
             .AddCookie(options =>
             {
                 options.LoginPath = "/login-discord";
+                options.ExpireTimeSpan = CookieLifetime;
+                options.SlidingExpiration = true;
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+                    ? CookieSecurePolicy.SameAsRequest
+                    : CookieSecurePolicy.Always;
                 options.Events.OnRedirectToLogin = context =>
                 {
                     if (IsApiRequest(context.Request.Path))

@@ -113,6 +113,9 @@ Thumbs.db
 .env
 .envrc
 
+# Local auth key material
+.data-protection-keys/
+
 # Local Playwright Discord session artifacts
 .playwright-cli/
 

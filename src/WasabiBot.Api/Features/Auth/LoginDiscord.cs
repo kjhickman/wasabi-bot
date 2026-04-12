@@ -1,17 +1,22 @@
-﻿using AspNet.Security.OAuth.Discord;
+using AspNet.Security.OAuth.Discord;
 using Microsoft.AspNetCore.Authentication;
 
 namespace WasabiBot.Api.Features.Auth;
 
 public static class LoginDiscord
 {
+    private static readonly TimeSpan CookieLifetime = TimeSpan.FromDays(90);
+
     public static IResult Handle(HttpContext context, string? returnUrl)
     {
         var redirectUri = NormalizeRedirect(context, returnUrl);
 
         var properties = new AuthenticationProperties
         {
-            RedirectUri = redirectUri
+            RedirectUri = redirectUri,
+            IsPersistent = true,
+            AllowRefresh = true,
+            ExpiresUtc = DateTimeOffset.UtcNow.Add(CookieLifetime)
         };
 
         return Results.Challenge(properties, [DiscordAuthenticationDefaults.AuthenticationScheme]);
