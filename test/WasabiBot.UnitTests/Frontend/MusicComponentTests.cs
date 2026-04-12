@@ -135,7 +135,7 @@ public class MusicComponentTests : IDisposable
         await Assert.That(cut.Find("#music-progress-duration").TextContent.Trim()).IsEqualTo("03:00");
         await Assert.That(cut.Find("#music-queue-list").TextContent).Contains("Next Song");
         await Assert.That(cut.Find("#music-skip").HasAttribute("disabled")).IsFalse();
-        await Assert.That(cut.FindAll("#music-stop").Count).IsEqualTo(0);
+        await Assert.That(cut.Find("#music-stop").HasAttribute("disabled")).IsFalse();
         await Assert.That(cut.FindAll("#music-queue-list svg").Count).IsGreaterThanOrEqualTo(2);
     }
 
@@ -192,6 +192,71 @@ public class MusicComponentTests : IDisposable
         await cut.InvokeAsync(() => cut.Find("#music-skip").Click());
 
         await controlService.Received(1).SkipAsync(123456789, Arg.Any<CancellationToken>());
+        await Assert.That(cut.FindAll("#music-action-message").Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUser_ClickingStop_CallsStopService()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+        var searchService = Substitute.For<IMusicDashboardSearchService>();
+        var queueService = Substitute.For<IMusicDashboardQueueService>();
+        var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
+
+        var session = new ActiveMusicSession(
+            new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+            "Playing",
+            new PlaybackProgressSnapshot(TimeSpan.FromMinutes(1), "01:00", 25),
+            new MusicTrackSnapshot(
+                "Current Song",
+                "Current Artist",
+                "04:00",
+                TimeSpan.FromMinutes(4),
+                IsLive: false,
+                IsRadio: false,
+                ArtworkUrl: null,
+                SourceUrl: null,
+                SourceName: "scsearch"),
+            [new MusicQueueItemSnapshot(1, new MusicTrackSnapshot(
+                "Next Song",
+                "Next Artist",
+                "03:00",
+                TimeSpan.FromMinutes(3),
+                IsLive: false,
+                IsRadio: false,
+                ArtworkUrl: null,
+                SourceUrl: null,
+                SourceName: "scsearch"))],
+            new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true));
+
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(session);
+        controlService.StopAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new MusicCommandResult("Stopped playback and cleared the queue."));
+
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Services.AddSingleton(searchService);
+        _context.Services.AddSingleton(queueService);
+        favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot([], []));
+        _context.Services.AddSingleton(favoritesService);
+        guildStatsService.GetTopTracksAsync(42, Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
+        _context.Services.AddSingleton(guildStatsService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+        var authState = new AuthenticationState(user);
+
+        var cut = _context.RenderWithAuthentication<Music>(authState);
+        await cut.InvokeAsync(() => cut.Find("#music-stop").Click());
+
+        await controlService.Received(1).StopAsync(123456789, Arg.Any<CancellationToken>());
         await Assert.That(cut.FindAll("#music-action-message").Count).IsEqualTo(0);
     }
 

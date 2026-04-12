@@ -135,4 +135,27 @@ public class MusicDashboardControlServiceTests
         await player.Received(1).SkipAsync(1, Arg.Any<CancellationToken>());
         await Assert.That(result.Message).IsEqualTo("Skipped the current track.");
     }
+
+    [Test]
+    public async Task StopAsync_WhenPlayerIsConnected_StopsPlaybackAndSchedulesIdleDisconnect()
+    {
+        var resolver = Substitute.For<ISharedVoiceChannelResolver>();
+        resolver.ResolveForUser(123456789)
+            .Returns(new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"));
+
+        var player = Substitute.For<IQueuedLavalinkPlayer>();
+
+        var playerManager = Substitute.For<IPlayerManager>();
+        playerManager.GetPlayerAsync(42, Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult<ILavalinkPlayer?>(player));
+
+        var inactivityTracker = Substitute.For<IMusicInactivityTracker>();
+        var service = CreateService(resolver: resolver, playerManager: playerManager, musicInactivityTracker: inactivityTracker);
+
+        var result = await service.StopAsync(123456789);
+
+        await player.Received(1).StopAsync(Arg.Any<CancellationToken>());
+        inactivityTracker.Received(1).ScheduleIdleDisconnect(42);
+        await Assert.That(result.Message).IsEqualTo("Stopped playback and cleared the queue.");
+    }
 }

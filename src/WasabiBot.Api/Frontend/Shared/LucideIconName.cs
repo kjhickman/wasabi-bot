@@ -9,6 +9,7 @@ public enum LucideIconName
     Pause,
     Play,
     SkipForward,
+    Stop,
     ChevronUp,
     ChevronDown,
     Search,

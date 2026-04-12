@@ -72,24 +72,32 @@ else
                             </div>
                         }
 
-                        <section id="music-controls" class="music-controls" aria-label="Playback controls">
-                            <button id="music-toggle-pause"
-                                    class="btn btn-sm btn-outline btn-square"
-                                    type="button"
-                                    disabled="@IsSubmittingAction"
+                         <section id="music-controls" class="music-controls" aria-label="Playback controls">
+                             <button id="music-toggle-pause"
+                                     class="btn btn-sm btn-outline btn-square"
+                                     type="button"
+                                     disabled="@IsSubmittingAction"
                                     aria-label="@(Session.PlaybackState == "Paused" ? "Resume playback" : "Pause playback")"
                                     @onclick="OnTogglePause">
                                 <LucideIcon Name="@(Session.PlaybackState == "Paused" ? LucideIconName.Play : LucideIconName.Pause)" Class="size-4" />
                             </button>
-                            <button id="music-skip"
-                                    class="btn btn-sm btn-outline btn-square"
-                                    type="button"
-                                    disabled="@IsSubmittingAction"
-                                    aria-label="Skip track"
-                                    @onclick="OnSkip">
-                                <LucideIcon Name="LucideIconName.SkipForward" Class="size-4" />
-                            </button>
-                        </section>
+                             <button id="music-skip"
+                                     class="btn btn-sm btn-outline btn-square"
+                                     type="button"
+                                     disabled="@IsSubmittingAction"
+                                     aria-label="Skip track"
+                                     @onclick="OnSkip">
+                                 <LucideIcon Name="LucideIconName.SkipForward" Class="size-4" />
+                             </button>
+                             <button id="music-stop"
+                                     class="btn btn-sm btn-outline btn-square"
+                                     type="button"
+                                     disabled="@IsSubmittingAction"
+                                     aria-label="Stop playback"
+                                     @onclick="OnStop">
+                                 <LucideIcon Name="LucideIconName.Stop" Class="size-4" />
+                             </button>
+                         </section>
                     </div>
                 </div>
             }
@@ -191,6 +199,9 @@ else
 
     [Parameter]
     public EventCallback OnSkip { get; set; }
+
+    [Parameter]
+    public EventCallback OnStop { get; set; }
 
     [Parameter]
     public EventCallback<MusicQueueItemSnapshot> OnRemoveQueueItem { get; set; }
