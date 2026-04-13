@@ -31,29 +31,24 @@ internal sealed class RadioService(
 
         if (!ctx.GuildId.HasValue)
         {
-            span.SetAttribute("radio.result", "guild_only");
             return PlaybackService.GuildOnly();
         }
 
         var normalizedQuery = query.Trim();
         if (normalizedQuery.Length == 0)
         {
-            span.SetAttribute("radio.result", "empty_query");
             return new MusicCommandResult("Give me a radio station name or genre to search for.", Ephemeral: true);
         }
 
         var stations = await SearchStationsAsync(normalizedQuery, cancellationToken);
-        span.SetAttribute("radio.station_count", stations.Count);
         if (stations.Count == 0)
         {
-            span.SetAttribute("radio.result", "no_station_match");
             return new MusicCommandResult("I couldn't find a playable radio station for that search.", Ephemeral: true);
         }
 
         var playerResult = await _playbackService.RetrievePlaybackPlayerAsync(ctx, cancellationToken);
         if (playerResult.Result is not null)
         {
-            span.SetAttribute("radio.result", "player_unavailable");
             return playerResult.Result;
         }
 
@@ -89,13 +84,9 @@ internal sealed class RadioService(
             var track = loadResult.Track ?? loadResult.Tracks[0];
             _radioTrackMetadataStore.Set(track, station.Name);
             var position = await player.PlayAsync(track, enqueue: true, cancellationToken: cancellationToken);
-            span.SetAttribute("radio.result", "queued");
-            span.SetAttribute("radio.station_name", station.Name);
-            span.SetAttribute("music.queue_position", position);
             return PlaybackService.BuildQueuedDisplayResult(FormatStation(station), position);
         }
 
-        span.SetAttribute("radio.result", "stream_unavailable");
         return new MusicCommandResult(
             "I found radio stations for that search, but none of their streams were playable right now.",
             Ephemeral: true);
@@ -185,17 +176,5 @@ internal sealed class RadioService(
 
     private static void AddContextAttributes(TelemetrySpan span, ICommandContext ctx)
     {
-        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
-        span.SetAttribute("discord.channel_id", ctx.ChannelId.ToString());
-
-        if (ctx.GuildId.HasValue)
-        {
-            span.SetAttribute("discord.guild_id", ctx.GuildId.Value.ToString());
-        }
-
-        if (ctx.UserVoiceChannelId.HasValue)
-        {
-            span.SetAttribute("discord.voice_channel_id", ctx.UserVoiceChannelId.Value.ToString());
-        }
     }
 }

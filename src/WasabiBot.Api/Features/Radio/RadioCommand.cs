@@ -17,13 +17,10 @@ internal sealed class RadioCommand(ILogger<RadioCommand> logger, IRadioService r
         [SlashCommandParameter(Description = "Internet radio station search query")] string query)
     {
         using var span = _tracer.StartActiveSpan("radio.command.play");
-        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
-        span.SetAttribute("discord.channel_id", ctx.ChannelId.ToString());
 
         try
         {
             var result = await _radioService.PlayAsync(ctx, query);
-            span.SetAttribute("music.response.ephemeral", result.Ephemeral);
             await ctx.RespondAsync(result.Message, result.Ephemeral);
         }
         catch (Exception ex)

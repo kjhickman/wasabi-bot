@@ -22,12 +22,9 @@ internal sealed class PlayMusicCommand(ILogger<PlayMusicCommand> logger, IMusicS
     private async Task HandleAsync(ICommandContext ctx, Func<Task<MusicCommandResult>> action, string actionName)
     {
         using var span = _tracer.StartActiveSpan("music.command.play");
-        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
-        span.SetAttribute("discord.channel_id", ctx.ChannelId.ToString());
         try
         {
             var result = await action();
-            span.SetAttribute("music.response.ephemeral", result.Ephemeral);
             await ctx.RespondAsync(result.Message, result.Ephemeral);
         }
         catch (Exception ex)

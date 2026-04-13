@@ -42,23 +42,16 @@ internal sealed class DiscordGuildRequirementHandler(
 
         if (context.User.Identity is not { IsAuthenticated: true })
         {
-            span.SetAttribute("auth.authenticated", false);
             return;
         }
-
-        span.SetAttribute("auth.authenticated", true);
 
         var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
 
         if (userIdClaim is null || !ulong.TryParse(userIdClaim.Value, out var userId))
         {
-            span.SetAttribute("auth.user_id.valid", false);
             logger.LogWarning("Discord user id claim missing or invalid.");
             return;
         }
-
-        span.SetAttribute("auth.user_id.valid", true);
-        span.SetAttribute("auth.user_id", userId.ToString());
 
         var cancellationToken = context.GetCancellationToken();
         var guildIds = await cache.GetOrCreateAsync(
@@ -66,8 +59,6 @@ internal sealed class DiscordGuildRequirementHandler(
             async cancel => (await authorizationClient.GetBotGuildIdsAsync(cancel)).ToArray(),
             BotGuildsCacheOptions,
             cancellationToken: cancellationToken);
-
-        span.SetAttribute("auth.guild_count", guildIds.Length);
 
         if (guildIds.Length == 0)
         {
@@ -79,42 +70,29 @@ internal sealed class DiscordGuildRequirementHandler(
         {
             if (await IsUserInGuildAsync(guildId, userId, cancellationToken))
             {
-                span.SetAttribute("auth.authorized", true);
-                span.SetAttribute("auth.authorized_guild_id", guildId.ToString());
                 context.Succeed(requirement);
                 return;
             }
         }
 
-        span.SetAttribute("auth.authorized", false);
     }
 
     private async Task<bool> IsUserInGuildAsync(ulong guildId, ulong userId, CancellationToken cancellationToken)
     {
         using var span = tracer.StartActiveSpan("auth.discord-guild.membership-check");
-        span.SetAttribute("auth.guild_id", guildId.ToString());
-        span.SetAttribute("auth.user_id", userId.ToString());
-
         var positiveKey = $"discord:user-in-guild:{guildId}:{userId}:positive";
         if (await IsCachedAsync(positiveKey, cancellationToken))
         {
-            span.SetAttribute("auth.membership_cache_hit", true);
-            span.SetAttribute("auth.membership_cache_result", "positive");
             return true;
         }
 
         var negativeKey = $"discord:user-in-guild:{guildId}:{userId}:negative";
         if (await IsCachedAsync(negativeKey, cancellationToken))
         {
-            span.SetAttribute("auth.membership_cache_hit", true);
-            span.SetAttribute("auth.membership_cache_result", "negative");
             return false;
         }
 
-        span.SetAttribute("auth.membership_cache_hit", false);
-
         var isMember = await authorizationClient.IsUserInGuildAsync(guildId, userId, cancellationToken);
-        span.SetAttribute("auth.membership_result", isMember);
         if (isMember)
         {
             await cache.SetAsync(positiveKey, true, PositiveMembershipCacheOptions, cancellationToken: cancellationToken);

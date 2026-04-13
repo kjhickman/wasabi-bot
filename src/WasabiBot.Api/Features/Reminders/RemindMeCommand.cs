@@ -35,8 +35,6 @@ internal sealed class RemindMeCommand
         [SlashCommandParameter(Description = "Your reminder")] string reminder)
     {
         using var span = _tracer.StartActiveSpan("reminder.command.schedule");
-        span.SetAttribute("discord.channel_id", ctx.ChannelId.ToString());
-        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
 
         try
         {

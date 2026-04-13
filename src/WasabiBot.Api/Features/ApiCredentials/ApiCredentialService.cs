@@ -32,7 +32,6 @@ public sealed class ApiCredentialService(
     public async Task<ApiCredentialSummary[]> ListAsync(long ownerDiscordUserId, CancellationToken cancellationToken = default)
     {
         using var span = tracer.StartActiveSpan("auth.api-credential.list");
-        span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
 
         return await cache.GetOrCreateAsync(
             GetListCacheKey(ownerDiscordUserId),
@@ -50,7 +49,6 @@ public sealed class ApiCredentialService(
     public async Task<ApiCredentialIssueResult> CreateAsync(long ownerDiscordUserId, string name, CancellationToken cancellationToken = default)
     {
         using var span = tracer.StartActiveSpan("auth.api-credential.create");
-        span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
 
         var normalizedName = NormalizeName(name);
         var clientId = await GenerateUniqueClientIdAsync(cancellationToken);
@@ -76,8 +74,6 @@ public sealed class ApiCredentialService(
     public async Task<bool> RevokeAsync(long ownerDiscordUserId, long credentialId, CancellationToken cancellationToken = default)
     {
         using var span = tracer.StartActiveSpan("auth.api-credential.revoke");
-        span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
-        span.SetAttribute("auth.credential_id", credentialId);
 
         var credential = await context.ApiCredentials.FirstOrDefaultAsync(
             c => c.Id == credentialId && c.OwnerDiscordUserId == ownerDiscordUserId,
@@ -103,8 +99,6 @@ public sealed class ApiCredentialService(
     public async Task<ApiCredentialIssueResult?> RegenerateSecretAsync(long ownerDiscordUserId, long credentialId, CancellationToken cancellationToken = default)
     {
         using var span = tracer.StartActiveSpan("auth.api-credential.regenerate-secret");
-        span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
-        span.SetAttribute("auth.credential_id", credentialId);
 
         var credential = await context.ApiCredentials.FirstOrDefaultAsync(
             c => c.Id == credentialId && c.OwnerDiscordUserId == ownerDiscordUserId,
@@ -126,7 +120,6 @@ public sealed class ApiCredentialService(
     public async Task<ApiCredentialValidationResult?> ValidateAsync(string clientId, string clientSecret, CancellationToken cancellationToken = default)
     {
         using var span = tracer.StartActiveSpan("auth.api-credential.validate");
-        span.SetAttribute("auth.client_id.present", !string.IsNullOrWhiteSpace(clientId));
 
         if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
         {

@@ -38,11 +38,8 @@ public static class GetOAuthToken
         var credential = await credentialService.ValidateAsync(clientId, clientSecret, httpContext.RequestAborted);
         if (credential is null)
         {
-            span.SetAttribute("auth.valid_client", false);
             return Results.BadRequest(new { error = "invalid_client" });
         }
-
-        span.SetAttribute("auth.valid_client", true);
 
         var response = new TokenResponse
         {
