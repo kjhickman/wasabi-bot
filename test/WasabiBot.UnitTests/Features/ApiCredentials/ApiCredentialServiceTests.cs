@@ -5,8 +5,8 @@ using NSubstitute;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.ApiCredentials;
 using WasabiBot.Api.Infrastructure.Auth;
-using WasabiBot.Api.Persistence;
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 
 namespace WasabiBot.UnitTests.Features.ApiCredentials;
 
@@ -412,7 +412,7 @@ public class ApiCredentialServiceTests
         return secretService;
     }
 
-    private static WasabiBot.Api.Features.ApiCredentials.ApiCredentialService CreateService(WasabiBotContext context, IApiCredentialSecretService secretService)
+    private static ApiCredentialService CreateService(WasabiBotContext context, IApiCredentialSecretService secretService)
     {
         var services = new ServiceCollection();
         services.AddHybridCache();
@@ -420,7 +420,7 @@ public class ApiCredentialServiceTests
         var provider = services.BuildServiceProvider();
         var cache = provider.GetRequiredService<HybridCache>();
 
-        return new WasabiBot.Api.Features.ApiCredentials.ApiCredentialService(
+        return new ApiCredentialService(
             context,
             secretService,
             cache,

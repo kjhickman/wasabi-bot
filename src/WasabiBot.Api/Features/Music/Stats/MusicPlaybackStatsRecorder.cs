@@ -1,8 +1,8 @@
 using Lavalink4NET.Tracks;
 using Microsoft.EntityFrameworkCore;
 using WasabiBot.Api.Features.Radio;
-using WasabiBot.Api.Persistence;
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 
 namespace WasabiBot.Api.Features.Music;
 

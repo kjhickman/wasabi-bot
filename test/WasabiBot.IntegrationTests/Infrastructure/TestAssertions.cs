@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using WasabiBot.Api.Persistence;
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 
 namespace WasabiBot.IntegrationTests.Infrastructure;
 

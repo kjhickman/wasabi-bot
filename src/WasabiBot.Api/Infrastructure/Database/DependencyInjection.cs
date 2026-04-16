@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.Api.Infrastructure.Database;
 

@@ -2,8 +2,8 @@ using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Persistence;
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 
 namespace WasabiBot.Api.Features.Interactions;
 

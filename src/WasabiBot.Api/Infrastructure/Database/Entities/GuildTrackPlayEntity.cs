@@ -1,4 +1,4 @@
-namespace WasabiBot.Api.Persistence.Entities;
+namespace WasabiBot.Api.Infrastructure.Database.Entities;
 
 public sealed class GuildTrackPlayEntity
 {

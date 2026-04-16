@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Features.Reminders.Services;
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 using WasabiBot.IntegrationTests.Infrastructure;
 using WasabiBot.TestShared.Builders;
 

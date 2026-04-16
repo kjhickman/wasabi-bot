@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using NetCord.Rest;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
-using WasabiBot.Api.Persistence;
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 
 namespace WasabiBot.Api.Features.Reminders.Services;
 

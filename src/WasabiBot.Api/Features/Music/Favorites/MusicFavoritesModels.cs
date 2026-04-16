@@ -1,4 +1,4 @@
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 
 namespace WasabiBot.Api.Features.Music;
 

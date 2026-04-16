@@ -1,7 +1,7 @@
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
-using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Reminders;

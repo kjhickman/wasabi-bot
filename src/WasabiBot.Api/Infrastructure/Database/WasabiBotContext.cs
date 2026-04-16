@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 
-namespace WasabiBot.Api.Persistence;
+namespace WasabiBot.Api.Infrastructure.Database;
 
 public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options) : DbContext(options)
 {

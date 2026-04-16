@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
-using WasabiBot.Api.Persistence;
+using WasabiBot.Api.Infrastructure.Database;
 
 namespace WasabiBot.UnitTests.Features.Music;
 

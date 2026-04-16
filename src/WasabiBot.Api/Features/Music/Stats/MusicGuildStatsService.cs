@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using WasabiBot.Api.Persistence;
+using WasabiBot.Api.Infrastructure.Database;
 
 namespace WasabiBot.Api.Features.Music;
 

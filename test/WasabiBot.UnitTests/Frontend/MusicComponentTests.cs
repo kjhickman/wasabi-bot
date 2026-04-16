@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Frontend.Modules.Music;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 using WasabiBot.UnitTests.Builders;
 
 namespace WasabiBot.UnitTests.Frontend;
@@ -464,7 +465,7 @@ public class MusicComponentTests : IDisposable
 
         favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>())
             .Returns(new MusicFavoritesSnapshot(
-                [new MusicFavoriteSummary(1, WasabiBot.Api.Persistence.Entities.MusicFavoriteKind.Song, "Creep", "Radiohead", "scsearch", "https://soundcloud.com/radiohead/creep", "", DateTimeOffset.UtcNow, new MusicFavoriteSongMetadata("creep", "scsearch", "https://soundcloud.com/radiohead/creep", "", "03:58"), null)],
+                [new MusicFavoriteSummary(1, MusicFavoriteKind.Song, "Creep", "Radiohead", "scsearch", "https://soundcloud.com/radiohead/creep", "", DateTimeOffset.UtcNow, new MusicFavoriteSongMetadata("creep", "scsearch", "https://soundcloud.com/radiohead/creep", "", "03:58"), null)],
                 []));
 
         favoritesService.AddSongAsync(123456789, Arg.Any<Lavalink4NET.Tracks.LavalinkTrack>(), Arg.Any<CancellationToken>())
@@ -517,8 +518,8 @@ public class MusicComponentTests : IDisposable
                 [],
                 new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
         favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot(
-            [new MusicFavoriteSummary(1, WasabiBot.Api.Persistence.Entities.MusicFavoriteKind.Song, "Creep", "Radiohead", "scsearch", "https://soundcloud.com/radiohead/creep", "", DateTimeOffset.UtcNow, new MusicFavoriteSongMetadata("creep", "scsearch", "https://soundcloud.com/radiohead/creep", "", "03:58"), null)],
-            [new MusicFavoriteSummary(2, WasabiBot.Api.Persistence.Entities.MusicFavoriteKind.Radio, "Radiohead FM", "UK", "Radio Browser", "https://example.com/radiohead", "", DateTimeOffset.UtcNow, null, new MusicFavoriteRadioMetadata("station-1", "https://stream.example.com/radiohead", "https://example.com/radiohead", "", "UK", "alternative, rock"))]));
+            [new MusicFavoriteSummary(1, MusicFavoriteKind.Song, "Creep", "Radiohead", "scsearch", "https://soundcloud.com/radiohead/creep", "", DateTimeOffset.UtcNow, new MusicFavoriteSongMetadata("creep", "scsearch", "https://soundcloud.com/radiohead/creep", "", "03:58"), null)],
+            [new MusicFavoriteSummary(2, MusicFavoriteKind.Radio, "Radiohead FM", "UK", "Radio Browser", "https://example.com/radiohead", "", DateTimeOffset.UtcNow, null, new MusicFavoriteRadioMetadata("station-1", "https://stream.example.com/radiohead", "https://example.com/radiohead", "", "UK", "alternative, rock"))]));
 
         _context.Services.AddSingleton(dashboardService);
         _context.Services.AddSingleton(controlService);

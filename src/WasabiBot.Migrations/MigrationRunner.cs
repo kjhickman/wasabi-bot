@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using WasabiBot.Api.Persistence;
+using WasabiBot.Api.Infrastructure.Database;
 
 namespace WasabiBot.Migrations;
 

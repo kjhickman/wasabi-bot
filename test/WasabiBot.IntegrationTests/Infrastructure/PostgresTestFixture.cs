@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Respawn;
 using Testcontainers.PostgreSql;
-using WasabiBot.Api.Persistence;
+using WasabiBot.Api.Infrastructure.Database;
 
 namespace WasabiBot.IntegrationTests.Infrastructure;
 

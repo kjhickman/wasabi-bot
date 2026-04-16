@@ -2,7 +2,7 @@ using System.Text.Json;
 using DictionaryEntry;
 using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Persistence;
+using WasabiBot.Api.Infrastructure.Database;
 
 namespace WasabiBot.Api.Features.Stats;
 

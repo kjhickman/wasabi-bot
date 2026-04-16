@@ -1,4 +1,4 @@
-using WasabiBot.Api.Persistence;
+using WasabiBot.Api.Infrastructure.Database;
 
 namespace WasabiBot.IntegrationTests.Infrastructure;
 
@@ -13,7 +13,7 @@ public abstract class IntegrationTestBase
     protected PostgresTestFixture Fixture => _fixture ?? throw new InvalidOperationException("Fixture not initialized");
 
     /// <summary>Initializes the test fixture and resets the database before each test.</summary>
-    [Before(HookType.Test)]
+    [Before(Test)]
     public async Task BeforeEachTest()
     {
         _fixture = new PostgresTestFixture();
@@ -22,7 +22,7 @@ public abstract class IntegrationTestBase
     }
 
     /// <summary>Cleans up the test fixture after each test.</summary>
-    [After(HookType.Test)]
+    [After(Test)]
     public async Task AfterEachTest()
     {
         if (_fixture != null)

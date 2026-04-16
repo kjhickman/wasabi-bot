@@ -2,7 +2,7 @@ using System.Text.Json;
 using NetCord;
 using NetCord.JsonModels;
 using WasabiBot.Api.Core.Serialization;
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 
 namespace WasabiBot.Api.Core.Extensions;
 

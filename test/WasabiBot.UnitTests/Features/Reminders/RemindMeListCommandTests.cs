@@ -3,7 +3,7 @@ using NSubstitute;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders;
 using WasabiBot.Api.Features.Reminders.Abstractions;
-using WasabiBot.Api.Persistence.Entities;
+using WasabiBot.Api.Infrastructure.Database.Entities;
 using WasabiBot.UnitTests.Infrastructure.Discord;
 
 namespace WasabiBot.UnitTests.Features.Reminders;
