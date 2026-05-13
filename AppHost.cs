@@ -1,4 +1,4 @@
-#:sdk Aspire.AppHost.Sdk@13.2.2
+#:sdk Aspire.AppHost.Sdk@13.3.1
 #:package Aspire.Hosting.PostgreSQL
 #:property UserSecretsId=e740d40c-c13c-443b-a0cf-73ed8ab1c695
 
@@ -64,6 +64,7 @@ var api = builder.AddProject("wasabi-bot", "src/WasabiBot.Api/WasabiBot.Api.cspr
     .WithEnvironment("OpenRouterV2__ApiKey", openRouterKey)
     .WithEnvironment("Lavalink__BaseUrl", lavalink.GetEndpoint("http"))
     .WithEnvironment("Lavalink__Password", localLavalinkPassword)
+    .WaitForCompletion(migrations)
     .WithUrlForEndpoint("http", url => url.DisplayText = "Frontend")
     .WithUrlForEndpoint("http", _ => new ResourceUrlAnnotation
     {
