@@ -4,6 +4,9 @@
         <TargetFramework>net11.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <EnablePreviewFeatures>true</EnablePreviewFeatures>
+        <GenerateRequiresPreviewFeaturesAttribute>false</GenerateRequiresPreviewFeaturesAttribute>
+        <Features>$(Features);runtime-async=on</Features>
         <PublishReadyToRun>true</PublishReadyToRun>
         <UserSecretsId>3fb4ccc6-b8c3-4dc0-90b8-ea6c79a0da21</UserSecretsId>
         <GeneratedAppModule>$(MSBuildProjectDirectory)/wwwroot/WasabiBot.Api.lib.module.js</GeneratedAppModule>
