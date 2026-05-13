@@ -43,6 +43,11 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy shared Lavalink
-        run: flyctl deploy . --remote-only --config infra/lavalink/fly.toml
+        run: flyctl deploy . --remote-only --ha=false --config infra/lavalink/fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Enforce single Lavalink machine
+        run: flyctl scale count 1 -a wasabi-bot-lavalink --yes
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
