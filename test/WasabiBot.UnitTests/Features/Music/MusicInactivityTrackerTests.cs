@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using NSubstitute.Exceptions;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
 
@@ -21,10 +22,8 @@ public class MusicInactivityTrackerTests
         var tracker = CreateTracker(player, out _);
 
         tracker.ScheduleIdleDisconnect(42, TimeSpan.FromMilliseconds(10));
-        await Task.Delay(100);
 
-        await player.Received(1).StopAsync(Arg.Any<CancellationToken>());
-        await player.Received(1).DisconnectAsync(Arg.Any<CancellationToken>());
+        await WaitForDisconnectAsync(player);
     }
 
     [Test]
@@ -36,10 +35,8 @@ public class MusicInactivityTrackerTests
         var tracker = CreateTracker(player, out _);
 
         tracker.SchedulePausedDisconnect(42, TimeSpan.FromMilliseconds(10));
-        await Task.Delay(100);
 
-        await player.Received(1).StopAsync(Arg.Any<CancellationToken>());
-        await player.Received(1).DisconnectAsync(Arg.Any<CancellationToken>());
+        await WaitForDisconnectAsync(player);
     }
 
     [Test]
@@ -94,5 +91,31 @@ public class MusicInactivityTrackerTests
             provider.GetRequiredService<IServiceScopeFactory>(),
             Options.Create(new MusicInactivityOptions()),
             NullLogger<MusicInactivityTracker>.Instance);
+    }
+
+    private static async Task WaitForDisconnectAsync(IQueuedLavalinkPlayer player)
+    {
+        var timeout = TimeProvider.System.GetUtcNow().AddSeconds(2);
+
+        while (TimeProvider.System.GetUtcNow() < timeout)
+        {
+            try
+            {
+                await AssertDisconnectReceivedAsync(player);
+                return;
+            }
+            catch (ReceivedCallsException)
+            {
+                await Task.Delay(25);
+            }
+        }
+
+        await AssertDisconnectReceivedAsync(player);
+    }
+
+    private static async Task AssertDisconnectReceivedAsync(IQueuedLavalinkPlayer player)
+    {
+        await player.Received(1).StopAsync(Arg.Any<CancellationToken>());
+        await player.Received(1).DisconnectAsync(Arg.Any<CancellationToken>());
     }
 }
