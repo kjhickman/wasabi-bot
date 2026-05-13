@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /infra/lavalink
+    schedule:
+      interval: weekly
+    groups:
+      lavalink:
+        patterns:
+          - "*"

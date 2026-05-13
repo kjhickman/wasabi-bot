@@ -25,6 +25,10 @@ var openRouterKey = builder.AddParameter("openrouter-api-key", secret: true)
     .WithDescription("OpenRouter API Key");
 
 const string localLavalinkPassword = "wasabi-local-lavalink";
+const string lavalinkImagePrefix = "FROM ghcr.io/lavalink-devs/lavalink:";
+
+var lavalinkImageTag = File.ReadLines("infra/lavalink/Dockerfile")
+    .First(line => line.StartsWith(lavalinkImagePrefix, StringComparison.Ordinal))[lavalinkImagePrefix.Length..];
 
 var postgres = builder.AddPostgres("postgres")
     .WithLifetime(ContainerLifetime.Persistent);
@@ -44,7 +48,7 @@ var migrations = builder.AddProject("migrations", "src/WasabiBot.Migrations/Wasa
     .WaitFor(database)
     .WithParentRelationship(postgres);
 
-var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink", "4-alpine")
+var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink", lavalinkImageTag)
     .WithHttpEndpoint(port: 2333, targetPort: 2333, name: "http")
     .WithContainerFiles("/opt/Lavalink", "./infra/lavalink")
     .WithEnvironment("SERVER_PORT", "2333")
