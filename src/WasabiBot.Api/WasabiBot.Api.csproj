@@ -55,6 +55,10 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\WasabiBot.Api.Generators\WasabiBot.Api.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;RuntimeIdentifier;SelfContained" />
+    </ItemGroup>
+
+    <ItemGroup>
       <Compile Remove="Frontend/**/*.cs" />
       <Compile Remove="Infrastructure/Scalar/**/*.cs" />
       <Content Remove="Frontend/**" />
