@@ -8,7 +8,9 @@ internal static class DependencyInjection
     {
         builder.Services.AddOptions<OpenRouterV2Options>()
             .Bind(builder.Configuration.GetSection(OpenRouterV2Options.SectionName))
-            .ValidateDataAnnotations()
+            .Validate(options => !string.IsNullOrWhiteSpace(options.ApiKey), "OpenRouterV2:ApiKey is required.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.LowLatencyPreset), "OpenRouterV2:LowLatencyPreset is required.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.LowLatencyCreativePreset), "OpenRouterV2:LowLatencyCreativePreset is required.")
             .ValidateOnStart();
 
         builder.Services.AddScoped<IChatClientFactory, ChatClientFactory>();

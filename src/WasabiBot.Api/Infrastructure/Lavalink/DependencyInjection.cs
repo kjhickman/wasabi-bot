@@ -12,7 +12,9 @@ internal static class DependencyInjection
 
         builder.Services.AddOptions<LavalinkOptions>()
             .Bind(builder.Configuration.GetSection(LavalinkOptions.SectionName))
-            .ValidateDataAnnotations()
+            .Validate(options => !string.IsNullOrWhiteSpace(options.BaseUrl), "Lavalink:BaseUrl is required.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Password), "Lavalink:Password is required.")
+            .Validate(options => options.ResumeTimeoutSeconds is >= 1 and <= 3600, "Lavalink:ResumeTimeoutSeconds must be between 1 and 3600.")
             .ValidateOnStart();
 
         builder.Services.AddOptions<AudioServiceOptions>()

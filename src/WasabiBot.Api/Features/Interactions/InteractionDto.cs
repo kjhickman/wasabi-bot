@@ -49,7 +49,7 @@ public class InteractionDto
             Username = entity.Username,
             GlobalName = entity.GlobalName,
             Nickname = entity.Nickname,
-            Data = entity.Data.IsNullOrWhiteSpace() ? null : JsonSerializer.Deserialize<JsonElement>(entity.Data),
+            Data = entity.Data.IsNullOrWhiteSpace() ? null : JsonDocument.Parse(entity.Data).RootElement.Clone(),
             CreatedAt = entity.CreatedAt
         };
     }

@@ -234,11 +234,4 @@ public sealed class ApiCredentialService(
 
     private static string GetValidationCacheKey(string clientId) => $"api-credential:validate:{clientId}";
 
-    private sealed record CachedApiCredential(
-        long Id,
-        long OwnerDiscordUserId,
-        string ClientId,
-        string Name,
-        string SecretHash,
-        DateTimeOffset? RevokedAt);
 }

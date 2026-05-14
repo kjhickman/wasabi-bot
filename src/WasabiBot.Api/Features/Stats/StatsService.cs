@@ -30,7 +30,7 @@ public class StatsService : IStatsService
         if (excludeInteractionId.HasValue)
             span.SetAttribute("stats.exclude_interaction_id", excludeInteractionId.Value);
 
-        var query = _context.Interactions.AsQueryable();
+        var query = _context.Interactions.AsNoTracking();
 
         // Exclude the current interaction if specified
         if (excludeInteractionId.HasValue)
@@ -45,10 +45,7 @@ public class StatsService : IStatsService
             : 0;
 
         // Get most used command by parsing the Data JSON field
-        var allInteractions = await query
-            .AsNoTracking()
-            .Select(i => new { i.Data, i.UserId, i.Username, i.GlobalName })
-            .ToListAsync(ct);
+        var allInteractions = await query.ToListAsync(ct);
 
         var commandCounts = new Dictionary<string, int>();
         var userCounts = new Dictionary<long, (string name, int count)>();

@@ -1,3 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
+using WasabiBot.Api.Core.Serialization;
+using WasabiBot.Api.Features.ApiCredentials;
 using WasabiBot.Api.Features.Routing;
 using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Database;
@@ -27,7 +30,11 @@ builder.Services.AddHybridCache(options =>
 {
     options.MaximumPayloadBytes = 1024 * 1024;
     options.MaximumKeyLength = 1024;
-});
+})
+    .AddSerializer(new JsonHybridCacheSerializer<ApiCredentialSummary[]>(JsonContext.Default.ApiCredentialSummaryArray))
+    .AddSerializer(new JsonHybridCacheSerializer<CachedApiCredential>(JsonContext.Default.CachedApiCredential))
+    .AddSerializer(new BooleanHybridCacheSerializer())
+    .AddSerializer(new UInt64ArrayHybridCacheSerializer());
 
 var app = builder.Build();
 

@@ -2,6 +2,7 @@ using Lavalink4NET;
 using Lavalink4NET.Rest.Entities.Tracks;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Music;
+using WasabiBot.Api.Core.Serialization;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 
 namespace WasabiBot.Api.Features.Radio;
@@ -121,7 +122,7 @@ internal sealed class RadioService(
         var response = await _httpClient.GetAsync(requestUri, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var stations = await response.Content.ReadFromJsonAsync<List<RadioBrowserStation>>(cancellationToken: cancellationToken)
+        var stations = await response.Content.ReadFromJsonAsync(JsonContext.Default.ListRadioBrowserStation, cancellationToken: cancellationToken)
             ?? [];
 
         return RankStations(query, stations);

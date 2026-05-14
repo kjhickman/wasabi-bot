@@ -2,6 +2,7 @@ using System.Text.Json;
 using Lavalink4NET.Tracks;
 using Microsoft.EntityFrameworkCore;
 using WasabiBot.Api.Features.Radio;
+using WasabiBot.Api.Core.Serialization;
 using WasabiBot.Api.Persistence;
 using WasabiBot.Api.Persistence.Entities;
 
@@ -72,7 +73,7 @@ internal sealed class MusicFavoritesService(
                 snapshot.SourceName ?? string.Empty,
                 snapshot.SourceUrl ?? string.Empty,
                 snapshot.ArtworkUrl ?? string.Empty,
-                snapshot.DurationText)),
+                snapshot.DurationText), JsonContext.Default.MusicFavoriteSongMetadata),
             CreatedAt = DateTimeOffset.UtcNow,
         });
 
@@ -109,7 +110,7 @@ internal sealed class MusicFavoritesService(
                 station.Homepage,
                 station.Favicon,
                 station.Country,
-                station.Tags)),
+                station.Tags), JsonContext.Default.MusicFavoriteRadioMetadata),
             CreatedAt = DateTimeOffset.UtcNow,
         });
 
@@ -146,7 +147,7 @@ internal sealed class MusicFavoritesService(
                 favorite.SourceUrl,
                 favorite.ArtworkUrl,
                 favorite.CreatedAt,
-                Deserialize<MusicFavoriteSongMetadata>(favorite.MetadataJson),
+                JsonSerializer.Deserialize(favorite.MetadataJson, JsonContext.Default.MusicFavoriteSongMetadata),
                 null),
             _ => new MusicFavoriteSummary(
                 favorite.Id,
@@ -158,12 +159,7 @@ internal sealed class MusicFavoritesService(
                 favorite.ArtworkUrl,
                 favorite.CreatedAt,
                 null,
-                Deserialize<MusicFavoriteRadioMetadata>(favorite.MetadataJson))
+                JsonSerializer.Deserialize(favorite.MetadataJson, JsonContext.Default.MusicFavoriteRadioMetadata))
         };
-    }
-
-    private static T? Deserialize<T>(string json)
-    {
-        return JsonSerializer.Deserialize<T>(json);
     }
 }

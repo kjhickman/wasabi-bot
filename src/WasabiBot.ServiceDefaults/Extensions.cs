@@ -67,12 +67,6 @@ public static class Extensions
             .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
             .WriteTo.Console(new JsonFormatter(renderMessage: true));
 
-        var serilogSection = builder.Configuration.GetSection("Serilog");
-        if (serilogSection.Exists())
-        {
-            loggerConfig.ReadFrom.Configuration(builder.Configuration);
-        }
-
         var logger = loggerConfig.CreateLogger();
         builder.Logging.AddSerilog(logger, dispose: true);
 

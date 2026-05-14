@@ -18,7 +18,7 @@ public sealed class InteractionService(WasabiBotContext context, Tracer tracer) 
     public async Task<InteractionEntity[]> GetAllAsync(GetAllInteractionsRequest request)
     {
         using var span = tracer.StartActiveSpan("interaction.getAll");
-        var query = context.Interactions.AsNoTracking().AsQueryable();
+        var query = context.Interactions.AsNoTracking();
 
         if (request.UserId.HasValue)
             query = query.Where(i => i.UserId == request.UserId.Value);

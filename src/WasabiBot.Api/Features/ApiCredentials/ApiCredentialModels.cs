@@ -17,3 +17,11 @@ public sealed record ApiCredentialValidationResult(
     long OwnerDiscordUserId,
     string ClientId,
     string Name);
+
+public sealed record CachedApiCredential(
+    long Id,
+    long OwnerDiscordUserId,
+    string ClientId,
+    string Name,
+    string SecretHash,
+    DateTimeOffset? RevokedAt);

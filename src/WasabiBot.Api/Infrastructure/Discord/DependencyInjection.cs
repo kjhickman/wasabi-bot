@@ -49,7 +49,8 @@ internal static class DependencyInjection
         services.AddScoped<IImageRetrievalService, HttpClientImageRetrievalService>();
         services.AddOptions<MusicInactivityOptions>()
             .BindConfiguration(MusicInactivityOptions.SectionName)
-            .ValidateDataAnnotations()
+            .Validate(options => options.IdleTimeoutMinutes is >= 1 and <= 1440, "MusicInactivity:IdleTimeoutMinutes must be between 1 and 1440.")
+            .Validate(options => options.PausedTimeoutMinutes is >= 1 and <= 1440, "MusicInactivity:PausedTimeoutMinutes must be between 1 and 1440.")
             .ValidateOnStart();
         services.AddSingleton<RadioTrackMetadataStore>();
         services.AddSingleton<IMusicPlaybackStatsRecorder, MusicPlaybackStatsRecorder>();
