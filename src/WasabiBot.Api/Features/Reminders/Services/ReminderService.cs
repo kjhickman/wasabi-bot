@@ -68,9 +68,9 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.list.unsent");
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
-        var rows = await connection.QueryAsync<ReminderRow>(new CommandDefinition(
+        var rows = await connection.QueryAsync<ReminderRow>(
             SelectReminderSql + " WHERE \"Status\" = @Status ORDER BY \"DueAt\"",
-            new { Status = ReminderStatus.Pending.ToString() }, cancellationToken: ct));
+            new { Status = ReminderStatus.Pending.ToString() });
         return rows.Select(row => row.ToEntity()).ToList();
     }
 
@@ -78,9 +78,9 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.list.by_user");
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
-        var rows = await connection.QueryAsync<ReminderRow>(new CommandDefinition(
+        var rows = await connection.QueryAsync<ReminderRow>(
             SelectReminderSql + " WHERE \"UserId\" = @UserId AND \"Status\" IN (@PendingStatus, @ProcessingStatus) ORDER BY \"DueAt\"",
-            new { UserId = userId, PendingStatus = ReminderStatus.Pending.ToString(), ProcessingStatus = ReminderStatus.Processing.ToString() }, cancellationToken: ct));
+            new { UserId = userId, PendingStatus = ReminderStatus.Pending.ToString(), ProcessingStatus = ReminderStatus.Processing.ToString() });
         return rows.Select(row => row.ToEntity()).ToList();
     }
 
@@ -118,9 +118,9 @@ public sealed class ReminderService : IReminderService
         using var span = _tracer.StartActiveSpan("reminder.get_by_id");
 
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
-        var row = await connection.QueryFirstOrDefaultAsync<ReminderRow>(new CommandDefinition(
+        var row = await connection.QueryFirstOrDefaultAsync<ReminderRow>(
             SelectReminderSql + " WHERE \"Id\" = @ReminderId",
-            new { ReminderId = reminderId }, cancellationToken: ct));
+            new { ReminderId = reminderId });
         return row?.ToEntity();
     }
 
@@ -129,7 +129,7 @@ public sealed class ReminderService : IReminderService
         using var span = _tracer.StartActiveSpan("reminder.delete");
 
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
-        var deleted = await connection.ExecuteAsync(new CommandDefinition("""
+        var deleted = await connection.ExecuteAsync("""
             UPDATE "Reminders"
             SET "Status" = @CanceledStatus,
                 "LastError" = NULL,
@@ -140,7 +140,7 @@ public sealed class ReminderService : IReminderService
             ReminderId = reminderId,
             SentStatus = ReminderStatus.Sent.ToString(),
             CanceledStatus = ReminderStatus.Canceled.ToString(),
-        }, cancellationToken: ct));
+        });
 
         if (deleted == 0)
         {
@@ -163,7 +163,7 @@ public sealed class ReminderService : IReminderService
         }
 
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
-        var claimed = await connection.QueryAsync<ReminderRow>(new CommandDefinition("""
+        var claimed = await connection.QueryAsync<ReminderRow>("""
                 UPDATE "Reminders" AS r
                 SET "Status" = @ProcessingStatus,
                     "ClaimedAt" = @ClaimedAt,
@@ -185,7 +185,7 @@ public sealed class ReminderService : IReminderService
             ClaimedAt = now,
             Now = now,
             BatchSize = batchSize,
-        }, cancellationToken: ct));
+        });
 
         return claimed.Select(row => row.ToEntity()).ToArray();
     }
@@ -201,13 +201,13 @@ public sealed class ReminderService : IReminderService
         }
 
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
-        var updated = await connection.ExecuteAsync(new CommandDefinition("""
+        var updated = await connection.ExecuteAsync("""
             UPDATE "Reminders"
             SET "Status" = @SentStatus,
                 "SentAt" = @SentAt,
                 "LastError" = NULL
             WHERE "Id" = ANY(@Ids) AND "Status" = @ProcessingStatus
-            """, new { Ids = ids, SentStatus = ReminderStatus.Sent.ToString(), SentAt = sentAt, ProcessingStatus = ReminderStatus.Processing.ToString() }, cancellationToken: ct));
+            """, new { Ids = ids, SentStatus = ReminderStatus.Sent.ToString(), SentAt = sentAt, ProcessingStatus = ReminderStatus.Processing.ToString() });
 
         if (updated > 0)
         {
@@ -222,13 +222,13 @@ public sealed class ReminderService : IReminderService
         using var span = _tracer.StartActiveSpan("reminder.mark_failed");
 
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
-        var updated = await connection.ExecuteAsync(new CommandDefinition("""
+        var updated = await connection.ExecuteAsync("""
             UPDATE "Reminders"
             SET "Status" = @FailedStatus,
                 "LastError" = @Error,
                 "ClaimedAt" = NULL
             WHERE "Id" = @ReminderId
-            """, new { ReminderId = reminderId, FailedStatus = ReminderStatus.Failed.ToString(), Error = error }, cancellationToken: ct));
+            """, new { ReminderId = reminderId, FailedStatus = ReminderStatus.Failed.ToString(), Error = error });
 
         if (updated > 0)
         {
@@ -243,7 +243,7 @@ public sealed class ReminderService : IReminderService
         using var span = _tracer.StartActiveSpan("reminder.requeue");
 
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
-        var updated = await connection.ExecuteAsync(new CommandDefinition("""
+        var updated = await connection.ExecuteAsync("""
             UPDATE "Reminders"
             SET "Status" = @PendingStatus,
                 "DueAt" = @DueAt,
@@ -251,7 +251,7 @@ public sealed class ReminderService : IReminderService
                 "ClaimedAt" = NULL,
                 "SentAt" = NULL
             WHERE "Id" = @ReminderId
-            """, new { ReminderId = reminderId, PendingStatus = ReminderStatus.Pending.ToString(), DueAt = dueAt, Error = error }, cancellationToken: ct));
+            """, new { ReminderId = reminderId, PendingStatus = ReminderStatus.Pending.ToString(), DueAt = dueAt, Error = error });
 
         if (updated > 0)
         {
@@ -271,13 +271,13 @@ public sealed class ReminderService : IReminderService
     private async Task<DateTimeOffset?> GetNextDueTimeCoreAsync(CancellationToken ct)
     {
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
-        var nextDue = await connection.QueryFirstOrDefaultAsync<DateTime?>(new CommandDefinition("""
+        var nextDue = await connection.QueryFirstOrDefaultAsync<DateTime?>("""
             SELECT "DueAt"
             FROM "Reminders"
             WHERE "Status" = @PendingStatus
             ORDER BY "DueAt"
             LIMIT 1
-            """, new { PendingStatus = ReminderStatus.Pending.ToString() }, cancellationToken: ct));
+            """, new { PendingStatus = ReminderStatus.Pending.ToString() });
         return nextDue is null ? null : new DateTimeOffset(nextDue.Value.ToUniversalTime());
     }
 
@@ -286,7 +286,7 @@ public sealed class ReminderService : IReminderService
         FROM "Reminders"
         """;
 
-    private sealed class ReminderRow
+    internal sealed class ReminderRow
     {
         public long Id { get; set; }
         public long UserId { get; set; }
