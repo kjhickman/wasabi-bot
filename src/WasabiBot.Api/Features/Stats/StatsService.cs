@@ -1,8 +1,10 @@
 using System.Text.Json;
+using Dapper;
 using DictionaryEntry;
-using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Persistence;
+using WasabiBot.Api.Features.Interactions;
+using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Stats;
 
@@ -13,12 +15,12 @@ public interface IStatsService
 
 public class StatsService : IStatsService
 {
-    private readonly WasabiBotContext _context;
+    private readonly NpgsqlDataSource _dataSource;
     private readonly Tracer _tracer;
 
-    public StatsService(WasabiBotContext context, Tracer tracer)
+    public StatsService(NpgsqlDataSource dataSource, Tracer tracer)
     {
-        _context = context;
+        _dataSource = dataSource;
         _tracer = tracer;
     }
 
@@ -30,21 +32,33 @@ public class StatsService : IStatsService
         if (excludeInteractionId.HasValue)
             span.SetAttribute("stats.exclude_interaction_id", excludeInteractionId.Value);
 
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+
         var totalInteractions = excludeInteractionId.HasValue
-            ? await _context.Interactions.AsNoTracking().CountAsync(i => i.Id != excludeInteractionId.Value, ct)
-            : await _context.Interactions.AsNoTracking().CountAsync(ct);
+            ? await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+                "SELECT COUNT(*) FROM \"Interactions\" WHERE \"Id\" <> @ExcludeInteractionId",
+                new { ExcludeInteractionId = excludeInteractionId.Value }, cancellationToken: ct))
+            : await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+                "SELECT COUNT(*) FROM \"Interactions\"", cancellationToken: ct));
 
         var channelInteractions = (channelId, excludeInteractionId) switch
         {
-            (long channel, long excluded) => await _context.Interactions.AsNoTracking().CountAsync(i => i.ChannelId == channel && i.Id != excluded, ct),
-            (long channel, null) => await _context.Interactions.AsNoTracking().CountAsync(i => i.ChannelId == channel, ct),
+            (long channel, long excluded) => await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+                "SELECT COUNT(*) FROM \"Interactions\" WHERE \"ChannelId\" = @ChannelId AND \"Id\" <> @ExcludeInteractionId",
+                new { ChannelId = channel, ExcludeInteractionId = excluded }, cancellationToken: ct)),
+            (long channel, null) => await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+                "SELECT COUNT(*) FROM \"Interactions\" WHERE \"ChannelId\" = @ChannelId",
+                new { ChannelId = channel }, cancellationToken: ct)),
             _ => 0
         };
 
-        // Get most used command by parsing the Data JSON field
         var allInteractions = excludeInteractionId.HasValue
-            ? await _context.Interactions.AsNoTracking().Where(i => i.Id != excludeInteractionId.Value).ToListAsync(ct)
-            : await _context.Interactions.AsNoTracking().ToListAsync(ct);
+            ? await connection.QueryAsync<InteractionRow>(new CommandDefinition(
+                "SELECT \"Id\", \"ChannelId\", \"ApplicationId\", \"UserId\", \"GuildId\", \"Username\", \"GlobalName\", \"Nickname\", \"Data\", \"CreatedAt\" FROM \"Interactions\" WHERE \"Id\" <> @ExcludeInteractionId",
+                new { ExcludeInteractionId = excludeInteractionId.Value }, cancellationToken: ct))
+            : await connection.QueryAsync<InteractionRow>(new CommandDefinition(
+                "SELECT \"Id\", \"ChannelId\", \"ApplicationId\", \"UserId\", \"GuildId\", \"Username\", \"GlobalName\", \"Nickname\", \"Data\", \"CreatedAt\" FROM \"Interactions\"",
+                cancellationToken: ct));
 
         var commandCounts = new Dictionary<string, int>();
         var userCounts = new Dictionary<long, (string name, int count)>();
@@ -80,7 +94,7 @@ public class StatsService : IStatsService
             userCounts
                 .Entry(interaction.UserId)
                 .AndModify(existing => (existing.name, existing.count + 1))
-                .OrInsert((displayName, 1));
+                .OrInsert((displayName!, 1));
         }
 
         var mostUsedCommand = commandCounts.Count > 0

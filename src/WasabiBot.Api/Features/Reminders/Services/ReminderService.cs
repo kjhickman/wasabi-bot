@@ -1,27 +1,26 @@
 using System.Collections.Concurrent;
-using System.Data;
-using Microsoft.EntityFrameworkCore;
+using Dapper;
 using NetCord.Rest;
+using Npgsql;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
-using WasabiBot.Api.Persistence;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Reminders.Services;
 
 public sealed class ReminderService : IReminderService
 {
-    private readonly WasabiBotContext _ctx;
+    private readonly NpgsqlDataSource _dataSource;
     private readonly RestClient _discordClient;
     private readonly IReminderChangeNotifier _changeNotifier;
     private readonly ILogger<ReminderService> _logger;
     private readonly Tracer _tracer;
     private readonly TimeProvider _timeProvider;
 
-    public ReminderService(WasabiBotContext ctx, RestClient discordClient, IReminderChangeNotifier changeNotifier,
+    public ReminderService(NpgsqlDataSource dataSource, RestClient discordClient, IReminderChangeNotifier changeNotifier,
         ILogger<ReminderService> logger, Tracer tracer, TimeProvider timeProvider)
     {
-        _ctx = ctx;
+        _dataSource = dataSource;
         _discordClient = discordClient;
         _changeNotifier = changeNotifier;
         _logger = logger;
@@ -43,8 +42,23 @@ public sealed class ReminderService : IReminderService
             AttemptCount = 0
         };
 
-        _ctx.Reminders.Add(entity);
-        await _ctx.SaveChangesAsync();
+        const string sql = """
+            INSERT INTO "Reminders" ("UserId", "ChannelId", "ReminderMessage", "DueAt", "CreatedAt", "Status", "AttemptCount")
+            VALUES (@UserId, @ChannelId, @ReminderMessage, @DueAt, @CreatedAt, @Status, @AttemptCount)
+            RETURNING "Id"
+            """;
+
+        await using var connection = await _dataSource.OpenConnectionAsync();
+        entity.Id = await connection.ExecuteScalarAsync<long>(sql, new
+        {
+            entity.UserId,
+            entity.ChannelId,
+            entity.ReminderMessage,
+            entity.DueAt,
+            entity.CreatedAt,
+            Status = entity.Status.ToString(),
+            entity.AttemptCount,
+        });
         await _changeNotifier.NotifyReminderChangedAsync();
 
         return entity.Id > 0;
@@ -53,21 +67,21 @@ public sealed class ReminderService : IReminderService
     public async Task<List<ReminderEntity>> GetAllUnsent(CancellationToken ct = default)
     {
         using var span = _tracer.StartActiveSpan("reminder.list.unsent");
-        return await _ctx.Reminders
-            .AsNoTracking()
-            .Where(r => r.Status == ReminderStatus.Pending)
-            .OrderBy(r => r.DueAt)
-            .ToListAsync(ct);
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<ReminderRow>(new CommandDefinition(
+            SelectReminderSql + " WHERE \"Status\" = @Status ORDER BY \"DueAt\"",
+            new { Status = ReminderStatus.Pending.ToString() }, cancellationToken: ct));
+        return rows.Select(row => row.ToEntity()).ToList();
     }
 
     public async Task<List<ReminderEntity>> GetAllByUserId(long userId, CancellationToken ct = default)
     {
         using var span = _tracer.StartActiveSpan("reminder.list.by_user");
-        return await _ctx.Reminders
-            .AsNoTracking()
-            .Where(r => r.UserId == userId && (r.Status == ReminderStatus.Pending || r.Status == ReminderStatus.Processing))
-            .OrderBy(r => r.DueAt)
-            .ToListAsync(ct);
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<ReminderRow>(new CommandDefinition(
+            SelectReminderSql + " WHERE \"UserId\" = @UserId AND \"Status\" IN (@PendingStatus, @ProcessingStatus) ORDER BY \"DueAt\"",
+            new { UserId = userId, PendingStatus = ReminderStatus.Pending.ToString(), ProcessingStatus = ReminderStatus.Processing.ToString() }, cancellationToken: ct));
+        return rows.Select(row => row.ToEntity()).ToList();
     }
 
     public async Task<IReadOnlyCollection<long>> SendRemindersAsync(IEnumerable<ReminderEntity> reminders, CancellationToken ct = default)
@@ -93,12 +107,7 @@ public sealed class ReminderService : IReminderService
         var ids = sentReminderIds.Distinct().ToArray();
         if (ids.Length > 0)
         {
-            await _ctx.Reminders
-                .Where(r => ids.Contains(r.Id) && r.Status == ReminderStatus.Processing)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(r => r.Status, ReminderStatus.Sent)
-                    .SetProperty(r => r.SentAt, _timeProvider.GetUtcNow())
-                    .SetProperty(r => r.LastError, (string?)null), ct);
+            await MarkSentAsync(ids, _timeProvider.GetUtcNow(), ct);
         }
 
         return sentReminderIds;
@@ -108,21 +117,30 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.get_by_id");
 
-        return await _ctx.Reminders
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == reminderId, ct);
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        var row = await connection.QueryFirstOrDefaultAsync<ReminderRow>(new CommandDefinition(
+            SelectReminderSql + " WHERE \"Id\" = @ReminderId",
+            new { ReminderId = reminderId }, cancellationToken: ct));
+        return row?.ToEntity();
     }
 
     public async Task<bool> DeleteByIdAsync(long reminderId, CancellationToken ct = default)
     {
         using var span = _tracer.StartActiveSpan("reminder.delete");
 
-        var deleted = await _ctx.Reminders
-            .Where(r => r.Id == reminderId && r.Status != ReminderStatus.Sent && r.Status != ReminderStatus.Canceled)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(r => r.Status, ReminderStatus.Canceled)
-                .SetProperty(r => r.LastError, (string?)null)
-                .SetProperty(r => r.ClaimedAt, (DateTimeOffset?)null), ct);
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        var deleted = await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE "Reminders"
+            SET "Status" = @CanceledStatus,
+                "LastError" = NULL,
+                "ClaimedAt" = NULL
+            WHERE "Id" = @ReminderId AND "Status" <> @SentStatus AND "Status" <> @CanceledStatus
+            """, new
+        {
+            ReminderId = reminderId,
+            SentStatus = ReminderStatus.Sent.ToString(),
+            CanceledStatus = ReminderStatus.Canceled.ToString(),
+        }, cancellationToken: ct));
 
         if (deleted == 0)
         {
@@ -144,68 +162,32 @@ public sealed class ReminderService : IReminderService
             return [];
         }
 
-        var connection = _ctx.Database.GetDbConnection();
-        var shouldClose = connection.State != ConnectionState.Open;
-        if (shouldClose)
-        {
-            await connection.OpenAsync(ct);
-        }
-
-        try
-        {
-            await using var command = connection.CreateCommand();
-            command.CommandText = """
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        var claimed = await connection.QueryAsync<ReminderRow>(new CommandDefinition("""
                 UPDATE "Reminders" AS r
-                SET "Status" = @processingStatus,
-                    "ClaimedAt" = @claimedAt,
+                SET "Status" = @ProcessingStatus,
+                    "ClaimedAt" = @ClaimedAt,
                     "AttemptCount" = r."AttemptCount" + 1
                 WHERE r."Id" IN (
                     SELECT candidate."Id"
                     FROM "Reminders" AS candidate
-                    WHERE candidate."Status" = @pendingStatus
-                      AND candidate."DueAt" <= @now
+                    WHERE candidate."Status" = @PendingStatus
+                      AND candidate."DueAt" <= @Now
                     ORDER BY candidate."DueAt", candidate."Id"
                     FOR UPDATE SKIP LOCKED
-                    LIMIT @batchSize
+                    LIMIT @BatchSize
                 )
                 RETURNING r."Id", r."UserId", r."ChannelId", r."ReminderMessage", r."DueAt", r."CreatedAt", r."Status", r."ClaimedAt", r."SentAt", r."AttemptCount", r."LastError";
-                """;
-
-            AddParameter(command, "processingStatus", nameof(ReminderStatus.Processing));
-            AddParameter(command, "pendingStatus", nameof(ReminderStatus.Pending));
-            AddParameter(command, "claimedAt", now);
-            AddParameter(command, "now", now);
-            AddParameter(command, "batchSize", batchSize);
-
-            var claimed = new List<ReminderEntity>();
-            await using var reader = await command.ExecuteReaderAsync(ct);
-            while (await reader.ReadAsync(ct))
-            {
-                claimed.Add(new ReminderEntity
-                {
-                    Id = reader.GetInt64(0),
-                    UserId = reader.GetInt64(1),
-                    ChannelId = reader.GetInt64(2),
-                    ReminderMessage = reader.GetString(3),
-                    DueAt = reader.GetFieldValue<DateTimeOffset>(4),
-                    CreatedAt = reader.GetFieldValue<DateTimeOffset>(5),
-                    Status = Enum.Parse<ReminderStatus>(reader.GetString(6)),
-                    ClaimedAt = reader.IsDBNull(7) ? null : reader.GetFieldValue<DateTimeOffset>(7),
-                    SentAt = reader.IsDBNull(8) ? null : reader.GetFieldValue<DateTimeOffset>(8),
-                    AttemptCount = reader.GetInt32(9),
-                    LastError = reader.IsDBNull(10) ? null : reader.GetString(10)
-                });
-            }
-
-            return claimed;
-        }
-        finally
+                """, new
         {
-            if (shouldClose)
-            {
-                await connection.CloseAsync();
-            }
-        }
+            ProcessingStatus = ReminderStatus.Processing.ToString(),
+            PendingStatus = ReminderStatus.Pending.ToString(),
+            ClaimedAt = now,
+            Now = now,
+            BatchSize = batchSize,
+        }, cancellationToken: ct));
+
+        return claimed.Select(row => row.ToEntity()).ToArray();
     }
 
     public async Task<int> MarkSentAsync(IEnumerable<long> reminderIds, DateTimeOffset sentAt, CancellationToken ct = default)
@@ -218,12 +200,14 @@ public sealed class ReminderService : IReminderService
             return 0;
         }
 
-        var updated = await _ctx.Reminders
-            .Where(r => ids.Contains(r.Id) && r.Status == ReminderStatus.Processing)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(r => r.Status, ReminderStatus.Sent)
-                .SetProperty(r => r.SentAt, sentAt)
-                .SetProperty(r => r.LastError, (string?)null), ct);
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        var updated = await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE "Reminders"
+            SET "Status" = @SentStatus,
+                "SentAt" = @SentAt,
+                "LastError" = NULL
+            WHERE "Id" = ANY(@Ids) AND "Status" = @ProcessingStatus
+            """, new { Ids = ids, SentStatus = ReminderStatus.Sent.ToString(), SentAt = sentAt, ProcessingStatus = ReminderStatus.Processing.ToString() }, cancellationToken: ct));
 
         if (updated > 0)
         {
@@ -237,12 +221,14 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.mark_failed");
 
-        var updated = await _ctx.Reminders
-            .Where(r => r.Id == reminderId)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(r => r.Status, ReminderStatus.Failed)
-                .SetProperty(r => r.LastError, error)
-                .SetProperty(r => r.ClaimedAt, (DateTimeOffset?)null), ct);
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        var updated = await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE "Reminders"
+            SET "Status" = @FailedStatus,
+                "LastError" = @Error,
+                "ClaimedAt" = NULL
+            WHERE "Id" = @ReminderId
+            """, new { ReminderId = reminderId, FailedStatus = ReminderStatus.Failed.ToString(), Error = error }, cancellationToken: ct));
 
         if (updated > 0)
         {
@@ -256,14 +242,16 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.requeue");
 
-        var updated = await _ctx.Reminders
-            .Where(r => r.Id == reminderId)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(r => r.Status, ReminderStatus.Pending)
-                .SetProperty(r => r.DueAt, dueAt)
-                .SetProperty(r => r.LastError, error)
-                .SetProperty(r => r.ClaimedAt, (DateTimeOffset?)null)
-                .SetProperty(r => r.SentAt, (DateTimeOffset?)null), ct);
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        var updated = await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE "Reminders"
+            SET "Status" = @PendingStatus,
+                "DueAt" = @DueAt,
+                "LastError" = @Error,
+                "ClaimedAt" = NULL,
+                "SentAt" = NULL
+            WHERE "Id" = @ReminderId
+            """, new { ReminderId = reminderId, PendingStatus = ReminderStatus.Pending.ToString(), DueAt = dueAt, Error = error }, cancellationToken: ct));
 
         if (updated > 0)
         {
@@ -277,19 +265,56 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.next_due");
 
-        return _ctx.Reminders
-            .AsNoTracking()
-            .Where(r => r.Status == ReminderStatus.Pending)
-            .OrderBy(r => r.DueAt)
-            .Select(r => (DateTimeOffset?)r.DueAt)
-            .FirstOrDefaultAsync(ct);
+        return GetNextDueTimeCoreAsync(ct);
     }
 
-    private static void AddParameter(IDbCommand command, string name, object value)
+    private async Task<DateTimeOffset?> GetNextDueTimeCoreAsync(CancellationToken ct)
     {
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = name;
-        parameter.Value = value;
-        command.Parameters.Add(parameter);
+        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        var nextDue = await connection.QueryFirstOrDefaultAsync<DateTime?>(new CommandDefinition("""
+            SELECT "DueAt"
+            FROM "Reminders"
+            WHERE "Status" = @PendingStatus
+            ORDER BY "DueAt"
+            LIMIT 1
+            """, new { PendingStatus = ReminderStatus.Pending.ToString() }, cancellationToken: ct));
+        return nextDue is null ? null : new DateTimeOffset(nextDue.Value.ToUniversalTime());
+    }
+
+    private const string SelectReminderSql = """
+        SELECT "Id", "UserId", "ChannelId", "ReminderMessage", "DueAt", "CreatedAt", "Status", "ClaimedAt", "SentAt", "AttemptCount", "LastError"
+        FROM "Reminders"
+        """;
+
+    private sealed class ReminderRow
+    {
+        public long Id { get; set; }
+        public long UserId { get; set; }
+        public long ChannelId { get; set; }
+        public required string ReminderMessage { get; set; }
+        public DateTime DueAt { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public required string Status { get; set; }
+        public DateTime? ClaimedAt { get; set; }
+        public DateTime? SentAt { get; set; }
+        public int AttemptCount { get; set; }
+        public string? LastError { get; set; }
+
+        public ReminderEntity ToEntity() => new()
+        {
+            Id = Id,
+            UserId = UserId,
+            ChannelId = ChannelId,
+            ReminderMessage = ReminderMessage,
+            DueAt = ToDateTimeOffset(DueAt),
+            CreatedAt = ToDateTimeOffset(CreatedAt),
+            Status = Enum.Parse<ReminderStatus>(Status),
+            ClaimedAt = ClaimedAt is null ? null : ToDateTimeOffset(ClaimedAt.Value),
+            SentAt = SentAt is null ? null : ToDateTimeOffset(SentAt.Value),
+            AttemptCount = AttemptCount,
+            LastError = LastError,
+        };
+
+        private static DateTimeOffset ToDateTimeOffset(DateTime value) => new(value.ToUniversalTime());
     }
 }

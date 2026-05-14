@@ -1,6 +1,4 @@
-using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.Api.Infrastructure.Database;
 
@@ -8,6 +6,8 @@ public static class DependencyInjection
 {
     public static void AddDbContext(this IHostApplicationBuilder builder)
     {
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
         builder.Services.AddSingleton<NpgsqlDataSource>(_ =>
         {
             var connectionString = builder.Configuration.GetConnectionString("wasabi_db")
@@ -15,10 +15,5 @@ public static class DependencyInjection
 
             return NpgsqlDataSource.Create(connectionString);
         });
-
-        builder.Services.AddDbContext<WasabiBotContext>(options =>
-            options.UseNpgsql(
-                builder.Configuration.GetConnectionString("wasabi_db"),
-                npgsql => npgsql.MigrationsAssembly("WasabiBot.Migrations")));
     }
 }

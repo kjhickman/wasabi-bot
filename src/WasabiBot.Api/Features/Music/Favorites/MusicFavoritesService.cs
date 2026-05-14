@@ -1,26 +1,34 @@
 using System.Text.Json;
+using Dapper;
 using Lavalink4NET.Tracks;
-using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using WasabiBot.Api.Features.Radio;
 using WasabiBot.Api.Core.Serialization;
-using WasabiBot.Api.Persistence;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Music;
 
 internal sealed class MusicFavoritesService(
-    WasabiBotContext context,
+    NpgsqlDataSource dataSource,
     PlaybackService playbackService) : IMusicFavoritesService
 {
-    private readonly WasabiBotContext _context = context;
+    private readonly NpgsqlDataSource _dataSource = dataSource;
     private readonly PlaybackService _playbackService = playbackService;
 
     public async Task<MusicFavoritesSnapshot> ListAsync(long discordUserId, CancellationToken cancellationToken = default)
     {
-        var favorites = await _context.MusicFavorites
-            .Where(favorite => favorite.DiscordUserId == discordUserId)
-            .OrderByDescending(favorite => favorite.CreatedAt)
-            .ToArrayAsync(cancellationToken);
+        const string sql = """
+            SELECT "Id", "DiscordUserId", "Kind", "ExternalId", "Title", "ArtistOrSubtitle", "SourceName", "SourceUrl", "ArtworkUrl", "MetadataJson", "CreatedAt"
+            FROM "MusicFavorites"
+            WHERE "DiscordUserId" = @DiscordUserId
+            ORDER BY "CreatedAt" DESC
+            """;
+
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        var favorites = (await connection.QueryAsync<MusicFavoriteRow>(new CommandDefinition(
+            sql, new { DiscordUserId = discordUserId }, cancellationToken: cancellationToken)))
+            .Select(row => row.ToEntity())
+            .ToArray();
 
         var songs = favorites
             .Where(favorite => favorite.Kind == MusicFavoriteKind.Song)
@@ -47,21 +55,23 @@ internal sealed class MusicFavoritesService(
             ? snapshot.SourceUrl
             : $"{snapshot.SourceName}:{track.Identifier}";
 
-        var exists = await _context.MusicFavorites.AnyAsync(
-            favorite => favorite.DiscordUserId == discordUserId
-                && favorite.Kind == MusicFavoriteKind.Song
-                && favorite.ExternalId == externalId,
-            cancellationToken);
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        var exists = await FavoriteExistsAsync(connection, discordUserId, MusicFavoriteKind.Song, externalId, cancellationToken);
 
         if (exists)
         {
             return new MusicCommandResult("That song is already in your favorites.", Ephemeral: true);
         }
 
-        _context.MusicFavorites.Add(new MusicFavoriteEntity
+        const string sql = """
+            INSERT INTO "MusicFavorites" ("DiscordUserId", "Kind", "ExternalId", "Title", "ArtistOrSubtitle", "SourceName", "SourceUrl", "ArtworkUrl", "MetadataJson", "CreatedAt")
+            VALUES (@DiscordUserId, @Kind, @ExternalId, @Title, @ArtistOrSubtitle, @SourceName, @SourceUrl, @ArtworkUrl, CAST(@MetadataJson AS jsonb), @CreatedAt)
+            """;
+
+        await connection.ExecuteAsync(new CommandDefinition(sql, new
         {
             DiscordUserId = discordUserId,
-            Kind = MusicFavoriteKind.Song,
+            Kind = nameof(MusicFavoriteKind.Song),
             ExternalId = externalId,
             Title = snapshot.Title,
             ArtistOrSubtitle = snapshot.Author,
@@ -75,29 +85,29 @@ internal sealed class MusicFavoritesService(
                 snapshot.ArtworkUrl ?? string.Empty,
                 snapshot.DurationText), JsonContext.Default.MusicFavoriteSongMetadata),
             CreatedAt = DateTimeOffset.UtcNow,
-        });
-
-        await _context.SaveChangesAsync(cancellationToken);
+        }, cancellationToken: cancellationToken));
         return new MusicCommandResult($"Saved **{snapshot.Title}** to your song favorites.");
     }
 
     public async Task<MusicCommandResult> AddRadioAsync(long discordUserId, RadioBrowserStation station, CancellationToken cancellationToken = default)
     {
-        var exists = await _context.MusicFavorites.AnyAsync(
-            favorite => favorite.DiscordUserId == discordUserId
-                && favorite.Kind == MusicFavoriteKind.Radio
-                && favorite.ExternalId == station.StationUuid,
-            cancellationToken);
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        var exists = await FavoriteExistsAsync(connection, discordUserId, MusicFavoriteKind.Radio, station.StationUuid, cancellationToken);
 
         if (exists)
         {
             return new MusicCommandResult("That radio station is already in your favorites.", Ephemeral: true);
         }
 
-        _context.MusicFavorites.Add(new MusicFavoriteEntity
+        const string sql = """
+            INSERT INTO "MusicFavorites" ("DiscordUserId", "Kind", "ExternalId", "Title", "ArtistOrSubtitle", "SourceName", "SourceUrl", "ArtworkUrl", "MetadataJson", "CreatedAt")
+            VALUES (@DiscordUserId, @Kind, @ExternalId, @Title, @ArtistOrSubtitle, @SourceName, @SourceUrl, @ArtworkUrl, CAST(@MetadataJson AS jsonb), @CreatedAt)
+            """;
+
+        await connection.ExecuteAsync(new CommandDefinition(sql, new
         {
             DiscordUserId = discordUserId,
-            Kind = MusicFavoriteKind.Radio,
+            Kind = nameof(MusicFavoriteKind.Radio),
             ExternalId = station.StationUuid,
             Title = station.Name,
             ArtistOrSubtitle = station.Country,
@@ -112,26 +122,43 @@ internal sealed class MusicFavoritesService(
                 station.Country,
                 station.Tags), JsonContext.Default.MusicFavoriteRadioMetadata),
             CreatedAt = DateTimeOffset.UtcNow,
-        });
-
-        await _context.SaveChangesAsync(cancellationToken);
+        }, cancellationToken: cancellationToken));
         return new MusicCommandResult($"Saved **{station.Name}** to your radio favorites.");
     }
 
     public async Task<MusicCommandResult> RemoveAsync(long discordUserId, long favoriteId, CancellationToken cancellationToken = default)
     {
-        var favorite = await _context.MusicFavorites.FirstOrDefaultAsync(
-            item => item.Id == favoriteId && item.DiscordUserId == discordUserId,
-            cancellationToken);
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        const string selectSql = """
+            SELECT "Id", "DiscordUserId", "Kind", "ExternalId", "Title", "ArtistOrSubtitle", "SourceName", "SourceUrl", "ArtworkUrl", "MetadataJson", "CreatedAt"
+            FROM "MusicFavorites"
+            WHERE "Id" = @FavoriteId AND "DiscordUserId" = @DiscordUserId
+            """;
+        var favorite = (await connection.QueryFirstOrDefaultAsync<MusicFavoriteRow>(new CommandDefinition(
+            selectSql, new { FavoriteId = favoriteId, DiscordUserId = discordUserId }, cancellationToken: cancellationToken)))?.ToEntity();
 
         if (favorite is null)
         {
             return new MusicCommandResult("That favorite no longer exists.", Ephemeral: true);
         }
 
-        _context.MusicFavorites.Remove(favorite);
-        await _context.SaveChangesAsync(cancellationToken);
+        await connection.ExecuteAsync(new CommandDefinition(
+            "DELETE FROM \"MusicFavorites\" WHERE \"Id\" = @FavoriteId AND \"DiscordUserId\" = @DiscordUserId",
+            new { FavoriteId = favoriteId, DiscordUserId = discordUserId }, cancellationToken: cancellationToken));
         return new MusicCommandResult($"Removed **{favorite.Title}** from your favorites.");
+    }
+
+    private static async Task<bool> FavoriteExistsAsync(NpgsqlConnection connection, long discordUserId, MusicFavoriteKind kind, string externalId, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM "MusicFavorites"
+                WHERE "DiscordUserId" = @DiscordUserId AND "Kind" = @Kind AND "ExternalId" = @ExternalId)
+            """;
+
+        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            sql, new { DiscordUserId = discordUserId, Kind = kind.ToString(), ExternalId = externalId }, cancellationToken: cancellationToken));
     }
 
     private static MusicFavoriteSummary MapFavorite(MusicFavoriteEntity favorite)
@@ -160,6 +187,36 @@ internal sealed class MusicFavoritesService(
                 favorite.CreatedAt,
                 null,
                 JsonSerializer.Deserialize(favorite.MetadataJson, JsonContext.Default.MusicFavoriteRadioMetadata))
+        };
+    }
+
+    private sealed class MusicFavoriteRow
+    {
+        public long Id { get; set; }
+        public long DiscordUserId { get; set; }
+        public required string Kind { get; set; }
+        public required string ExternalId { get; set; }
+        public required string Title { get; set; }
+        public string ArtistOrSubtitle { get; set; } = string.Empty;
+        public string SourceName { get; set; } = string.Empty;
+        public string SourceUrl { get; set; } = string.Empty;
+        public string ArtworkUrl { get; set; } = string.Empty;
+        public string MetadataJson { get; set; } = "{}";
+        public DateTime CreatedAt { get; set; }
+
+        public MusicFavoriteEntity ToEntity() => new()
+        {
+            Id = Id,
+            DiscordUserId = DiscordUserId,
+            Kind = Enum.Parse<MusicFavoriteKind>(Kind),
+            ExternalId = ExternalId,
+            Title = Title,
+            ArtistOrSubtitle = ArtistOrSubtitle,
+            SourceName = SourceName,
+            SourceUrl = SourceUrl,
+            ArtworkUrl = ArtworkUrl,
+            MetadataJson = MetadataJson,
+            CreatedAt = new DateTimeOffset(CreatedAt.ToUniversalTime()),
         };
     }
 }

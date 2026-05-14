@@ -19,9 +19,8 @@ public class ReminderServiceTests : IntegrationTestBase
 {
     private ReminderService CreateService(IReminderChangeNotifier? changeNotifier = null)
     {
-        var context = CreateContext();
         return new ReminderService(
-            context,
+            CreateDataSource(),
             null!, // RestClient is sealed and not needed for database tests
             changeNotifier ?? new NoOpReminderChangeNotifier(),
             NullLogger<ReminderService>.Instance,

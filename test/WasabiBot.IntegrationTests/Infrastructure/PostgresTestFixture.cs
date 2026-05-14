@@ -16,6 +16,11 @@ namespace WasabiBot.IntegrationTests.Infrastructure;
 /// </summary>
 public sealed class PostgresTestFixture
 {
+    static PostgresTestFixture()
+    {
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+    }
+
     private PostgreSqlContainer? _container;
     private Respawner? _respawner;
     private NpgsqlConnection? _respawnConnection;
@@ -33,6 +38,8 @@ public sealed class PostgresTestFixture
 
         return new WasabiBotContext(options);
     }
+
+    public NpgsqlDataSource CreateDataSource() => NpgsqlDataSource.Create(ConnectionString);
 
     /// <summary>Initializes the container and applies migrations.</summary>
     public async Task InitializeAsync()

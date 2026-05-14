@@ -57,7 +57,6 @@ public static class Extensions
         var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Is(minimumLevel)
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Information)
             .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
             .MinimumLevel.Override("WasabiBot", builder.Environment.IsDevelopment() ? LogEventLevel.Debug : LogEventLevel.Information)
             .MinimumLevel.Override("NetCord", LogEventLevel.Information)
@@ -116,7 +115,6 @@ public static class Extensions
                 tracing.AddSource(builder.Environment.ApplicationName)
                     .AddSource("Microsoft.Extensions.AI")
                     .AddAspNetCoreInstrumentation()
-                    .AddEntityFrameworkCoreInstrumentation()
                     .AddNpgsql()
                     .AddHttpClientInstrumentation();
             });

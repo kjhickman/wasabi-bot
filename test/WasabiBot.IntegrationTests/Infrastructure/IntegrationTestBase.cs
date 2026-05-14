@@ -1,4 +1,5 @@
 using WasabiBot.Api.Persistence;
+using Npgsql;
 
 namespace WasabiBot.IntegrationTests.Infrastructure;
 
@@ -33,6 +34,8 @@ public abstract class IntegrationTestBase
 
     /// <summary>Creates a new context for this test.</summary>
     protected WasabiBotContext CreateContext() => Fixture.CreateContext();
+
+    protected NpgsqlDataSource CreateDataSource() => Fixture.CreateDataSource();
 
     /// <summary>Resets the database state for the next test.</summary>
     protected async Task ResetDatabaseAsync() => await Fixture.ResetDatabaseAsync();

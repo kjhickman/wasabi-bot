@@ -1,14 +1,14 @@
-using Microsoft.EntityFrameworkCore;
+using Dapper;
 using Microsoft.Extensions.Caching.Hybrid;
+using Npgsql;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Auth;
-using WasabiBot.Api.Persistence;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.ApiCredentials;
 
 public sealed class ApiCredentialService(
-    WasabiBotContext context,
+    NpgsqlDataSource dataSource,
     IApiCredentialSecretService secretService,
     HybridCache cache,
     Tracer tracer) : IApiCredentialService
@@ -36,13 +36,20 @@ public sealed class ApiCredentialService(
 
         return await cache.GetOrCreateAsync(
             GetListCacheKey(ownerDiscordUserId),
-            async cancel => await context.ApiCredentials
-                .AsNoTracking()
-                .Where(c => c.OwnerDiscordUserId == ownerDiscordUserId && c.RevokedAt == null)
-                .OrderByDescending(c => c.CreatedAt)
-                .ThenByDescending(c => c.Id)
-                .Select(c => ToSummary(c))
-                .ToArrayAsync(cancel),
+            async cancel =>
+            {
+                const string sql = """
+                    SELECT "Id", "OwnerDiscordUserId", "Name", "ClientId", "SecretHash", "CreatedAt", "LastUsedAt", "RevokedAt"
+                    FROM "ApiCredentials"
+                    WHERE "OwnerDiscordUserId" = @OwnerDiscordUserId AND "RevokedAt" IS NULL
+                    ORDER BY "CreatedAt" DESC, "Id" DESC
+                    """;
+
+                await using var connection = await dataSource.OpenConnectionAsync(cancel);
+                var credentials = await connection.QueryAsync<ApiCredentialRow>(new CommandDefinition(
+                    sql, new { OwnerDiscordUserId = ownerDiscordUserId }, cancellationToken: cancel));
+                return credentials.Select(row => ToSummary(row.ToEntity())).ToArray();
+            },
             _listCacheOptions,
             cancellationToken: cancellationToken);
     }
@@ -57,17 +64,21 @@ public sealed class ApiCredentialService(
         var clientSecret = secretService.CreateClientSecret();
         var createdAt = DateTimeOffset.UtcNow;
 
-        var entity = new ApiCredentialEntity
+        const string sql = """
+            INSERT INTO "ApiCredentials" ("OwnerDiscordUserId", "Name", "ClientId", "SecretHash", "CreatedAt")
+            VALUES (@OwnerDiscordUserId, @Name, @ClientId, @SecretHash, @CreatedAt)
+            RETURNING "Id", "OwnerDiscordUserId", "Name", "ClientId", "SecretHash", "CreatedAt", "LastUsedAt", "RevokedAt"
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var entity = (await connection.QuerySingleAsync<ApiCredentialRow>(new CommandDefinition(sql, new
         {
             OwnerDiscordUserId = ownerDiscordUserId,
             Name = normalizedName,
             ClientId = clientId,
             SecretHash = secretService.HashSecret(clientSecret),
             CreatedAt = createdAt,
-        };
-
-        context.ApiCredentials.Add(entity);
-        await context.SaveChangesAsync(cancellationToken);
+        }, cancellationToken: cancellationToken))).ToEntity();
         await cache.RemoveAsync(GetListCacheKey(ownerDiscordUserId), cancellationToken);
 
         return new ApiCredentialIssueResult(ToSummary(entity), clientSecret);
@@ -79,9 +90,15 @@ public sealed class ApiCredentialService(
         span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
         span.SetAttribute("auth.credential_id", credentialId);
 
-        var credential = await context.ApiCredentials.FirstOrDefaultAsync(
-            c => c.Id == credentialId && c.OwnerDiscordUserId == ownerDiscordUserId,
-            cancellationToken);
+        const string selectSql = """
+            SELECT "Id", "OwnerDiscordUserId", "Name", "ClientId", "SecretHash", "CreatedAt", "LastUsedAt", "RevokedAt"
+            FROM "ApiCredentials"
+            WHERE "Id" = @CredentialId AND "OwnerDiscordUserId" = @OwnerDiscordUserId
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var credential = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(new CommandDefinition(
+            selectSql, new { CredentialId = credentialId, OwnerDiscordUserId = ownerDiscordUserId }, cancellationToken: cancellationToken)))?.ToEntity();
 
         if (credential is null)
         {
@@ -93,8 +110,9 @@ public sealed class ApiCredentialService(
             return true;
         }
 
-        credential.RevokedAt = DateTimeOffset.UtcNow;
-        await context.SaveChangesAsync(cancellationToken);
+        await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE \"ApiCredentials\" SET \"RevokedAt\" = @RevokedAt WHERE \"Id\" = @CredentialId",
+            new { RevokedAt = DateTimeOffset.UtcNow, CredentialId = credentialId }, cancellationToken: cancellationToken));
         await cache.RemoveAsync(GetValidationCacheKey(credential.ClientId), cancellationToken);
         await cache.RemoveAsync(GetListCacheKey(ownerDiscordUserId), cancellationToken);
         return true;
@@ -106,9 +124,15 @@ public sealed class ApiCredentialService(
         span.SetAttribute("auth.owner_discord_user_id", ownerDiscordUserId.ToString());
         span.SetAttribute("auth.credential_id", credentialId);
 
-        var credential = await context.ApiCredentials.FirstOrDefaultAsync(
-            c => c.Id == credentialId && c.OwnerDiscordUserId == ownerDiscordUserId,
-            cancellationToken);
+        const string selectSql = """
+            SELECT "Id", "OwnerDiscordUserId", "Name", "ClientId", "SecretHash", "CreatedAt", "LastUsedAt", "RevokedAt"
+            FROM "ApiCredentials"
+            WHERE "Id" = @CredentialId AND "OwnerDiscordUserId" = @OwnerDiscordUserId
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var credential = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(new CommandDefinition(
+            selectSql, new { CredentialId = credentialId, OwnerDiscordUserId = ownerDiscordUserId }, cancellationToken: cancellationToken)))?.ToEntity();
 
         if (credential is null || credential.RevokedAt is not null)
         {
@@ -117,7 +141,9 @@ public sealed class ApiCredentialService(
 
         var clientSecret = secretService.CreateClientSecret();
         credential.SecretHash = secretService.HashSecret(clientSecret);
-        await context.SaveChangesAsync(cancellationToken);
+        await connection.ExecuteAsync(new CommandDefinition(
+            "UPDATE \"ApiCredentials\" SET \"SecretHash\" = @SecretHash WHERE \"Id\" = @CredentialId",
+            new { credential.SecretHash, CredentialId = credentialId }, cancellationToken: cancellationToken));
         await cache.RemoveAsync(GetValidationCacheKey(credential.ClientId), cancellationToken);
 
         return new ApiCredentialIssueResult(ToSummary(credential), clientSecret);
@@ -137,9 +163,15 @@ public sealed class ApiCredentialService(
             GetValidationCacheKey(clientId),
             async cancel =>
             {
-                var entity = await context.ApiCredentials
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.ClientId == clientId, cancel);
+                const string sql = """
+                    SELECT "Id", "OwnerDiscordUserId", "Name", "ClientId", "SecretHash", "CreatedAt", "LastUsedAt", "RevokedAt"
+                    FROM "ApiCredentials"
+                    WHERE "ClientId" = @ClientId
+                    """;
+
+                await using var connection = await dataSource.OpenConnectionAsync(cancel);
+                var entity = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(new CommandDefinition(
+                    sql, new { ClientId = clientId }, cancellationToken: cancel)))?.ToEntity();
 
                 return entity is null
                     ? null
@@ -164,15 +196,19 @@ public sealed class ApiCredentialService(
             return null;
         }
 
-        var entity = await context.ApiCredentials.FirstOrDefaultAsync(c => c.Id == credential.Id, cancellationToken);
+        await using var validateConnection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var entity = (await validateConnection.QueryFirstOrDefaultAsync<ApiCredentialRow>(new CommandDefinition(
+            "SELECT \"Id\", \"OwnerDiscordUserId\", \"Name\", \"ClientId\", \"SecretHash\", \"CreatedAt\", \"LastUsedAt\", \"RevokedAt\" FROM \"ApiCredentials\" WHERE \"Id\" = @Id",
+            new { credential.Id }, cancellationToken: cancellationToken)))?.ToEntity();
         if (entity is null || entity.RevokedAt is not null)
         {
             await cache.RemoveAsync(GetValidationCacheKey(clientId), cancellationToken);
             return null;
         }
 
-        entity.LastUsedAt = DateTimeOffset.UtcNow;
-        await context.SaveChangesAsync(cancellationToken);
+        await validateConnection.ExecuteAsync(new CommandDefinition(
+            "UPDATE \"ApiCredentials\" SET \"LastUsedAt\" = @LastUsedAt WHERE \"Id\" = @Id",
+            new { LastUsedAt = DateTimeOffset.UtcNow, entity.Id }, cancellationToken: cancellationToken));
 
         return new ApiCredentialValidationResult(
             entity.Id,
@@ -188,9 +224,10 @@ public sealed class ApiCredentialService(
         for (var attempt = 0; attempt < MaxClientIdAttempts; attempt++)
         {
             var clientId = secretService.CreateClientId();
-            var exists = await context.ApiCredentials
-                .AsNoTracking()
-                .AnyAsync(c => c.ClientId == clientId, cancellationToken);
+            await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+            var exists = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+                "SELECT EXISTS (SELECT 1 FROM \"ApiCredentials\" WHERE \"ClientId\" = @ClientId)",
+                new { ClientId = clientId }, cancellationToken: cancellationToken));
 
             if (!exists)
             {
@@ -233,5 +270,31 @@ public sealed class ApiCredentialService(
     private static string GetListCacheKey(long ownerDiscordUserId) => $"api-credential:list:{ownerDiscordUserId}";
 
     private static string GetValidationCacheKey(string clientId) => $"api-credential:validate:{clientId}";
+
+    private sealed class ApiCredentialRow
+    {
+        public long Id { get; set; }
+        public long OwnerDiscordUserId { get; set; }
+        public required string Name { get; set; }
+        public required string ClientId { get; set; }
+        public required string SecretHash { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? LastUsedAt { get; set; }
+        public DateTime? RevokedAt { get; set; }
+
+        public ApiCredentialEntity ToEntity() => new()
+        {
+            Id = Id,
+            OwnerDiscordUserId = OwnerDiscordUserId,
+            Name = Name,
+            ClientId = ClientId,
+            SecretHash = SecretHash,
+            CreatedAt = ToDateTimeOffset(CreatedAt),
+            LastUsedAt = LastUsedAt is null ? null : ToDateTimeOffset(LastUsedAt.Value),
+            RevokedAt = RevokedAt is null ? null : ToDateTimeOffset(RevokedAt.Value),
+        };
+
+        private static DateTimeOffset ToDateTimeOffset(DateTime value) => new(value.ToUniversalTime());
+    }
 
 }

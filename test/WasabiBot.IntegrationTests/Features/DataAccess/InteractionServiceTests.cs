@@ -11,12 +11,14 @@ namespace WasabiBot.IntegrationTests.Features.DataAccess;
 /// </summary>
 public class InteractionServiceTests : IntegrationTestBase
 {
+    private InteractionService CreateService() => new(CreateDataSource(), TracerProvider.Default.GetTracer("test"));
+
     [Test]
     public async Task CreateAsync_ShouldInsertInteractionIntoDatabase()
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var interaction = InteractionEntityBuilder.Create(id: 123, userId: 456);
 
         // Act
@@ -33,7 +35,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var interaction = InteractionEntityBuilder.Create(id: 789, username: "TestUser123");
 
         await service.CreateAsync(interaction);
@@ -52,7 +54,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
 
         // Act
         var result = await service.GetByIdAsync(99999);
@@ -66,7 +68,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var interactions = InteractionEntityBuilder.CreateMultiple(count: 5);
 
         foreach (var interaction in interactions)
@@ -87,7 +89,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var interactions = new[]
         {
             InteractionEntityBuilder.Create(id: 1, userId: 111),
@@ -117,7 +119,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var interactions = new[]
         {
             InteractionEntityBuilder.Create(id: 1, channelId: 100),
@@ -147,7 +149,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var interactions = new[]
         {
             InteractionEntityBuilder.Create(id: 1, applicationId: 300),
@@ -177,7 +179,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var interactions = new[]
         {
             InteractionEntityBuilder.Create(id: 1, guildId: 500),
@@ -207,7 +209,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var interactions = InteractionEntityBuilder.CreateMultiple(count: 10);
 
         foreach (var interaction in interactions)
@@ -230,7 +232,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var baseTime = DateTimeOffset.UtcNow;
         var interactions = new[]
         {
@@ -259,7 +261,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var baseTime = DateTimeOffset.UtcNow;
         var interactions = new[]
         {
@@ -288,7 +290,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var baseTime = DateTimeOffset.UtcNow;
         var interactions = InteractionEntityBuilder.CreateMultiple(count: 5);
 
@@ -332,7 +334,7 @@ public class InteractionServiceTests : IntegrationTestBase
     {
         // Arrange
         await using var context = CreateContext();
-        var service = new InteractionService(context, TracerProvider.Default.GetTracer("test"));
+        var service = CreateService();
         var interactions = new[]
         {
             InteractionEntityBuilder.Create(id: 1, userId: 111, channelId: 222, applicationId: 333),
