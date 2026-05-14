@@ -105,6 +105,56 @@ public class MusicServiceTests
     }
 
     [Test]
+    public async Task PlayAsync_WhenSearchOnlyFindsSoundCloudPreviews_ReturnsFriendlyError()
+    {
+        var trackManager = Substitute.For<ITrackManager>();
+        trackManager.LoadTracksAsync(
+                "creep radiohead",
+                Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+                Arg.Any<LavalinkApiResolutionScope>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TrackLoadResult.CreateSearch(ImmutableArray.Create(CreateSoundCloudPreviewTrack("Creep", "Radiohead")))));
+
+        var service = CreateService(trackManager: trackManager);
+
+        var result = await service.PlayAsync(new FakeCommandContext(), "creep radiohead");
+
+        await Assert.That(result.Ephemeral).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("SoundCloud only returned preview clips for that search. Try a more specific query or paste the SoundCloud track URL.");
+    }
+
+    [Test]
+    public async Task PlayAsync_WhenSearchIncludesSoundCloudPreviewAndPlayableTrack_SkipsPreview()
+    {
+        var trackManager = Substitute.For<ITrackManager>();
+        trackManager.LoadTracksAsync(
+                "creep radiohead",
+                Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+                Arg.Any<LavalinkApiResolutionScope>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TrackLoadResult.CreateSearch(ImmutableArray.Create(
+                CreateSoundCloudPreviewTrack("Creep", "Radiohead"),
+                CreateTrack("Creep Live", "Radiohead", TimeSpan.FromMinutes(4), sourceName: "soundcloud")))));
+
+        var playerManager = Substitute.For<IPlayerManager>();
+        playerManager
+            .RetrieveAsync<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
+                Arg.Any<ulong>(),
+                Arg.Any<ulong?>(),
+                Arg.Any<PlayerFactory<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
+                Arg.Any<Microsoft.Extensions.Options.IOptions<QueuedLavalinkPlayerOptions>>(),
+                Arg.Any<PlayerRetrieveOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(PlayerResult<WasabiQueuedLavalinkPlayer>.UserNotInVoiceChannel));
+
+        var service = CreateService(playerManager: playerManager, trackManager: trackManager);
+
+        var result = await service.PlayAsync(new FakeCommandContext(userVoiceChannelId: null), "creep radiohead");
+
+        await Assert.That(result.Message).IsEqualTo("You need to join a voice channel first.");
+    }
+
+    [Test]
     public async Task PlayAsync_WhenUrlIsProvided_UsesPassthroughLoad()
     {
         const string url = "https://soundcloud.com/test/song";
@@ -229,7 +279,7 @@ public class MusicServiceTests
         await Assert.That(result.Message).Contains("Now playing **Current Song** by **Current Artist** (`01:35`). 2 more track(s) queued.");
     }
 
-    private static LavalinkTrack CreateTrack(string title, string author, TimeSpan duration)
+    private static LavalinkTrack CreateTrack(string title, string author, TimeSpan duration, string sourceName = "http")
     {
         return new LavalinkTrack
         {
@@ -239,7 +289,25 @@ public class MusicServiceTests
             Duration = duration,
             IsLiveStream = false,
             IsSeekable = true,
-            SourceName = "http"
+            SourceName = sourceName,
+            Uri = sourceName.Contains("soundcloud", StringComparison.OrdinalIgnoreCase)
+                ? new Uri($"https://soundcloud.com/{author.ToLowerInvariant().Replace(' ', '-')}/{title.ToLowerInvariant().Replace(' ', '-')}")
+                : null,
+        };
+    }
+
+    private static LavalinkTrack CreateSoundCloudPreviewTrack(string title, string author)
+    {
+        return new LavalinkTrack
+        {
+            Title = title,
+            Author = author,
+            Identifier = "https://api-v2.soundcloud.com/media/soundcloud:tracks:265069081/d52c6ba6-2b66-4158-9e20-0dc95b02621d/preview/hls",
+            Duration = TimeSpan.FromMinutes(3.97),
+            IsLiveStream = false,
+            IsSeekable = true,
+            SourceName = "soundcloud",
+            Uri = new Uri("https://soundcloud.com/radiohead/creep"),
         };
     }
 }

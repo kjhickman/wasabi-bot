@@ -1,6 +1,7 @@
 using Lavalink4NET;
 using Lavalink4NET.Players.Queued;
 using Lavalink4NET.Rest.Entities.Tracks;
+using Lavalink4NET.Tracks;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 
@@ -141,6 +142,28 @@ internal sealed class MusicService(
         if (loadResult.HasMatches)
         {
             span.SetAttribute("music.search_match_count", loadResult.Tracks.Length);
+            if (!isUrl)
+            {
+                var track = loadResult.Tracks.FirstOrDefault(track => !IsSoundCloudPreviewTrack(track));
+                if (track is null)
+                {
+                    span.SetAttribute("music.result", "soundcloud_preview_only");
+                    return (null, new MusicCommandResult("SoundCloud only returned preview clips for that search. Try a more specific query or paste the SoundCloud track URL.", Ephemeral: true));
+                }
+
+                if (!ReferenceEquals(track, loadResult.Track))
+                {
+                    span.SetAttribute("music.soundcloud.preview_tracks_skipped", loadResult.Tracks.Count(IsSoundCloudPreviewTrack));
+                    return (TrackLoadResult.CreateTrack(track), null);
+                }
+            }
+
+            if (loadResult.Track is { } directTrack && IsSoundCloudPreviewTrack(directTrack))
+            {
+                span.SetAttribute("music.result", "soundcloud_preview_track");
+                return (null, new MusicCommandResult("SoundCloud returned a preview clip for that track. Try a more specific query or a different SoundCloud result.", Ephemeral: true));
+            }
+
             return (loadResult, null);
         }
 
@@ -161,6 +184,29 @@ internal sealed class MusicService(
                 ? "I couldn't find anything playable at that URL."
                 : "I couldn't find anything playable on SoundCloud for that search.",
             Ephemeral: true));
+    }
+
+    private static bool IsSoundCloudPreviewTrack(LavalinkTrack track)
+    {
+        if (!IsSoundCloudSource(track))
+        {
+            return false;
+        }
+
+        return track.Identifier.Contains("api-v2.soundcloud.com/", StringComparison.OrdinalIgnoreCase)
+            && track.Identifier.Contains("/preview/", StringComparison.OrdinalIgnoreCase)
+            && track.Identifier.Contains("/hls", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSoundCloudSource(LavalinkTrack track)
+    {
+        if (track.Uri?.Host.Contains("soundcloud.com", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return true;
+        }
+
+        return track.SourceName?.Contains("soundcloud", StringComparison.OrdinalIgnoreCase) == true
+            || track.SourceName?.Contains("scsearch", StringComparison.OrdinalIgnoreCase) == true;
     }
 
     public async Task<MusicCommandResult> SkipAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
