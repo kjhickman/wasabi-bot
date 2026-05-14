@@ -1,20 +1,16 @@
-FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-preview.3 AS base
+FROM mcr.microsoft.com/dotnet/runtime-deps:11.0.0-preview.3 AS base
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
-FROM oven/bun:1.2.9 AS css
-WORKDIR /src/src/WasabiBot.Api
-
-COPY ["src/WasabiBot.Api/package.json", "src/WasabiBot.Api/bun.lock", "./"]
-RUN bun install --frozen-lockfile
-
-COPY src/WasabiBot.Api/ ./
-RUN bun run build:css
-
 FROM mcr.microsoft.com/dotnet/sdk:11.0.100-preview.3 AS build
 ARG BUILD_CONFIGURATION=Release
+ARG TARGETARCH
 WORKDIR /src
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends clang zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
@@ -28,11 +24,13 @@ RUN dotnet restore "src/WasabiBot.Api/WasabiBot.Api.csproj"
 COPY src/WasabiBot.Api/ src/WasabiBot.Api/
 COPY src/WasabiBot.Api.Generators/ src/WasabiBot.Api.Generators/
 COPY src/WasabiBot.ServiceDefaults/ src/WasabiBot.ServiceDefaults/
-COPY --from=css /src/src/WasabiBot.Api/wwwroot/app.css src/WasabiBot.Api/wwwroot/app.css
 
-RUN dotnet publish "src/WasabiBot.Api/WasabiBot.Api.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "src/WasabiBot.Api/WasabiBot.Api.csproj" \
+    -c ${BUILD_CONFIGURATION} \
+    -r linux-$(if [ "$TARGETARCH" = "amd64" ]; then echo "x64"; else echo "$TARGETARCH"; fi) \
+    -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "WasabiBot.Api.dll"]
+ENTRYPOINT ["./WasabiBot.Api"]

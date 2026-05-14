@@ -11,6 +11,19 @@
         <UserSecretsId>3fb4ccc6-b8c3-4dc0-90b8-ea6c79a0da21</UserSecretsId>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <PublishAot>true</PublishAot>
+        <DebugType>none</DebugType>
+        <NativeDebugSymbols>false</NativeDebugSymbols>
+        <CompressSymbols>false</CompressSymbols>
+        <OptimizationPreference>Size</OptimizationPreference>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <DebuggerSupport>false</DebuggerSupport>
+        <StackTraceSupport>false</StackTraceSupport>
+        <EventSourceSupport>false</EventSourceSupport>
+        <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2026;IL2104;IL3000;IL3002;IL3050;IL3053</WarningsNotAsErrors>
+    </PropertyGroup>
+
     <ItemGroup>
       <PackageReference Include="DictionaryEntry" />
       <PackageReference Include="Lavalink4NET.NetCord" />
@@ -31,7 +44,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WasabiBot.Api.Generators\WasabiBot.Api.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+      <ProjectReference Include="..\WasabiBot.Api.Generators\WasabiBot.Api.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;RuntimeIdentifier;SelfContained" />
     </ItemGroup>
 
     <ItemGroup>
@@ -39,8 +52,12 @@
       <Compile Remove="Infrastructure/Scalar/**/*.cs" />
       <Content Remove="Frontend/**" />
       <Content Remove="wwwroot/**" />
+      <Content Remove="bun.lock" />
+      <Content Remove="package.json" />
       <None Remove="Frontend/**" />
       <None Remove="wwwroot/**" />
+      <None Remove="bun.lock" />
+      <None Remove="package.json" />
     </ItemGroup>
 
 </Project>

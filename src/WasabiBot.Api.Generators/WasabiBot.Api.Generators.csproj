@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsPublishable>false</IsPublishable>
+    <PublishAot>false</PublishAot>
     <NoWarn>$(NoWarn);RS2008</NoWarn>
   </PropertyGroup>
 
