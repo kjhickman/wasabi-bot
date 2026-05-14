@@ -1,6 +1,9 @@
 using Lavalink4NET;
+using Lavalink4NET.Clients;
 using Lavalink4NET.NetCord;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using NetCord.Gateway;
 
 namespace WasabiBot.Api.Infrastructure.Lavalink;
 
@@ -9,6 +12,8 @@ internal static class DependencyInjection
     public static void AddLavalinkServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddLavalink();
+        builder.Services.Replace(ServiceDescriptor.Singleton<IDiscordClientWrapper>(serviceProvider =>
+            new DiscordClientWrapper(serviceProvider.GetRequiredService<GatewayClient>())));
 
         builder.Services.AddOptions<LavalinkOptions>()
             .Bind(builder.Configuration.GetSection(LavalinkOptions.SectionName))
