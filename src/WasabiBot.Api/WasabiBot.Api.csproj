@@ -9,7 +9,6 @@
         <Features>$(Features);runtime-async=on</Features>
         <PublishReadyToRun>true</PublishReadyToRun>
         <UserSecretsId>3fb4ccc6-b8c3-4dc0-90b8-ea6c79a0da21</UserSecretsId>
-        <GeneratedAppModule>$(MSBuildProjectDirectory)/wwwroot/WasabiBot.Api.lib.module.js</GeneratedAppModule>
     </PropertyGroup>
 
     <ItemGroup>
@@ -25,7 +24,6 @@
       <PackageReference Include="OpenTelemetry.Api" />
       <PackageReference Include="AspNet.Security.OAuth.Discord" />
       <PackageReference Include="NetCord.Hosting.Services" />
-      <PackageReference Include="Scalar.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>
@@ -37,16 +35,12 @@
     </ItemGroup>
 
     <ItemGroup>
-      <FrontendScriptSourceFiles Include="$(MSBuildProjectDirectory)/Frontend/Scripts/*.js" />
+      <Compile Remove="Frontend/**/*.cs" />
+      <Compile Remove="Infrastructure/Scalar/**/*.cs" />
+      <Content Remove="Frontend/**" />
+      <Content Remove="wwwroot/**" />
+      <None Remove="Frontend/**" />
+      <None Remove="wwwroot/**" />
     </ItemGroup>
-
-    <Target Name="BuildFrontendScripts"
-            BeforeTargets="BeforeBuild"
-            Inputs="@(FrontendScriptSourceFiles)"
-            Outputs="$(GeneratedAppModule)"
-            Condition="'$(DesignTimeBuild)' != 'true'">
-      <Copy SourceFiles="@(FrontendScriptSourceFiles)"
-            DestinationFolder="$(MSBuildProjectDirectory)/wwwroot" />
-    </Target>
 
 </Project>
