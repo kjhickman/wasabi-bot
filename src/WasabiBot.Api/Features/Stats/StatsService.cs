@@ -30,22 +30,21 @@ public class StatsService : IStatsService
         if (excludeInteractionId.HasValue)
             span.SetAttribute("stats.exclude_interaction_id", excludeInteractionId.Value);
 
-        var query = _context.Interactions.AsNoTracking();
+        var totalInteractions = excludeInteractionId.HasValue
+            ? await _context.Interactions.AsNoTracking().CountAsync(i => i.Id != excludeInteractionId.Value, ct)
+            : await _context.Interactions.AsNoTracking().CountAsync(ct);
 
-        // Exclude the current interaction if specified
-        if (excludeInteractionId.HasValue)
+        var channelInteractions = (channelId, excludeInteractionId) switch
         {
-            query = query.Where(i => i.Id != excludeInteractionId.Value);
-        }
-
-        var totalInteractions = await query.CountAsync(ct);
-
-        var channelInteractions = channelId.HasValue
-            ? await query.CountAsync(i => i.ChannelId == channelId.Value, ct)
-            : 0;
+            (long channel, long excluded) => await _context.Interactions.AsNoTracking().CountAsync(i => i.ChannelId == channel && i.Id != excluded, ct),
+            (long channel, null) => await _context.Interactions.AsNoTracking().CountAsync(i => i.ChannelId == channel, ct),
+            _ => 0
+        };
 
         // Get most used command by parsing the Data JSON field
-        var allInteractions = await query.ToListAsync(ct);
+        var allInteractions = excludeInteractionId.HasValue
+            ? await _context.Interactions.AsNoTracking().Where(i => i.Id != excludeInteractionId.Value).ToListAsync(ct)
+            : await _context.Interactions.AsNoTracking().ToListAsync(ct);
 
         var commandCounts = new Dictionary<string, int>();
         var userCounts = new Dictionary<long, (string name, int count)>();

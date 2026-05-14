@@ -1,27 +1,33 @@
-using Microsoft.EntityFrameworkCore;
-using WasabiBot.Api.Persistence;
+using Dapper;
+using Npgsql;
 
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed class MusicGuildStatsService(WasabiBotContext context) : IMusicGuildStatsService
+internal sealed class MusicGuildStatsService(NpgsqlDataSource dataSource) : IMusicGuildStatsService
 {
-    private readonly WasabiBotContext _context = context;
+    private readonly NpgsqlDataSource _dataSource = dataSource;
 
     public async Task<IReadOnlyList<GuildTopTrackSummary>> GetTopTracksAsync(ulong guildId, int limit = 10, CancellationToken cancellationToken = default)
     {
-        return await _context.GuildTrackPlays
-            .Where(item => item.GuildId == (long)guildId)
-            .OrderByDescending(item => item.PlayCount)
-            .ThenByDescending(item => item.LastPlayedAt)
-            .Take(limit)
-            .Select(item => new GuildTopTrackSummary(
-                item.Title,
-                item.Artist,
-                item.SourceName,
-                item.SourceUrl,
-                item.ArtworkUrl,
-                item.PlayCount,
-                item.LastPlayedAt))
-            .ToArrayAsync(cancellationToken);
+        const string sql = """
+            SELECT
+                "Title",
+                "Artist",
+                "SourceName",
+                "SourceUrl",
+                "ArtworkUrl",
+                "PlayCount",
+                "LastPlayedAt"
+            FROM "GuildTrackPlays"
+            WHERE "GuildId" = @GuildId
+            ORDER BY "PlayCount" DESC, "LastPlayedAt" DESC
+            LIMIT @Limit
+            """;
+
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        var tracks = await connection.QueryAsync<GuildTopTrackSummary>(
+            new CommandDefinition(sql, new { GuildId = (long)guildId, Limit = limit }, cancellationToken: cancellationToken));
+
+        return tracks.AsList();
     }
 }

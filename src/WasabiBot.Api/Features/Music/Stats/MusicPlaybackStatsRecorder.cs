@@ -1,17 +1,16 @@
+using Dapper;
 using Lavalink4NET.Tracks;
-using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using WasabiBot.Api.Features.Radio;
-using WasabiBot.Api.Persistence;
-using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Music;
 
 internal sealed class MusicPlaybackStatsRecorder(
-    IServiceScopeFactory serviceScopeFactory,
+    NpgsqlDataSource dataSource,
     RadioTrackMetadataStore radioTrackMetadataStore,
     ILogger<MusicPlaybackStatsRecorder> logger) : IMusicPlaybackStatsRecorder
 {
-    private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
+    private readonly NpgsqlDataSource _dataSource = dataSource;
     private readonly RadioTrackMetadataStore _radioTrackMetadataStore = radioTrackMetadataStore;
     private readonly ILogger<MusicPlaybackStatsRecorder> _logger = logger;
 
@@ -30,17 +29,26 @@ internal sealed class MusicPlaybackStatsRecorder(
 
         try
         {
-            using var scope = _serviceScopeFactory.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<WasabiBotContext>();
             var now = DateTimeOffset.UtcNow;
+            const string sql = """
+                INSERT INTO "GuildTrackPlays"
+                    ("GuildId", "ExternalId", "Title", "Artist", "SourceName", "SourceUrl", "ArtworkUrl", "PlayCount", "FirstPlayedAt", "LastPlayedAt")
+                VALUES
+                    (@GuildId, @ExternalId, @Title, @Artist, @SourceName, @SourceUrl, @ArtworkUrl, 1, @Now, @Now)
+                ON CONFLICT ("GuildId", "ExternalId") DO UPDATE SET
+                    "Title" = EXCLUDED."Title",
+                    "Artist" = EXCLUDED."Artist",
+                    "SourceName" = EXCLUDED."SourceName",
+                    "SourceUrl" = EXCLUDED."SourceUrl",
+                    "ArtworkUrl" = EXCLUDED."ArtworkUrl",
+                    "PlayCount" = "GuildTrackPlays"."PlayCount" + 1,
+                    "LastPlayedAt" = EXCLUDED."LastPlayedAt"
+                """;
 
-            var play = await context.GuildTrackPlays.FirstOrDefaultAsync(
-                item => item.GuildId == (long)guildId && item.ExternalId == externalId,
-                cancellationToken);
-
-            if (play is null)
-            {
-                context.GuildTrackPlays.Add(new GuildTrackPlayEntity
+            await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+            await connection.ExecuteAsync(new CommandDefinition(
+                sql,
+                new
                 {
                     GuildId = (long)guildId,
                     ExternalId = externalId,
@@ -49,23 +57,9 @@ internal sealed class MusicPlaybackStatsRecorder(
                     SourceName = track.SourceName ?? string.Empty,
                     SourceUrl = track.Uri?.ToString() ?? string.Empty,
                     ArtworkUrl = track.ArtworkUri?.ToString() ?? string.Empty,
-                    PlayCount = 1,
-                    FirstPlayedAt = now,
-                    LastPlayedAt = now,
-                });
-            }
-            else
-            {
-                play.Title = track.Title;
-                play.Artist = track.Author;
-                play.SourceName = track.SourceName ?? string.Empty;
-                play.SourceUrl = track.Uri?.ToString() ?? string.Empty;
-                play.ArtworkUrl = track.ArtworkUri?.ToString() ?? string.Empty;
-                play.PlayCount += 1;
-                play.LastPlayedAt = now;
-            }
-
-            await context.SaveChangesAsync(cancellationToken);
+                    Now = now,
+                },
+                cancellationToken: cancellationToken));
         }
         catch (Exception ex)
         {

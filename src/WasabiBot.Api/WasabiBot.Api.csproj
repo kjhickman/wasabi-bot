@@ -7,6 +7,9 @@
         <EnablePreviewFeatures>true</EnablePreviewFeatures>
         <GenerateRequiresPreviewFeaturesAttribute>false</GenerateRequiresPreviewFeaturesAttribute>
         <Features>$(Features);runtime-async=on</Features>
+        <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.EntityFrameworkCore.GeneratedInterceptors</InterceptorsNamespaces>
+        <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
+        <NoWarn>$(NoWarn);EF9002;EF9100</NoWarn>
         <PublishReadyToRun>true</PublishReadyToRun>
         <UserSecretsId>3fb4ccc6-b8c3-4dc0-90b8-ea6c79a0da21</UserSecretsId>
     </PropertyGroup>
@@ -21,18 +24,26 @@
         <DebuggerSupport>false</DebuggerSupport>
         <StackTraceSupport>false</StackTraceSupport>
         <EventSourceSupport>false</EventSourceSupport>
+        <DbContextName>WasabiBotContext</DbContextName>
+        <EFScaffoldModelStage>none</EFScaffoldModelStage>
+        <EFPrecompileQueriesStage>none</EFPrecompileQueriesStage>
         <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2026;IL2104;IL3000;IL3002;IL3050;IL3053</WarningsNotAsErrors>
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Dapper" />
+      <PackageReference Include="Dapper.AOT" />
       <PackageReference Include="DictionaryEntry" />
       <PackageReference Include="Lavalink4NET.NetCord" />
       <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
       <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Tasks" PrivateAssets="all" />
       <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
       <PackageReference Include="Microsoft.Extensions.AI" />
       <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+      <PackageReference Include="Npgsql" />
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
       <PackageReference Include="OpenTelemetry.Api" />
       <PackageReference Include="AspNet.Security.OAuth.Discord" />
@@ -41,10 +52,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\WasabiBot.ServiceDefaults\WasabiBot.ServiceDefaults.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\WasabiBot.Api.Generators\WasabiBot.Api.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;RuntimeIdentifier;SelfContained" />
     </ItemGroup>
 
     <ItemGroup>

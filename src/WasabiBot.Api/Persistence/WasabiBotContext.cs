@@ -3,8 +3,12 @@ using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Persistence;
 
-public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options) : DbContext(options)
+public sealed class WasabiBotContext : DbContext
 {
+    public WasabiBotContext(DbContextOptions<WasabiBotContext> options) : base(options)
+    {
+    }
+
     public DbSet<ApiCredentialEntity> ApiCredentials => Set<ApiCredentialEntity>();
     public DbSet<GuildTrackPlayEntity> GuildTrackPlays => Set<GuildTrackPlayEntity>();
     public DbSet<InteractionEntity> Interactions => Set<InteractionEntity>();

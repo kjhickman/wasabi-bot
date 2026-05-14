@@ -1,21 +1,22 @@
 using Lavalink4NET.Tracks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
+using WasabiBot.IntegrationTests.Infrastructure;
 
-namespace WasabiBot.UnitTests.Features.Music;
+namespace WasabiBot.IntegrationTests.Features.DataAccess;
 
-public class MusicPlaybackStatsRecorderTests
+public class MusicPlaybackStatsRecorderTests : IntegrationTestBase
 {
     [Test]
-    public async Task RecordTrackStartedAsync_WhenRadioTrack_DoesNotOpenDatabaseConnection()
+    public async Task RecordTrackStartedAsync_PersistsAndIncrementsGuildPlayCount()
     {
-        var radioTrackMetadataStore = new RadioTrackMetadataStore();
-        await using var dataSource = NpgsqlDataSource.Create("Host=localhost;Port=1;Database=unused;Username=unused;Password=unused;Timeout=1");
+        await using var dataSource = NpgsqlDataSource.Create(Fixture.ConnectionString);
         var recorder = new MusicPlaybackStatsRecorder(
             dataSource,
-            radioTrackMetadataStore,
+            new RadioTrackMetadataStore(),
             NullLogger<MusicPlaybackStatsRecorder>.Instance);
 
         var track = new LavalinkTrack
@@ -29,8 +30,12 @@ public class MusicPlaybackStatsRecorderTests
             Duration = TimeSpan.FromMinutes(4),
         };
 
-        radioTrackMetadataStore.Set(track, "Radiohead FM");
-
         await recorder.RecordTrackStartedAsync(42, track);
+        await recorder.RecordTrackStartedAsync(42, track);
+
+        await using var context = CreateContext();
+        var play = context.GuildTrackPlays.Single();
+        await Assert.That(play.PlayCount).IsEqualTo(2);
+        await Assert.That(play.Title).IsEqualTo("Creep");
     }
 }
