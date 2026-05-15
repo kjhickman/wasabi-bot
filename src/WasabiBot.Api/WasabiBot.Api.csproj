@@ -25,7 +25,6 @@
       <PackageReference Include="OpenTelemetry.Api" />
       <PackageReference Include="AspNet.Security.OAuth.Discord" />
       <PackageReference Include="NetCord.Hosting.Services" />
-      <PackageReference Include="Scalar.AspNetCore" />
     </ItemGroup>
 
     <ItemGroup>

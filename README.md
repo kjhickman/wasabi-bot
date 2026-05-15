@@ -48,4 +48,10 @@ Use these values for:
 aspire start
 ```
 
+To run the API from its Dockerfile instead of as a local project:
+
+```bash
+aspire start -- --api-container
+```
+
 After you provide the required parameters, Aspire will start PostgreSQL, the local Lavalink container, run the migrations project, and then start the bot API. Once it connects to Discord, you can test it in any server where the bot has been added.

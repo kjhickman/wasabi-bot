@@ -2,9 +2,11 @@
 #:package Aspire.Hosting.PostgreSQL
 #:property UserSecretsId=e740d40c-c13c-443b-a0cf-73ed8ab1c695
 
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
+var runApiAsContainer = args.Contains("--api-container", StringComparer.OrdinalIgnoreCase);
 
 builder.Configuration.AddInMemoryCollection(
 [
@@ -48,24 +50,53 @@ var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink"
     .WithEnvironment("SERVER_PORT", "2333")
     .WithLifetime(ContainerLifetime.Persistent);
 
-var api = builder.AddDockerfile("wasabi-bot", ".", "src/WasabiBot.Api/Dockerfile")
-    .WithHttpEndpoint(targetPort: 8080, name: "http")
-    .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
-    .WithReference(database)
-    .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
-    .WaitFor(database)
-    .WaitFor(lavalink)
-    .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
-    .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)
-    .WithEnvironment("Discord__Token", discordBotToken)
-    .WithEnvironment("OpenRouterV2__ApiKey", openRouterKey)
-    .WithEnvironment("Lavalink__BaseUrl", lavalink.GetEndpoint("http"))
-    .WaitForCompletion(migrations)
-    .WithUrlForEndpoint("http", url => url.DisplayText = "Frontend")
-    .WithUrlForEndpoint("http", _ => new ResourceUrlAnnotation
-    {
-        Url = "/scalar/v1",
-        DisplayText = "API Reference"
-    });
+if (runApiAsContainer)
+{
+    ConfigureApi(builder.AddDockerfile("wasabi-bot", ".", "src/WasabiBot.Api/Dockerfile")
+        .WithHttpEndpoint(targetPort: 8080, name: "http")
+        .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development"));
+}
+else
+{
+    var frontendDependencies = builder.AddExecutable("frontend-deps", "bun", "src/WasabiBot.Api", "install", "--frozen-lockfile");
+
+    var frontendCss = builder.AddExecutable("frontend-css", "bun", "src/WasabiBot.Api", "run", "build:css")
+        .WaitForCompletion(frontendDependencies);
+
+    ConfigureApi(builder.AddProject("wasabi-bot", "src/WasabiBot.Api/WasabiBot.Api.csproj")
+        .WaitForCompletion(frontendCss));
+}
+
+IResourceBuilder<TResource> ConfigureApi<TResource>(IResourceBuilder<TResource> api)
+    where TResource : IResourceWithEnvironment, IResourceWithWaitSupport
+{
+    return api
+        .WithReference(database)
+        .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
+        .WaitFor(database)
+        .WaitFor(lavalink)
+        .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
+        .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)
+        .WithEnvironment("Discord__Token", discordBotToken)
+        .WithEnvironment("OpenRouterV2__ApiKey", openRouterKey)
+        .WithEnvironment("Lavalink__BaseUrl", lavalink.GetEndpoint("http"))
+        .WaitForCompletion(migrations)
+        .WithUrls(context =>
+        {
+            var httpEndpoint = context.GetEndpoint("http");
+
+            foreach (var url in context.Urls)
+            {
+                url.DisplayText = "Frontend";
+            }
+
+            context.Urls.Add(new ResourceUrlAnnotation
+            {
+                Url = "/openapi/v1.json",
+                DisplayText = "OpenAPI Spec",
+                Endpoint = httpEndpoint
+            });
+        });
+}
 
 builder.Build().Run();

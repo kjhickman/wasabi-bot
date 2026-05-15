@@ -5,7 +5,7 @@ using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Infrastructure.Discord;
 using WasabiBot.Api.Infrastructure.Lavalink;
 using WasabiBot.Api.Infrastructure.Auth;
-using WasabiBot.Api.Infrastructure.Scalar;
+using WasabiBot.Api.Infrastructure.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +17,7 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateOnBuild = true;
 });
 
-builder.AddOpenApi();
+builder.AddOpenApiSpec();
 builder.Configuration.AddUserSecrets<Program>(optional: true);
 builder.Services.AddDiscordServices();
 builder.AddLavalinkServices();
@@ -44,7 +44,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
 
-app.MapScalarUi();
+app.MapOpenApiSpec();
 app.MapDefaultEndpoints();
 app.MapEndpoints();
 app.MapDiscordCommandHandlers();
