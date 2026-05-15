@@ -54,6 +54,62 @@ public class MusicDashboardSearchServiceTests
         await Assert.That(result.Stations[0].Name).IsEqualTo("Radiohead FM");
     }
 
+    [Test]
+    public async Task SearchAsync_WhenPreviewTracksAreReturned_FiltersThemOut()
+    {
+        var audioService = Substitute.For<IAudioService>();
+        var trackManager = Substitute.For<ITrackManager>();
+        var radioService = Substitute.For<IRadioService>();
+        audioService.Tracks.Returns(trackManager);
+
+        trackManager.LoadTracksAsync(
+                "creep",
+                Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+                Arg.Any<LavalinkApiResolutionScope>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TrackLoadResult.CreateSearch(ImmutableArray.Create(
+                CreatePreviewTrack("Creep", "Radiohead", TimeSpan.FromSeconds(30)),
+                CreateTrack("Creep", "Radiohead", TimeSpan.FromMinutes(4), "https://soundcloud.com/radiohead/creep")))));
+
+        radioService.SearchStationsAsync("creep", Arg.Any<CancellationToken>())
+            .Returns([]);
+
+        var service = new MusicDashboardSearchService(audioService, radioService, new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()));
+
+        var result = await service.SearchAsync("creep");
+
+        await Assert.That(result.ErrorMessage).IsNull();
+        await Assert.That(result.Songs).Count().IsEqualTo(1);
+        await Assert.That(result.Songs[0].Title).IsEqualTo("Creep");
+    }
+
+    [Test]
+    public async Task SearchAsync_WhenOnlyPreviewsFound_ReturnsEmptyResults()
+    {
+        var audioService = Substitute.For<IAudioService>();
+        var trackManager = Substitute.For<ITrackManager>();
+        var radioService = Substitute.For<IRadioService>();
+        audioService.Tracks.Returns(trackManager);
+
+        trackManager.LoadTracksAsync(
+                "somepreviewonly",
+                Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+                Arg.Any<LavalinkApiResolutionScope>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TrackLoadResult.CreateSearch(ImmutableArray.Create(
+                CreatePreviewTrack("Preview Song", "Artist", TimeSpan.FromSeconds(30))))));
+
+        radioService.SearchStationsAsync("somepreviewonly", Arg.Any<CancellationToken>())
+            .Returns([]);
+
+        var service = new MusicDashboardSearchService(audioService, radioService, new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()));
+
+        var result = await service.SearchAsync("somepreviewonly");
+
+        await Assert.That(result.Songs).Count().IsEqualTo(0);
+        await Assert.That(result.ErrorMessage).IsNotNull();
+    }
+
     private static LavalinkTrack CreateTrack(string title, string author, TimeSpan duration, string sourceUrl)
     {
         return new LavalinkTrack
@@ -66,6 +122,21 @@ public class MusicDashboardSearchServiceTests
             IsLiveStream = false,
             SourceName = "scsearch",
             Uri = new Uri(sourceUrl)
+        };
+    }
+
+    private static LavalinkTrack CreatePreviewTrack(string title, string author, TimeSpan duration)
+    {
+        return new LavalinkTrack
+        {
+            Identifier = $"https://api-v2.soundcloud.com/media/soundcloud:tracks:123/abc-def/preview/hls",
+            Title = title,
+            Author = author,
+            Duration = duration,
+            IsSeekable = true,
+            IsLiveStream = false,
+            SourceName = "soundcloud",
+            Uri = new Uri($"https://soundcloud.com/artist/{title.ToLowerInvariant()}")
         };
     }
 }

@@ -61,6 +61,7 @@ internal sealed class MusicDashboardSearchService(
         }
 
         return loadResult.Tracks
+            .Where(track => !MusicTrackFilter.IsPreview(track))
             .Take(SongResultLimit)
             .Select(MapSongResult)
             .Where(result => result is not null)

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Lavalink4NET;
 using Lavalink4NET.Players.Queued;
 using Lavalink4NET.Rest.Entities.Tracks;
@@ -140,8 +141,34 @@ internal sealed class MusicService(
 
         if (loadResult.HasMatches)
         {
-            span.SetAttribute("music.search_match_count", loadResult.Tracks.Length);
-            return (loadResult, null);
+            var filteredTracks = loadResult.Tracks
+                .Where(track => !MusicTrackFilter.IsPreview(track))
+                .ToImmutableArray();
+
+            if (filteredTracks.Length > 0)
+            {
+                TrackLoadResult filteredResult;
+                
+                if (loadResult.IsPlaylist)
+                {
+                    filteredResult = TrackLoadResult.CreatePlaylist(filteredTracks, loadResult.Playlist!);
+                }
+                else if (loadResult.Playlist is not null)
+                {
+                    // Search result (has Playlist but IsPlaylist is false)
+                    filteredResult = TrackLoadResult.CreateSearch(filteredTracks);
+                }
+                else
+                {
+                    // Single track
+                    filteredResult = TrackLoadResult.CreateTrack(filteredTracks[0]);
+                }
+
+                span.SetAttribute("music.search_match_count", filteredResult.Tracks.Length);
+                return (filteredResult, null);
+            }
+
+            // All matches were previews, treat as no results found
         }
 
         if (loadResult.Exception is { } trackException)

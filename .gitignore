@@ -66,6 +66,9 @@ TestResults/
 .idea/
 *.sln.iml
 
+# C# Dev Kit
+*.lscache
+
 # MacOS
 .DS_Store
 

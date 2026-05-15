@@ -229,6 +229,62 @@ public class MusicServiceTests
         await Assert.That(result.Message).Contains("Now playing **Current Song** by **Current Artist** (`01:35`). 2 more track(s) queued.");
     }
 
+    [Test]
+    public async Task PlayAsync_WhenSearchReturnsPreviewFirst_SkipsPreviewAndQueuesFullTrack()
+    {
+        var trackManager = Substitute.For<ITrackManager>();
+        var previewTrack = CreatePreviewTrack("Creep", "Radiohead", TimeSpan.FromSeconds(30));
+        var fullTrack = CreateTrack("Creep", "Radiohead", TimeSpan.FromMinutes(4));
+
+        trackManager.LoadTracksAsync(
+                "creep radiohead",
+                Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+                Arg.Any<LavalinkApiResolutionScope>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TrackLoadResult.CreateSearch(ImmutableArray.Create(previewTrack, fullTrack))));
+
+        var playerManager = Substitute.For<IPlayerManager>();
+        playerManager
+            .RetrieveAsync<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
+                Arg.Any<ulong>(),
+                Arg.Any<ulong?>(),
+                Arg.Any<PlayerFactory<WasabiQueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>>(),
+                Arg.Any<Microsoft.Extensions.Options.IOptions<QueuedLavalinkPlayerOptions>>(),
+                Arg.Any<PlayerRetrieveOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(PlayerResult<WasabiQueuedLavalinkPlayer>.UserNotInVoiceChannel));
+
+        var service = CreateService(trackManager: trackManager, playerManager: playerManager);
+
+        var result = await service.PlayAsync(new FakeCommandContext(), "creep radiohead");
+
+        await Assert.That(result.Ephemeral).IsTrue();
+        await Assert.That(result.Message).IsEqualTo("You need to join a voice channel first.");
+    }
+
+    [Test]
+    public async Task PlayAsync_WhenAllSearchResultsArePreview_TreatsAsNoResults()
+    {
+        var trackManager = Substitute.For<ITrackManager>();
+        var previewTrack = CreatePreviewTrack("Some Song", "Artist", TimeSpan.FromSeconds(30));
+
+        trackManager.LoadTracksAsync(
+                "somesongthatonlyhaspreview",
+                Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+                Arg.Any<LavalinkApiResolutionScope>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TrackLoadResult.CreateSearch(ImmutableArray.Create(previewTrack))));
+
+        var service = CreateService(trackManager: trackManager);
+
+        var result = await service.PlayAsync(new FakeCommandContext(), "somesongthatonlyhaspreview");
+
+        await Assert.That(result.Ephemeral).IsTrue();
+        // Previews are filtered silently, so it appears as if no results were found
+        await Assert.That(result.Message)
+            .IsEqualTo("I couldn't find anything playable on SoundCloud for that search.");
+    }
+
     private static LavalinkTrack CreateTrack(string title, string author, TimeSpan duration)
     {
         return new LavalinkTrack
@@ -240,6 +296,20 @@ public class MusicServiceTests
             IsLiveStream = false,
             IsSeekable = true,
             SourceName = "http"
+        };
+    }
+
+    private static LavalinkTrack CreatePreviewTrack(string title, string author, TimeSpan duration)
+    {
+        return new LavalinkTrack
+        {
+            Title = title,
+            Author = author,
+            Identifier = $"https://api-v2.soundcloud.com/media/soundcloud:tracks:123/abc-def/preview/hls",
+            Duration = duration,
+            IsLiveStream = false,
+            IsSeekable = true,
+            SourceName = "soundcloud"
         };
     }
 }
