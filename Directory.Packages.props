@@ -23,9 +23,7 @@
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.6.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="5.3.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
-    <!-- Keeps EF design-time Roslyn dependencies aligned with the upgraded compiler packages. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.3.0" />
-    <!-- Keeps EF design-time Roslyn dependencies aligned with the upgraded compiler packages. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="5.3.0" />
     <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.488" />
     <PackageVersion Include="Npgsql" Version="10.0.2" />
