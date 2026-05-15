@@ -9,7 +9,7 @@
     <PackageVersion Include="Lavalink4NET.NetCord" Version="4.2.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0-preview.3.26207.106" />
     <PackageVersion Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.3.1" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.3.2" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0-preview.3.26207.106" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="11.0.0-preview.3.26207.106" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="11.0.0-preview.3.26207.106" />
