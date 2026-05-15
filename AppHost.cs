@@ -37,11 +37,6 @@ postgres.WithPgWeb(pgWeb => pgWeb.WithParentRelationship(postgres));
 
 var database = postgres.AddDatabase("wasabi-db", "wasabi_db");
 
-var frontendDependencies = builder.AddExecutable("frontend-deps", "bun", "src/WasabiBot.Api", "install", "--frozen-lockfile");
-
-var frontendCss = builder.AddExecutable("frontend-css", "bun", "src/WasabiBot.Api", "run", "build:css")
-    .WaitForCompletion(frontendDependencies);
-
 var migrations = builder.AddProject("migrations", "src/WasabiBot.Migrations/WasabiBot.Migrations.csproj")
     .WithReference(database)
     .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
@@ -56,11 +51,12 @@ var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink"
     .WithEnvironment("_JAVA_OPTIONS", "-Xms256m -Xmx256m")
     .WithLifetime(ContainerLifetime.Persistent);
 
-var api = builder.AddProject("wasabi-bot", "src/WasabiBot.Api/WasabiBot.Api.csproj")
+var api = builder.AddDockerfile("wasabi-bot", ".", "src/WasabiBot.Api/Dockerfile")
+    .WithHttpEndpoint(targetPort: 8080, name: "http")
+    .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithReference(database)
     .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
     .WaitFor(database)
-    .WaitForCompletion(frontendCss)
     .WaitFor(lavalink)
     .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
     .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)
