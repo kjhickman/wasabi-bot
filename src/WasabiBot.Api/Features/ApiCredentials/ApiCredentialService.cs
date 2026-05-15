@@ -46,8 +46,7 @@ public sealed class ApiCredentialService(
                     """;
 
                 await using var connection = await dataSource.OpenConnectionAsync(cancel);
-                var credentials = await connection.QueryAsync<ApiCredentialRow>(new CommandDefinition(
-                    sql, new { OwnerDiscordUserId = ownerDiscordUserId }, cancellationToken: cancel));
+                var credentials = await connection.QueryAsync<ApiCredentialRow>(sql, new { OwnerDiscordUserId = ownerDiscordUserId });
                 return credentials.Select(row => ToSummary(row.ToEntity())).ToArray();
             },
             _listCacheOptions,
@@ -71,14 +70,14 @@ public sealed class ApiCredentialService(
             """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var entity = (await connection.QuerySingleAsync<ApiCredentialRow>(new CommandDefinition(sql, new
+        var entity = (await connection.QuerySingleAsync<ApiCredentialRow>(sql, new
         {
             OwnerDiscordUserId = ownerDiscordUserId,
             Name = normalizedName,
             ClientId = clientId,
             SecretHash = secretService.HashSecret(clientSecret),
             CreatedAt = createdAt,
-        }, cancellationToken: cancellationToken))).ToEntity();
+        })).ToEntity();
         await cache.RemoveAsync(GetListCacheKey(ownerDiscordUserId), cancellationToken);
 
         return new ApiCredentialIssueResult(ToSummary(entity), clientSecret);
@@ -97,8 +96,8 @@ public sealed class ApiCredentialService(
             """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var credential = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(new CommandDefinition(
-            selectSql, new { CredentialId = credentialId, OwnerDiscordUserId = ownerDiscordUserId }, cancellationToken: cancellationToken)))?.ToEntity();
+        var credential = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(
+            selectSql, new { CredentialId = credentialId, OwnerDiscordUserId = ownerDiscordUserId }))?.ToEntity();
 
         if (credential is null)
         {
@@ -110,9 +109,9 @@ public sealed class ApiCredentialService(
             return true;
         }
 
-        await connection.ExecuteAsync(new CommandDefinition(
+        await connection.ExecuteAsync(
             "UPDATE \"ApiCredentials\" SET \"RevokedAt\" = @RevokedAt WHERE \"Id\" = @CredentialId",
-            new { RevokedAt = DateTimeOffset.UtcNow, CredentialId = credentialId }, cancellationToken: cancellationToken));
+            new { RevokedAt = DateTimeOffset.UtcNow, CredentialId = credentialId });
         await cache.RemoveAsync(GetValidationCacheKey(credential.ClientId), cancellationToken);
         await cache.RemoveAsync(GetListCacheKey(ownerDiscordUserId), cancellationToken);
         return true;
@@ -131,8 +130,8 @@ public sealed class ApiCredentialService(
             """;
 
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var credential = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(new CommandDefinition(
-            selectSql, new { CredentialId = credentialId, OwnerDiscordUserId = ownerDiscordUserId }, cancellationToken: cancellationToken)))?.ToEntity();
+        var credential = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(
+            selectSql, new { CredentialId = credentialId, OwnerDiscordUserId = ownerDiscordUserId }))?.ToEntity();
 
         if (credential is null || credential.RevokedAt is not null)
         {
@@ -141,9 +140,9 @@ public sealed class ApiCredentialService(
 
         var clientSecret = secretService.CreateClientSecret();
         credential.SecretHash = secretService.HashSecret(clientSecret);
-        await connection.ExecuteAsync(new CommandDefinition(
+        await connection.ExecuteAsync(
             "UPDATE \"ApiCredentials\" SET \"SecretHash\" = @SecretHash WHERE \"Id\" = @CredentialId",
-            new { credential.SecretHash, CredentialId = credentialId }, cancellationToken: cancellationToken));
+            new { credential.SecretHash, CredentialId = credentialId });
         await cache.RemoveAsync(GetValidationCacheKey(credential.ClientId), cancellationToken);
 
         return new ApiCredentialIssueResult(ToSummary(credential), clientSecret);
@@ -170,8 +169,7 @@ public sealed class ApiCredentialService(
                     """;
 
                 await using var connection = await dataSource.OpenConnectionAsync(cancel);
-                var entity = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(new CommandDefinition(
-                    sql, new { ClientId = clientId }, cancellationToken: cancel)))?.ToEntity();
+                var entity = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(sql, new { ClientId = clientId }))?.ToEntity();
 
                 return entity is null
                     ? null
@@ -197,18 +195,18 @@ public sealed class ApiCredentialService(
         }
 
         await using var validateConnection = await dataSource.OpenConnectionAsync(cancellationToken);
-        var entity = (await validateConnection.QueryFirstOrDefaultAsync<ApiCredentialRow>(new CommandDefinition(
+        var entity = (await validateConnection.QueryFirstOrDefaultAsync<ApiCredentialRow>(
             "SELECT \"Id\", \"OwnerDiscordUserId\", \"Name\", \"ClientId\", \"SecretHash\", \"CreatedAt\", \"LastUsedAt\", \"RevokedAt\" FROM \"ApiCredentials\" WHERE \"Id\" = @Id",
-            new { credential.Id }, cancellationToken: cancellationToken)))?.ToEntity();
+            new { credential.Id }))?.ToEntity();
         if (entity is null || entity.RevokedAt is not null)
         {
             await cache.RemoveAsync(GetValidationCacheKey(clientId), cancellationToken);
             return null;
         }
 
-        await validateConnection.ExecuteAsync(new CommandDefinition(
+        await validateConnection.ExecuteAsync(
             "UPDATE \"ApiCredentials\" SET \"LastUsedAt\" = @LastUsedAt WHERE \"Id\" = @Id",
-            new { LastUsedAt = DateTimeOffset.UtcNow, entity.Id }, cancellationToken: cancellationToken));
+            new { LastUsedAt = DateTimeOffset.UtcNow, entity.Id });
 
         return new ApiCredentialValidationResult(
             entity.Id,
@@ -225,9 +223,9 @@ public sealed class ApiCredentialService(
         {
             var clientId = secretService.CreateClientId();
             await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-            var exists = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            var exists = await connection.ExecuteScalarAsync<bool>(
                 "SELECT EXISTS (SELECT 1 FROM \"ApiCredentials\" WHERE \"ClientId\" = @ClientId)",
-                new { ClientId = clientId }, cancellationToken: cancellationToken));
+                new { ClientId = clientId });
 
             if (!exists)
             {
@@ -271,7 +269,7 @@ public sealed class ApiCredentialService(
 
     private static string GetValidationCacheKey(string clientId) => $"api-credential:validate:{clientId}";
 
-    private sealed class ApiCredentialRow
+    internal sealed class ApiCredentialRow
     {
         public long Id { get; set; }
         public long OwnerDiscordUserId { get; set; }

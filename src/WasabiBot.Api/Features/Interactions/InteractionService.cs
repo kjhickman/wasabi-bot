@@ -25,63 +25,45 @@ public sealed class InteractionService(NpgsqlDataSource dataSource, Tracer trace
     public async Task<InteractionEntity[]> GetAllAsync(GetAllInteractionsRequest request)
     {
         using var span = tracer.StartActiveSpan("interaction.getAll");
-        var conditions = new List<string>();
-        var parameters = new DynamicParameters();
-
-        if (request.UserId.HasValue)
-        {
-            conditions.Add("\"UserId\" = @UserId");
-            parameters.Add("UserId", request.UserId.Value);
-        }
-
-        if (request.ChannelId.HasValue)
-        {
-            conditions.Add("\"ChannelId\" = @ChannelId");
-            parameters.Add("ChannelId", request.ChannelId.Value);
-        }
-
-        if (request.ApplicationId.HasValue)
-        {
-            conditions.Add("\"ApplicationId\" = @ApplicationId");
-            parameters.Add("ApplicationId", request.ApplicationId.Value);
-        }
-
-        if (request.GuildId.HasValue)
-        {
-            conditions.Add("\"GuildId\" = @GuildId");
-            parameters.Add("GuildId", request.GuildId.Value);
-        }
-
-        if (request.Cursor != null)
-        {
-            parameters.Add("CursorCreatedAt", request.Cursor.CreatedAt);
-            parameters.Add("CursorId", request.Cursor.Id);
-            if (request.SortDirection == SortDirection.Desc)
-            {
-                conditions.Add("(\"CreatedAt\" < @CursorCreatedAt OR (\"CreatedAt\" = @CursorCreatedAt AND \"Id\" < @CursorId))");
-            }
-            else
-            {
-                conditions.Add("(\"CreatedAt\" > @CursorCreatedAt OR (\"CreatedAt\" = @CursorCreatedAt AND \"Id\" > @CursorId))");
-            }
-        }
-
-        parameters.Add("Limit", request.Limit + 1);
-        var whereClause = conditions.Count == 0 ? string.Empty : "WHERE " + string.Join(" AND ", conditions);
-        var orderClause = request.SortDirection == SortDirection.Desc
-            ? "ORDER BY \"CreatedAt\" DESC, \"Id\" DESC"
-            : "ORDER BY \"CreatedAt\", \"Id\"";
-
-        var sql = $"""
+        const string descSql = """
             SELECT "Id", "ChannelId", "ApplicationId", "UserId", "GuildId", "Username", "GlobalName", "Nickname", "Data", "CreatedAt"
             FROM "Interactions"
-            {whereClause}
-            {orderClause}
+            WHERE (@UserId IS NULL OR "UserId" = @UserId)
+              AND (@ChannelId IS NULL OR "ChannelId" = @ChannelId)
+              AND (@ApplicationId IS NULL OR "ApplicationId" = @ApplicationId)
+              AND (@GuildId IS NULL OR "GuildId" = @GuildId)
+              AND (@CursorCreatedAt IS NULL OR "CreatedAt" < @CursorCreatedAt OR ("CreatedAt" = @CursorCreatedAt AND "Id" < @CursorId))
+            ORDER BY "CreatedAt" DESC, "Id" DESC
             LIMIT @Limit
             """;
 
+        const string ascSql = """
+            SELECT "Id", "ChannelId", "ApplicationId", "UserId", "GuildId", "Username", "GlobalName", "Nickname", "Data", "CreatedAt"
+            FROM "Interactions"
+            WHERE (@UserId IS NULL OR "UserId" = @UserId)
+              AND (@ChannelId IS NULL OR "ChannelId" = @ChannelId)
+              AND (@ApplicationId IS NULL OR "ApplicationId" = @ApplicationId)
+              AND (@GuildId IS NULL OR "GuildId" = @GuildId)
+              AND (@CursorCreatedAt IS NULL OR "CreatedAt" > @CursorCreatedAt OR ("CreatedAt" = @CursorCreatedAt AND "Id" > @CursorId))
+            ORDER BY "CreatedAt", "Id"
+            LIMIT @Limit
+            """;
+
+        var parameters = new
+        {
+            request.UserId,
+            request.ChannelId,
+            request.ApplicationId,
+            request.GuildId,
+            CursorCreatedAt = request.Cursor?.CreatedAt,
+            CursorId = request.Cursor?.Id,
+            Limit = request.Limit + 1,
+        };
+
         await using var connection = await dataSource.OpenConnectionAsync();
-        var interactions = await connection.QueryAsync<InteractionRow>(sql, parameters);
+        var interactions = request.SortDirection == SortDirection.Desc
+            ? await connection.QueryAsync<InteractionRow>(descSql, parameters)
+            : await connection.QueryAsync<InteractionRow>(ascSql, parameters);
         return interactions.Select(row => row.ToEntity()).ToArray();
     }
 

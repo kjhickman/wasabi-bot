@@ -43,23 +43,20 @@ internal sealed class MusicPlaybackStatsRecorder(
                     "ArtworkUrl" = EXCLUDED."ArtworkUrl",
                     "PlayCount" = "GuildTrackPlays"."PlayCount" + 1,
                     "LastPlayedAt" = EXCLUDED."LastPlayedAt"
-                """;
+            """;
 
             await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
-            await connection.ExecuteAsync(new CommandDefinition(
-                sql,
-                new
-                {
-                    GuildId = (long)guildId,
-                    ExternalId = externalId,
-                    Title = track.Title,
-                    Artist = track.Author,
-                    SourceName = track.SourceName ?? string.Empty,
-                    SourceUrl = track.Uri?.ToString() ?? string.Empty,
-                    ArtworkUrl = track.ArtworkUri?.ToString() ?? string.Empty,
-                    Now = now,
-                },
-                cancellationToken: cancellationToken));
+            await connection.ExecuteAsync(sql, new
+            {
+                GuildId = (long)guildId,
+                ExternalId = externalId,
+                Title = track.Title,
+                Artist = track.Author,
+                SourceName = track.SourceName ?? string.Empty,
+                SourceUrl = track.Uri?.ToString() ?? string.Empty,
+                ArtworkUrl = track.ArtworkUri?.ToString() ?? string.Empty,
+                Now = now,
+            });
         }
         catch (Exception ex)
         {

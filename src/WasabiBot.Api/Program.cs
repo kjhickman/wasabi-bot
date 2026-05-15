@@ -19,12 +19,16 @@ builder.Host.UseDefaultServiceProvider(options =>
 });
 
 builder.Services.AddOpenApi();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, JsonContext.Default);
+});
 builder.Configuration.AddUserSecrets<Program>(optional: true);
 builder.Services.AddDiscordServices();
 builder.AddLavalinkServices();
 builder.AddAuthServices();
 builder.AddAIServices();
-builder.AddDbContext();
+builder.AddDatabase();
 builder.AddServiceDefaults();
 builder.Services.AddHybridCache(options =>
 {

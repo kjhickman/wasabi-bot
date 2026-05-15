@@ -4,7 +4,7 @@ namespace WasabiBot.Api.Infrastructure.Database;
 
 public static class DependencyInjection
 {
-    public static void AddDbContext(this IHostApplicationBuilder builder)
+    public static void AddDatabase(this IHostApplicationBuilder builder)
     {
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -13,7 +13,10 @@ public static class DependencyInjection
             var connectionString = builder.Configuration.GetConnectionString("wasabi_db")
                 ?? throw new InvalidOperationException("Connection string 'wasabi_db' was not found.");
 
-            return NpgsqlDataSource.Create(connectionString);
+            var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+            dataSourceBuilder.ConnectionStringBuilder.GssEncryptionMode = GssEncryptionMode.Disable;
+
+            return dataSourceBuilder.Build();
         });
     }
 }

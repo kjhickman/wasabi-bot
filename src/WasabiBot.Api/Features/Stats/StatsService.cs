@@ -35,30 +35,28 @@ public class StatsService : IStatsService
         await using var connection = await _dataSource.OpenConnectionAsync(ct);
 
         var totalInteractions = excludeInteractionId.HasValue
-            ? await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+            ? await connection.ExecuteScalarAsync<int>(
                 "SELECT COUNT(*) FROM \"Interactions\" WHERE \"Id\" <> @ExcludeInteractionId",
-                new { ExcludeInteractionId = excludeInteractionId.Value }, cancellationToken: ct))
-            : await connection.ExecuteScalarAsync<int>(new CommandDefinition(
-                "SELECT COUNT(*) FROM \"Interactions\"", cancellationToken: ct));
+                new { ExcludeInteractionId = excludeInteractionId.Value })
+            : await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM \"Interactions\"");
 
         var channelInteractions = (channelId, excludeInteractionId) switch
         {
-            (long channel, long excluded) => await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+            (long channel, long excluded) => await connection.ExecuteScalarAsync<int>(
                 "SELECT COUNT(*) FROM \"Interactions\" WHERE \"ChannelId\" = @ChannelId AND \"Id\" <> @ExcludeInteractionId",
-                new { ChannelId = channel, ExcludeInteractionId = excluded }, cancellationToken: ct)),
-            (long channel, null) => await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+                new { ChannelId = channel, ExcludeInteractionId = excluded }),
+            (long channel, null) => await connection.ExecuteScalarAsync<int>(
                 "SELECT COUNT(*) FROM \"Interactions\" WHERE \"ChannelId\" = @ChannelId",
-                new { ChannelId = channel }, cancellationToken: ct)),
+                new { ChannelId = channel }),
             _ => 0
         };
 
         var allInteractions = excludeInteractionId.HasValue
-            ? await connection.QueryAsync<InteractionRow>(new CommandDefinition(
+            ? await connection.QueryAsync<InteractionRow>(
                 "SELECT \"Id\", \"ChannelId\", \"ApplicationId\", \"UserId\", \"GuildId\", \"Username\", \"GlobalName\", \"Nickname\", \"Data\", \"CreatedAt\" FROM \"Interactions\" WHERE \"Id\" <> @ExcludeInteractionId",
-                new { ExcludeInteractionId = excludeInteractionId.Value }, cancellationToken: ct))
-            : await connection.QueryAsync<InteractionRow>(new CommandDefinition(
-                "SELECT \"Id\", \"ChannelId\", \"ApplicationId\", \"UserId\", \"GuildId\", \"Username\", \"GlobalName\", \"Nickname\", \"Data\", \"CreatedAt\" FROM \"Interactions\"",
-                cancellationToken: ct));
+                new { ExcludeInteractionId = excludeInteractionId.Value })
+            : await connection.QueryAsync<InteractionRow>(
+                "SELECT \"Id\", \"ChannelId\", \"ApplicationId\", \"UserId\", \"GuildId\", \"Username\", \"GlobalName\", \"Nickname\", \"Data\", \"CreatedAt\" FROM \"Interactions\"");
 
         var commandCounts = new Dictionary<string, int>();
         var userCounts = new Dictionary<long, (string name, int count)>();

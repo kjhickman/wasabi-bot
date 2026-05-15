@@ -25,8 +25,7 @@ internal sealed class MusicFavoritesService(
             """;
 
         await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
-        var favorites = (await connection.QueryAsync<MusicFavoriteRow>(new CommandDefinition(
-            sql, new { DiscordUserId = discordUserId }, cancellationToken: cancellationToken)))
+        var favorites = (await connection.QueryAsync<MusicFavoriteRow>(sql, new { DiscordUserId = discordUserId }))
             .Select(row => row.ToEntity())
             .ToArray();
 
@@ -65,10 +64,16 @@ internal sealed class MusicFavoritesService(
 
         const string sql = """
             INSERT INTO "MusicFavorites" ("DiscordUserId", "Kind", "ExternalId", "Title", "ArtistOrSubtitle", "SourceName", "SourceUrl", "ArtworkUrl", "MetadataJson", "CreatedAt")
-            VALUES (@DiscordUserId, @Kind, @ExternalId, @Title, @ArtistOrSubtitle, @SourceName, @SourceUrl, @ArtworkUrl, CAST(@MetadataJson AS jsonb), @CreatedAt)
+            VALUES (@DiscordUserId, @Kind, @ExternalId, @Title, @ArtistOrSubtitle, @SourceName, @SourceUrl, @ArtworkUrl, @MetadataJson, @CreatedAt)
             """;
+        string metadataJson = JsonSerializer.Serialize(new MusicFavoriteSongMetadata(
+            track.Identifier,
+            snapshot.SourceName ?? string.Empty,
+            snapshot.SourceUrl ?? string.Empty,
+            snapshot.ArtworkUrl ?? string.Empty,
+            snapshot.DurationText), JsonContext.Default.MusicFavoriteSongMetadata);
 
-        await connection.ExecuteAsync(new CommandDefinition(sql, new
+        await connection.ExecuteAsync(sql, new
         {
             DiscordUserId = discordUserId,
             Kind = nameof(MusicFavoriteKind.Song),
@@ -78,14 +83,9 @@ internal sealed class MusicFavoritesService(
             SourceName = snapshot.SourceName ?? string.Empty,
             SourceUrl = snapshot.SourceUrl ?? string.Empty,
             ArtworkUrl = snapshot.ArtworkUrl ?? string.Empty,
-            MetadataJson = JsonSerializer.Serialize(new MusicFavoriteSongMetadata(
-                track.Identifier,
-                snapshot.SourceName ?? string.Empty,
-                snapshot.SourceUrl ?? string.Empty,
-                snapshot.ArtworkUrl ?? string.Empty,
-                snapshot.DurationText), JsonContext.Default.MusicFavoriteSongMetadata),
+            MetadataJson = metadataJson,
             CreatedAt = DateTimeOffset.UtcNow,
-        }, cancellationToken: cancellationToken));
+        });
         return new MusicCommandResult($"Saved **{snapshot.Title}** to your song favorites.");
     }
 
@@ -101,10 +101,17 @@ internal sealed class MusicFavoritesService(
 
         const string sql = """
             INSERT INTO "MusicFavorites" ("DiscordUserId", "Kind", "ExternalId", "Title", "ArtistOrSubtitle", "SourceName", "SourceUrl", "ArtworkUrl", "MetadataJson", "CreatedAt")
-            VALUES (@DiscordUserId, @Kind, @ExternalId, @Title, @ArtistOrSubtitle, @SourceName, @SourceUrl, @ArtworkUrl, CAST(@MetadataJson AS jsonb), @CreatedAt)
+            VALUES (@DiscordUserId, @Kind, @ExternalId, @Title, @ArtistOrSubtitle, @SourceName, @SourceUrl, @ArtworkUrl, @MetadataJson, @CreatedAt)
             """;
+        string metadataJson = JsonSerializer.Serialize(new MusicFavoriteRadioMetadata(
+            station.StationUuid,
+            station.UrlResolved,
+            station.Homepage,
+            station.Favicon,
+            station.Country,
+            station.Tags), JsonContext.Default.MusicFavoriteRadioMetadata);
 
-        await connection.ExecuteAsync(new CommandDefinition(sql, new
+        await connection.ExecuteAsync(sql, new
         {
             DiscordUserId = discordUserId,
             Kind = nameof(MusicFavoriteKind.Radio),
@@ -114,15 +121,9 @@ internal sealed class MusicFavoritesService(
             SourceName = "Radio Browser",
             SourceUrl = station.Homepage,
             ArtworkUrl = station.Favicon,
-            MetadataJson = JsonSerializer.Serialize(new MusicFavoriteRadioMetadata(
-                station.StationUuid,
-                station.UrlResolved,
-                station.Homepage,
-                station.Favicon,
-                station.Country,
-                station.Tags), JsonContext.Default.MusicFavoriteRadioMetadata),
+            MetadataJson = metadataJson,
             CreatedAt = DateTimeOffset.UtcNow,
-        }, cancellationToken: cancellationToken));
+        });
         return new MusicCommandResult($"Saved **{station.Name}** to your radio favorites.");
     }
 
@@ -134,17 +135,17 @@ internal sealed class MusicFavoritesService(
             FROM "MusicFavorites"
             WHERE "Id" = @FavoriteId AND "DiscordUserId" = @DiscordUserId
             """;
-        var favorite = (await connection.QueryFirstOrDefaultAsync<MusicFavoriteRow>(new CommandDefinition(
-            selectSql, new { FavoriteId = favoriteId, DiscordUserId = discordUserId }, cancellationToken: cancellationToken)))?.ToEntity();
+        var favorite = (await connection.QueryFirstOrDefaultAsync<MusicFavoriteRow>(
+            selectSql, new { FavoriteId = favoriteId, DiscordUserId = discordUserId }))?.ToEntity();
 
         if (favorite is null)
         {
             return new MusicCommandResult("That favorite no longer exists.", Ephemeral: true);
         }
 
-        await connection.ExecuteAsync(new CommandDefinition(
+        await connection.ExecuteAsync(
             "DELETE FROM \"MusicFavorites\" WHERE \"Id\" = @FavoriteId AND \"DiscordUserId\" = @DiscordUserId",
-            new { FavoriteId = favoriteId, DiscordUserId = discordUserId }, cancellationToken: cancellationToken));
+            new { FavoriteId = favoriteId, DiscordUserId = discordUserId });
         return new MusicCommandResult($"Removed **{favorite.Title}** from your favorites.");
     }
 
@@ -157,8 +158,8 @@ internal sealed class MusicFavoritesService(
                 WHERE "DiscordUserId" = @DiscordUserId AND "Kind" = @Kind AND "ExternalId" = @ExternalId)
             """;
 
-        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
-            sql, new { DiscordUserId = discordUserId, Kind = kind.ToString(), ExternalId = externalId }, cancellationToken: cancellationToken));
+        return await connection.ExecuteScalarAsync<bool>(
+            sql, new { DiscordUserId = discordUserId, Kind = kind.ToString(), ExternalId = externalId });
     }
 
     private static MusicFavoriteSummary MapFavorite(MusicFavoriteEntity favorite)
@@ -190,7 +191,7 @@ internal sealed class MusicFavoritesService(
         };
     }
 
-    private sealed class MusicFavoriteRow
+    internal sealed class MusicFavoriteRow
     {
         public long Id { get; set; }
         public long DiscordUserId { get; set; }

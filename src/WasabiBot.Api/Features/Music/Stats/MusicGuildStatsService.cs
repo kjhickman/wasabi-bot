@@ -25,13 +25,12 @@ internal sealed class MusicGuildStatsService(NpgsqlDataSource dataSource) : IMus
             """;
 
         await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
-        var tracks = await connection.QueryAsync<GuildTopTrackSummaryRow>(
-            new CommandDefinition(sql, new { GuildId = (long)guildId, Limit = limit }, cancellationToken: cancellationToken));
+        var tracks = await connection.QueryAsync<GuildTopTrackSummaryRow>(sql, new { GuildId = (long)guildId, Limit = limit });
 
         return tracks.Select(row => row.ToSummary()).ToArray();
     }
 
-    private sealed class GuildTopTrackSummaryRow
+    internal sealed class GuildTopTrackSummaryRow
     {
         public required string Title { get; set; }
         public required string Artist { get; set; }

@@ -10,20 +10,19 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
     private const string ChannelName = "reminders_changed";
     private static readonly TimeSpan ReconnectDelay = TimeSpan.FromSeconds(5);
 
+    private readonly NpgsqlDataSource _dataSource;
     private readonly ILogger<PostgresReminderWakeSignal> _logger;
     private readonly Tracer _tracer;
-    private readonly string _connectionString;
     private readonly SemaphoreSlim _signal = new(0, 1);
     private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private CancellationTokenSource? _cts;
     private Task? _listenerTask;
 
-    public PostgresReminderWakeSignal(ILogger<PostgresReminderWakeSignal> logger, IConfiguration configuration, Tracer tracer)
+    public PostgresReminderWakeSignal(NpgsqlDataSource dataSource, ILogger<PostgresReminderWakeSignal> logger, Tracer tracer)
     {
+        _dataSource = dataSource;
         _logger = logger;
         _tracer = tracer;
-        _connectionString = configuration.GetConnectionString("wasabi_db")
-                            ?? throw new InvalidOperationException("Connection string 'wasabi_db' was not found.");
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -87,10 +86,8 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
 
             try
             {
-                await using var connection = new NpgsqlConnection(_connectionString);
+                await using var connection = await _dataSource.OpenConnectionAsync(ct);
                 connection.Notification += OnNotification;
-
-                await connection.OpenAsync(ct);
 
                 await using var command = connection.CreateCommand();
                 command.CommandText = $"LISTEN {ChannelName}";
