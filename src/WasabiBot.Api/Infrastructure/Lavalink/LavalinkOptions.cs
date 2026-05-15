@@ -10,7 +10,7 @@ public sealed class LavalinkOptions
     public string? BaseUrl { get; set; }
 
     [Required]
-    public string? Password { get; set; }
+    public string? Password { get; set; } = "youshallnotpass";
 
     [Range(1, 3600)]
     public int ResumeTimeoutSeconds { get; set; } = 60;

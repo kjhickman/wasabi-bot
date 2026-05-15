@@ -24,7 +24,6 @@ var discordBotToken = builder.AddParameter("discord-bot-token", secret: true)
 var openRouterKey = builder.AddParameter("openrouter-api-key", secret: true)
     .WithDescription("OpenRouter API Key");
 
-const string localLavalinkPassword = "wasabi-local-lavalink";
 const string lavalinkImagePrefix = "FROM ghcr.io/lavalink-devs/lavalink:";
 
 var lavalinkImageTag = File.ReadLines("infra/lavalink/Dockerfile")
@@ -47,8 +46,6 @@ var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink"
     .WithHttpEndpoint(port: 2333, targetPort: 2333, name: "http")
     .WithContainerFiles("/opt/Lavalink", "./infra/lavalink")
     .WithEnvironment("SERVER_PORT", "2333")
-    .WithEnvironment("LAVALINK_SERVER_PASSWORD", localLavalinkPassword)
-    .WithEnvironment("_JAVA_OPTIONS", "-Xms256m -Xmx256m")
     .WithLifetime(ContainerLifetime.Persistent);
 
 var api = builder.AddDockerfile("wasabi-bot", ".", "src/WasabiBot.Api/Dockerfile")
@@ -63,7 +60,6 @@ var api = builder.AddDockerfile("wasabi-bot", ".", "src/WasabiBot.Api/Dockerfile
     .WithEnvironment("Discord__Token", discordBotToken)
     .WithEnvironment("OpenRouterV2__ApiKey", openRouterKey)
     .WithEnvironment("Lavalink__BaseUrl", lavalink.GetEndpoint("http"))
-    .WithEnvironment("Lavalink__Password", localLavalinkPassword)
     .WaitForCompletion(migrations)
     .WithUrlForEndpoint("http", url => url.DisplayText = "Frontend")
     .WithUrlForEndpoint("http", _ => new ResourceUrlAnnotation
