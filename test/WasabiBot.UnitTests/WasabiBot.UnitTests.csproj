@@ -21,8 +21,6 @@
 
     <ItemGroup>
         <Compile Remove="Frontend/**/*.cs" />
-        <Compile Remove="Features/ApiCredentials/ApiCredentialServiceTests.cs" />
-        <Compile Remove="Features/Music/MusicFavoritesServiceTests.cs" />
     </ItemGroup>
 
 </Project>

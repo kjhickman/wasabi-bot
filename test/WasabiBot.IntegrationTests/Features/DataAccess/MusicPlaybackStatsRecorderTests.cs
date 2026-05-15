@@ -1,5 +1,4 @@
 using Lavalink4NET.Tracks;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using WasabiBot.Api.Features.Music;
@@ -33,9 +32,20 @@ public class MusicPlaybackStatsRecorderTests : IntegrationTestBase
         await recorder.RecordTrackStartedAsync(42, track);
         await recorder.RecordTrackStartedAsync(42, track);
 
-        await using var context = CreateContext();
-        var play = context.GuildTrackPlays.Single();
-        await Assert.That(play.PlayCount).IsEqualTo(2);
-        await Assert.That(play.Title).IsEqualTo("Creep");
+        await using var connection = await dataSource.OpenConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT "PlayCount", "Title"
+            FROM "GuildTrackPlays"
+            LIMIT 1
+            """;
+        await using var reader = await command.ExecuteReaderAsync();
+        await reader.ReadAsync();
+
+        var playCount = reader.GetInt64(0);
+        var title = reader.GetString(1);
+
+        await Assert.That(playCount).IsEqualTo(2);
+        await Assert.That(title).IsEqualTo("Creep");
     }
 }

@@ -1,7 +1,5 @@
-using System.Diagnostics;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using WasabiBot.Api.Persistence;
+using System.Reflection;
+using DbUp;
 
 namespace WasabiBot.Migrations;
 
@@ -19,16 +17,14 @@ public static class MigrationRunner
 
         try
         {
-            var services = new ServiceCollection();
-            services.AddDbContext<WasabiBotContext>(o =>
-                o.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly("WasabiBot.Migrations")));
+            var upgrader = DeployChanges.To
+                .PostgresqlDatabase(connectionString)
+                .WithScriptsEmbeddedInAssembly(Assembly.GetExecutingAssembly())
+                .LogToConsole()
+                .Build();
 
-            using var provider = services.BuildServiceProvider();
-            using var scope = provider.CreateScope();
-            var ctx = scope.ServiceProvider.GetRequiredService<WasabiBotContext>();
-
-            var isMigrationNeeded = ctx.Database.GetPendingMigrations().Any();
-            if (!isMigrationNeeded)
+            var scriptsToExecute = upgrader.GetScriptsToExecute();
+            if (scriptsToExecute.Count == 0)
             {
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Database is up to date.");
@@ -36,13 +32,15 @@ public static class MigrationRunner
                 return 0;
             }
 
-            var ts = Stopwatch.GetTimestamp();
-            Console.WriteLine("Applying migrations...");
-            ctx.Database.Migrate();
+            Console.WriteLine($"Applying {scriptsToExecute.Count} migration(s)...");
+            var result = upgrader.PerformUpgrade();
+            if (!result.Successful)
+            {
+                throw result.Error;
+            }
 
             Console.ForegroundColor = ConsoleColor.Green;
-            var elapsed = Stopwatch.GetElapsedTime(ts);
-            Console.WriteLine($"Migrations complete in {elapsed.TotalMilliseconds}ms.");
+            Console.WriteLine("Migrations complete.");
             Console.ResetColor();
             return 0;
         }

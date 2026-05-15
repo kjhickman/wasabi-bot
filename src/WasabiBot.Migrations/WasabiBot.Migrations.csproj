@@ -8,24 +8,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WasabiBot.Api\WasabiBot.Api.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Remove="appsettings.json" />
+      <None Remove="Scripts\*.sql" />
       <Content Include="appsettings.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
+      <EmbeddedResource Include="Scripts\*.sql" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Extensions.Configuration" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
       <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" PrivateAssets="all" />
-      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+      <PackageReference Include="dbup-postgresql" />
+      <PackageReference Include="Npgsql" />
     </ItemGroup>
 
 </Project>

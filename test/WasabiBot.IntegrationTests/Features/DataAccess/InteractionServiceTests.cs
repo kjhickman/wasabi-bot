@@ -17,7 +17,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task CreateAsync_ShouldInsertInteractionIntoDatabase()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var interaction = InteractionEntityBuilder.Create(id: 123, userId: 456);
 
@@ -26,15 +25,13 @@ public class InteractionServiceTests : IntegrationTestBase
 
         // Assert
         await Assert.That(result).IsTrue();
-        await using var assertContext = CreateContext();
-        await TestAssertions.AssertInteractionExistsAsync(assertContext, 123);
+        await TestAssertions.AssertInteractionExistsAsync(CreateDataSource(), 123);
     }
 
     [Test]
     public async Task GetByIdAsync_ShouldRetrieveSingleInteractionById()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var interaction = InteractionEntityBuilder.Create(id: 789, username: "TestUser123");
 
@@ -53,7 +50,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetByIdAsync_ShouldReturnNullForNonExistentId()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
 
         // Act
@@ -67,7 +63,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldRetrieveAllInteractionsWithoutFilters()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var interactions = InteractionEntityBuilder.CreateMultiple(count: 5);
 
@@ -88,7 +83,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldFilterByUserId()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var interactions = new[]
         {
@@ -118,7 +112,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldFilterByChannelId()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var interactions = new[]
         {
@@ -148,7 +141,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldFilterByApplicationId()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var interactions = new[]
         {
@@ -178,7 +170,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldFilterByGuildId()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var interactions = new[]
         {
@@ -208,7 +199,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldRespectLimitParameter()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var interactions = InteractionEntityBuilder.CreateMultiple(count: 10);
 
@@ -231,7 +221,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldSortByCreatedAtDescendingByDefault()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var baseTime = DateTimeOffset.UtcNow;
         var interactions = new[]
@@ -260,7 +249,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldSortByCreatedAtAscending()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var baseTime = DateTimeOffset.UtcNow;
         var interactions = new[]
@@ -289,7 +277,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldPaginateUsingCursor()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var baseTime = DateTimeOffset.UtcNow;
         var interactions = InteractionEntityBuilder.CreateMultiple(count: 5);
@@ -333,7 +320,6 @@ public class InteractionServiceTests : IntegrationTestBase
     public async Task GetAllAsync_ShouldCombineMultipleFilters()
     {
         // Arrange
-        await using var context = CreateContext();
         var service = CreateService();
         var interactions = new[]
         {

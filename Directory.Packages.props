@@ -6,18 +6,13 @@
   <ItemGroup>
     <PackageVersion Include="Dapper" Version="2.1.72" />
     <PackageVersion Include="Dapper.AOT" Version="1.0.48" />
+    <PackageVersion Include="dbup-postgresql" Version="7.0.1" />
     <PackageVersion Include="DictionaryEntry" Version="0.2.0" />
     <PackageVersion Include="Lavalink4NET.NetCord" Version="4.2.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0-preview.3.26207.106" />
     <PackageVersion Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.3.1" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0-preview.3.26207.106" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="11.0.0-preview.3.26207.106" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="11.0.0-preview.3.26207.106" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0-preview.3.26207.106" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tasks" Version="11.0.0-preview.3.26207.106" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="11.0.0-preview.3.26207.106" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="11.0.0-preview.3.26207.106" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.6.0" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.6.0" />
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.6.0" />
@@ -35,13 +30,11 @@
     <PackageVersion Include="NetCord.Hosting.Services" Version="1.0.0-alpha.488" />
     <PackageVersion Include="Npgsql" Version="10.0.2" />
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.2" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0-preview.3" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.15.1-beta.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Process" Version="1.15.1-beta.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />

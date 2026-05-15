@@ -6,14 +6,16 @@
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
+        <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="NSubstitute" />
+        <PackageReference Include="Dapper" />
+        <PackageReference Include="Dapper.AOT" />
         <PackageReference Include="TUnit" />
         <PackageReference Include="Testcontainers.PostgreSql" />
         <PackageReference Include="Respawn" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
     </ItemGroup>
 
     <ItemGroup>

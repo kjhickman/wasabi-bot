@@ -1,8 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Respawn;
 using Testcontainers.PostgreSql;
-using WasabiBot.Api.Persistence;
+using WasabiBot.Migrations;
 
 namespace WasabiBot.IntegrationTests.Infrastructure;
 
@@ -29,16 +28,6 @@ public sealed class PostgresTestFixture
     public string ConnectionString => _container?.GetConnectionString()
                                        ?? throw new InvalidOperationException("Container not initialized");
 
-    /// <summary>Creates a new WasabiBotContext connected to the test container.</summary>
-    public WasabiBotContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<WasabiBotContext>()
-            .UseNpgsql(ConnectionString, npgsql => npgsql.MigrationsAssembly("WasabiBot.Migrations"))
-            .Options;
-
-        return new WasabiBotContext(options);
-    }
-
     public NpgsqlDataSource CreateDataSource() => NpgsqlDataSource.Create(ConnectionString);
 
     /// <summary>Initializes the container and applies migrations.</summary>
@@ -52,9 +41,11 @@ public sealed class PostgresTestFixture
 
         await _container.StartAsync();
 
-        // Apply migrations
-        await using var context = CreateContext();
-        await context.Database.MigrateAsync();
+        var migrationResult = MigrationRunner.Run(ConnectionString);
+        if (migrationResult != 0)
+        {
+            throw new InvalidOperationException("Test database migrations failed.");
+        }
 
         // Initialize Respawner for database resets with explicit PostgreSQL connection
         _respawnConnection = new NpgsqlConnection(ConnectionString);
