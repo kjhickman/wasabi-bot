@@ -1,34 +1,20 @@
 # WasabiBot.Migrations
 
-Use this project to scaffold and apply EF Core migrations.
+Use this project to apply DbUp SQL migrations.
 
 ## Add a migration
 
-From the repo root:
+Add a new SQL script under `Scripts/` using the next numeric prefix:
 
-```bash
-dotnet ef migrations add <MigrationName> \
-  --project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj \
-  --startup-project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj
+```text
+Scripts/003_DescribeChange.sql
 ```
 
-Example:
-
-```bash
-dotnet ef migrations add AddInteractionIndexes \
-  --project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj \
-  --startup-project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj
-```
-
-If `dotnet ef` is not installed, run:
-
-```bash
-dotnet tool install --global dotnet-ef
-```
+Scripts are embedded into the migration executable and applied in filename order.
 
 ## Apply migrations
 
-Run the migration runner instead of `dotnet ef database update`:
+Run the migration runner:
 
 ```bash
 dotnet run --project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj
