@@ -4,6 +4,7 @@ using Npgsql;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
 using WasabiBot.IntegrationTests.Infrastructure;
+using WasabiBot.TestShared.Infrastructure;
 
 namespace WasabiBot.IntegrationTests.Features.DataAccess;
 
@@ -14,7 +15,7 @@ public class MusicPlaybackStatsRecorderTests : IntegrationTestBase
     {
         await using var dataSource = NpgsqlDataSource.Create(Fixture.ConnectionString);
         var recorder = new MusicPlaybackStatsRecorder(
-            dataSource,
+            new TestDbConnectionFactory(dataSource),
             new RadioTrackMetadataStore(),
             NullLogger<MusicPlaybackStatsRecorder>.Instance);
 

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
+using WasabiBot.TestShared.Infrastructure;
 
 namespace WasabiBot.UnitTests.Features.Music;
 
@@ -14,7 +15,7 @@ public class MusicPlaybackStatsRecorderTests
         var radioTrackMetadataStore = new RadioTrackMetadataStore();
         await using var dataSource = NpgsqlDataSource.Create("Host=localhost;Port=1;Database=unused;Username=unused;Password=unused;Timeout=1");
         var recorder = new MusicPlaybackStatsRecorder(
-            dataSource,
+            new TestDbConnectionFactory(dataSource),
             radioTrackMetadataStore,
             NullLogger<MusicPlaybackStatsRecorder>.Instance);
 

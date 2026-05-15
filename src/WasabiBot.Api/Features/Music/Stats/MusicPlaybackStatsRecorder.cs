@@ -1,16 +1,16 @@
 using Dapper;
 using Lavalink4NET.Tracks;
-using Npgsql;
 using WasabiBot.Api.Features.Radio;
+using WasabiBot.Api.Infrastructure.Database;
 
 namespace WasabiBot.Api.Features.Music;
 
 internal sealed class MusicPlaybackStatsRecorder(
-    NpgsqlDataSource dataSource,
+    IDbConnectionFactory connectionFactory,
     RadioTrackMetadataStore radioTrackMetadataStore,
     ILogger<MusicPlaybackStatsRecorder> logger) : IMusicPlaybackStatsRecorder
 {
-    private readonly NpgsqlDataSource _dataSource = dataSource;
+    private readonly IDbConnectionFactory _connectionFactory = connectionFactory;
     private readonly RadioTrackMetadataStore _radioTrackMetadataStore = radioTrackMetadataStore;
     private readonly ILogger<MusicPlaybackStatsRecorder> _logger = logger;
 
@@ -45,7 +45,7 @@ internal sealed class MusicPlaybackStatsRecorder(
                     "LastPlayedAt" = EXCLUDED."LastPlayedAt"
             """;
 
-            await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+            using var connection = await _connectionFactory.CreateConnection(cancellationToken);
             await connection.ExecuteAsync(sql, new
             {
                 GuildId = (long)guildId,

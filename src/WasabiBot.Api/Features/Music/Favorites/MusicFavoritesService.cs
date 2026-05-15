@@ -1,18 +1,18 @@
 using System.Text.Json;
 using Dapper;
 using Lavalink4NET.Tracks;
-using Npgsql;
 using WasabiBot.Api.Features.Radio;
 using WasabiBot.Api.Core.Serialization;
+using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Music;
 
 internal sealed class MusicFavoritesService(
-    NpgsqlDataSource dataSource,
+    IDbConnectionFactory connectionFactory,
     PlaybackService playbackService) : IMusicFavoritesService
 {
-    private readonly NpgsqlDataSource _dataSource = dataSource;
+    private readonly IDbConnectionFactory _connectionFactory = connectionFactory;
     private readonly PlaybackService _playbackService = playbackService;
 
     public async Task<MusicFavoritesSnapshot> ListAsync(long discordUserId, CancellationToken cancellationToken = default)
@@ -24,7 +24,7 @@ internal sealed class MusicFavoritesService(
             ORDER BY "CreatedAt" DESC
             """;
 
-        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        using var connection = await _connectionFactory.CreateConnection(cancellationToken);
         var favorites = (await connection.QueryAsync<MusicFavoriteRow>(sql, new { DiscordUserId = discordUserId }))
             .Select(row => row.ToEntity())
             .ToArray();
@@ -54,7 +54,7 @@ internal sealed class MusicFavoritesService(
             ? snapshot.SourceUrl
             : $"{snapshot.SourceName}:{track.Identifier}";
 
-        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        using var connection = await _connectionFactory.CreateConnection(cancellationToken);
         var exists = await FavoriteExistsAsync(connection, discordUserId, MusicFavoriteKind.Song, externalId, cancellationToken);
 
         if (exists)
@@ -91,7 +91,7 @@ internal sealed class MusicFavoritesService(
 
     public async Task<MusicCommandResult> AddRadioAsync(long discordUserId, RadioBrowserStation station, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        using var connection = await _connectionFactory.CreateConnection(cancellationToken);
         var exists = await FavoriteExistsAsync(connection, discordUserId, MusicFavoriteKind.Radio, station.StationUuid, cancellationToken);
 
         if (exists)
@@ -129,7 +129,7 @@ internal sealed class MusicFavoritesService(
 
     public async Task<MusicCommandResult> RemoveAsync(long discordUserId, long favoriteId, CancellationToken cancellationToken = default)
     {
-        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        using var connection = await _connectionFactory.CreateConnection(cancellationToken);
         const string selectSql = """
             SELECT "Id", "DiscordUserId", "Kind", "ExternalId", "Title", "ArtistOrSubtitle", "SourceName", "SourceUrl", "ArtworkUrl", "MetadataJson", "CreatedAt"
             FROM "MusicFavorites"
@@ -149,7 +149,7 @@ internal sealed class MusicFavoritesService(
         return new MusicCommandResult($"Removed **{favorite.Title}** from your favorites.");
     }
 
-    private static async Task<bool> FavoriteExistsAsync(NpgsqlConnection connection, long discordUserId, MusicFavoriteKind kind, string externalId, CancellationToken cancellationToken)
+    private static async Task<bool> FavoriteExistsAsync(System.Data.IDbConnection connection, long discordUserId, MusicFavoriteKind kind, string externalId, CancellationToken cancellationToken)
     {
         const string sql = """
             SELECT EXISTS (

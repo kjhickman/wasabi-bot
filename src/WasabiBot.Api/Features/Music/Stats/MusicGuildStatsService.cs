@@ -1,11 +1,11 @@
 using Dapper;
-using Npgsql;
+using WasabiBot.Api.Infrastructure.Database;
 
 namespace WasabiBot.Api.Features.Music;
 
-internal sealed class MusicGuildStatsService(NpgsqlDataSource dataSource) : IMusicGuildStatsService
+internal sealed class MusicGuildStatsService(IDbConnectionFactory connectionFactory) : IMusicGuildStatsService
 {
-    private readonly NpgsqlDataSource _dataSource = dataSource;
+    private readonly IDbConnectionFactory _connectionFactory = connectionFactory;
 
     public async Task<IReadOnlyList<GuildTopTrackSummary>> GetTopTracksAsync(ulong guildId, int limit = 10, CancellationToken cancellationToken = default)
     {
@@ -24,7 +24,7 @@ internal sealed class MusicGuildStatsService(NpgsqlDataSource dataSource) : IMus
             LIMIT @Limit
             """;
 
-        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        using var connection = await _connectionFactory.CreateConnection(cancellationToken);
         var tracks = await connection.QueryAsync<GuildTopTrackSummaryRow>(sql, new { GuildId = (long)guildId, Limit = limit });
 
         return tracks.Select(row => row.ToSummary()).ToArray();

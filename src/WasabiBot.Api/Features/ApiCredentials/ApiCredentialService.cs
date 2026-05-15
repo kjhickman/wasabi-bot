@@ -1,14 +1,14 @@
 using Dapper;
 using Microsoft.Extensions.Caching.Hybrid;
-using Npgsql;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Auth;
+using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.ApiCredentials;
 
 public sealed class ApiCredentialService(
-    NpgsqlDataSource dataSource,
+    IDbConnectionFactory connectionFactory,
     IApiCredentialSecretService secretService,
     HybridCache cache,
     Tracer tracer) : IApiCredentialService
@@ -45,7 +45,7 @@ public sealed class ApiCredentialService(
                     ORDER BY "CreatedAt" DESC, "Id" DESC
                     """;
 
-                await using var connection = await dataSource.OpenConnectionAsync(cancel);
+                using var connection = await connectionFactory.CreateConnection(cancel);
                 var credentials = await connection.QueryAsync<ApiCredentialRow>(sql, new { OwnerDiscordUserId = ownerDiscordUserId });
                 return credentials.Select(row => ToSummary(row.ToEntity())).ToArray();
             },
@@ -69,7 +69,7 @@ public sealed class ApiCredentialService(
             RETURNING "Id", "OwnerDiscordUserId", "Name", "ClientId", "SecretHash", "CreatedAt", "LastUsedAt", "RevokedAt"
             """;
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        using var connection = await connectionFactory.CreateConnection(cancellationToken);
         var entity = (await connection.QuerySingleAsync<ApiCredentialRow>(sql, new
         {
             OwnerDiscordUserId = ownerDiscordUserId,
@@ -95,7 +95,7 @@ public sealed class ApiCredentialService(
             WHERE "Id" = @CredentialId AND "OwnerDiscordUserId" = @OwnerDiscordUserId
             """;
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        using var connection = await connectionFactory.CreateConnection(cancellationToken);
         var credential = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(
             selectSql, new { CredentialId = credentialId, OwnerDiscordUserId = ownerDiscordUserId }))?.ToEntity();
 
@@ -129,7 +129,7 @@ public sealed class ApiCredentialService(
             WHERE "Id" = @CredentialId AND "OwnerDiscordUserId" = @OwnerDiscordUserId
             """;
 
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        using var connection = await connectionFactory.CreateConnection(cancellationToken);
         var credential = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(
             selectSql, new { CredentialId = credentialId, OwnerDiscordUserId = ownerDiscordUserId }))?.ToEntity();
 
@@ -168,7 +168,7 @@ public sealed class ApiCredentialService(
                     WHERE "ClientId" = @ClientId
                     """;
 
-                await using var connection = await dataSource.OpenConnectionAsync(cancel);
+                using var connection = await connectionFactory.CreateConnection(cancel);
                 var entity = (await connection.QueryFirstOrDefaultAsync<ApiCredentialRow>(sql, new { ClientId = clientId }))?.ToEntity();
 
                 return entity is null
@@ -194,7 +194,7 @@ public sealed class ApiCredentialService(
             return null;
         }
 
-        await using var validateConnection = await dataSource.OpenConnectionAsync(cancellationToken);
+        using var validateConnection = await connectionFactory.CreateConnection(cancellationToken);
         var entity = (await validateConnection.QueryFirstOrDefaultAsync<ApiCredentialRow>(
             "SELECT \"Id\", \"OwnerDiscordUserId\", \"Name\", \"ClientId\", \"SecretHash\", \"CreatedAt\", \"LastUsedAt\", \"RevokedAt\" FROM \"ApiCredentials\" WHERE \"Id\" = @Id",
             new { credential.Id }))?.ToEntity();
@@ -222,7 +222,7 @@ public sealed class ApiCredentialService(
         for (var attempt = 0; attempt < MaxClientIdAttempts; attempt++)
         {
             var clientId = secretService.CreateClientId();
-            await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+            using var connection = await connectionFactory.CreateConnection(cancellationToken);
             var exists = await connection.ExecuteScalarAsync<bool>(
                 "SELECT EXISTS (SELECT 1 FROM \"ApiCredentials\" WHERE \"ClientId\" = @ClientId)",
                 new { ClientId = clientId });

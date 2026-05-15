@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Dapper;
 using DictionaryEntry;
-using Npgsql;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Interactions;
+using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Stats;
@@ -15,12 +15,12 @@ public interface IStatsService
 
 public class StatsService : IStatsService
 {
-    private readonly NpgsqlDataSource _dataSource;
+    private readonly IDbConnectionFactory _connectionFactory;
     private readonly Tracer _tracer;
 
-    public StatsService(NpgsqlDataSource dataSource, Tracer tracer)
+    public StatsService(IDbConnectionFactory connectionFactory, Tracer tracer)
     {
-        _dataSource = dataSource;
+        _connectionFactory = connectionFactory;
         _tracer = tracer;
     }
 
@@ -32,7 +32,7 @@ public class StatsService : IStatsService
         if (excludeInteractionId.HasValue)
             span.SetAttribute("stats.exclude_interaction_id", excludeInteractionId.Value);
 
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
 
         var totalInteractions = excludeInteractionId.HasValue
             ? await connection.ExecuteScalarAsync<int>(

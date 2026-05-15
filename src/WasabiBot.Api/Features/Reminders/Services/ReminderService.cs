@@ -1,26 +1,26 @@
 using System.Collections.Concurrent;
 using Dapper;
 using NetCord.Rest;
-using Npgsql;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
+using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Reminders.Services;
 
 public sealed class ReminderService : IReminderService
 {
-    private readonly NpgsqlDataSource _dataSource;
+    private readonly IDbConnectionFactory _connectionFactory;
     private readonly RestClient _discordClient;
     private readonly IReminderChangeNotifier _changeNotifier;
     private readonly ILogger<ReminderService> _logger;
     private readonly Tracer _tracer;
     private readonly TimeProvider _timeProvider;
 
-    public ReminderService(NpgsqlDataSource dataSource, RestClient discordClient, IReminderChangeNotifier changeNotifier,
+    public ReminderService(IDbConnectionFactory connectionFactory, RestClient discordClient, IReminderChangeNotifier changeNotifier,
         ILogger<ReminderService> logger, Tracer tracer, TimeProvider timeProvider)
     {
-        _dataSource = dataSource;
+        _connectionFactory = connectionFactory;
         _discordClient = discordClient;
         _changeNotifier = changeNotifier;
         _logger = logger;
@@ -48,7 +48,7 @@ public sealed class ReminderService : IReminderService
             RETURNING "Id"
             """;
 
-        await using var connection = await _dataSource.OpenConnectionAsync();
+        using var connection = await _connectionFactory.CreateConnection();
         entity.Id = await connection.ExecuteScalarAsync<long>(sql, new
         {
             entity.UserId,
@@ -67,7 +67,7 @@ public sealed class ReminderService : IReminderService
     public async Task<List<ReminderEntity>> GetAllUnsent(CancellationToken ct = default)
     {
         using var span = _tracer.StartActiveSpan("reminder.list.unsent");
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
         var rows = await connection.QueryAsync<ReminderRow>(
             SelectReminderSql + " WHERE \"Status\" = @Status ORDER BY \"DueAt\"",
             new { Status = ReminderStatus.Pending.ToString() });
@@ -77,7 +77,7 @@ public sealed class ReminderService : IReminderService
     public async Task<List<ReminderEntity>> GetAllByUserId(long userId, CancellationToken ct = default)
     {
         using var span = _tracer.StartActiveSpan("reminder.list.by_user");
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
         var rows = await connection.QueryAsync<ReminderRow>(
             SelectReminderSql + " WHERE \"UserId\" = @UserId AND \"Status\" IN (@PendingStatus, @ProcessingStatus) ORDER BY \"DueAt\"",
             new { UserId = userId, PendingStatus = ReminderStatus.Pending.ToString(), ProcessingStatus = ReminderStatus.Processing.ToString() });
@@ -117,7 +117,7 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.get_by_id");
 
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
         var row = await connection.QueryFirstOrDefaultAsync<ReminderRow>(
             SelectReminderSql + " WHERE \"Id\" = @ReminderId",
             new { ReminderId = reminderId });
@@ -128,7 +128,7 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.delete");
 
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
         var deleted = await connection.ExecuteAsync("""
             UPDATE "Reminders"
             SET "Status" = @CanceledStatus,
@@ -162,7 +162,7 @@ public sealed class ReminderService : IReminderService
             return [];
         }
 
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
         var claimed = await connection.QueryAsync<ReminderRow>("""
                 UPDATE "Reminders" AS r
                 SET "Status" = @ProcessingStatus,
@@ -200,7 +200,7 @@ public sealed class ReminderService : IReminderService
             return 0;
         }
 
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
         var updated = await connection.ExecuteAsync("""
             UPDATE "Reminders"
             SET "Status" = @SentStatus,
@@ -221,7 +221,7 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.mark_failed");
 
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
         var updated = await connection.ExecuteAsync("""
             UPDATE "Reminders"
             SET "Status" = @FailedStatus,
@@ -242,7 +242,7 @@ public sealed class ReminderService : IReminderService
     {
         using var span = _tracer.StartActiveSpan("reminder.requeue");
 
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
         var updated = await connection.ExecuteAsync("""
             UPDATE "Reminders"
             SET "Status" = @PendingStatus,
@@ -270,7 +270,7 @@ public sealed class ReminderService : IReminderService
 
     private async Task<DateTimeOffset?> GetNextDueTimeCoreAsync(CancellationToken ct)
     {
-        await using var connection = await _dataSource.OpenConnectionAsync(ct);
+        using var connection = await _connectionFactory.CreateConnection(ct);
         var nextDue = await connection.QueryFirstOrDefaultAsync<DateTime?>("""
             SELECT "DueAt"
             FROM "Reminders"

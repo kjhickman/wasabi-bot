@@ -1,13 +1,13 @@
 using System.ComponentModel;
 using Dapper;
 using System.Text.Json.Serialization;
-using Npgsql;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Infrastructure.Database;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Features.Interactions;
 
-public sealed class InteractionService(NpgsqlDataSource dataSource, Tracer tracer) : IInteractionService
+public sealed class InteractionService(IDbConnectionFactory connectionFactory, Tracer tracer) : IInteractionService
 {
     public async Task<InteractionEntity?> GetByIdAsync(long id)
     {
@@ -18,7 +18,7 @@ public sealed class InteractionService(NpgsqlDataSource dataSource, Tracer trace
             WHERE "Id" = @Id
             """;
 
-        await using var connection = await dataSource.OpenConnectionAsync();
+        using var connection = await connectionFactory.CreateConnection();
         return (await connection.QueryFirstOrDefaultAsync<InteractionRow>(sql, new { Id = id }))?.ToEntity();
     }
 
@@ -60,7 +60,7 @@ public sealed class InteractionService(NpgsqlDataSource dataSource, Tracer trace
             Limit = request.Limit + 1,
         };
 
-        await using var connection = await dataSource.OpenConnectionAsync();
+        using var connection = await connectionFactory.CreateConnection();
         var interactions = request.SortDirection == SortDirection.Desc
             ? await connection.QueryAsync<InteractionRow>(descSql, parameters)
             : await connection.QueryAsync<InteractionRow>(ascSql, parameters);
@@ -75,7 +75,7 @@ public sealed class InteractionService(NpgsqlDataSource dataSource, Tracer trace
             VALUES (@Id, @ChannelId, @ApplicationId, @UserId, @GuildId, @Username, @GlobalName, @Nickname, @Data::jsonb, @CreatedAt)
             """;
 
-        await using var connection = await dataSource.OpenConnectionAsync();
+        using var connection = await connectionFactory.CreateConnection();
         return await connection.ExecuteAsync(sql, interaction) > 0;
     }
 }

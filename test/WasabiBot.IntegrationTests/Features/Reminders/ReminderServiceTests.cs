@@ -5,6 +5,7 @@ using WasabiBot.Api.Features.Reminders.Services;
 using WasabiBot.Api.Persistence.Entities;
 using WasabiBot.IntegrationTests.Infrastructure;
 using WasabiBot.TestShared.Builders;
+using WasabiBot.TestShared.Infrastructure;
 
 namespace WasabiBot.IntegrationTests.Features.Reminders;
 
@@ -19,7 +20,7 @@ public class ReminderServiceTests : IntegrationTestBase
     private ReminderService CreateService(IReminderChangeNotifier? changeNotifier = null)
     {
         return new ReminderService(
-            CreateDataSource(),
+            new TestDbConnectionFactory(CreateDataSource()),
             null!, // RestClient is sealed and not needed for database tests
             changeNotifier ?? new NoOpReminderChangeNotifier(),
             NullLogger<ReminderService>.Instance,

@@ -2,6 +2,7 @@ using System.Data;
 using Npgsql;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
+using WasabiBot.Api.Infrastructure.Database;
 
 namespace WasabiBot.Api.Features.Reminders.Services;
 
@@ -10,7 +11,7 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
     private const string ChannelName = "reminders_changed";
     private static readonly TimeSpan ReconnectDelay = TimeSpan.FromSeconds(5);
 
-    private readonly NpgsqlDataSource _dataSource;
+    private readonly IDbConnectionFactory _connectionFactory;
     private readonly ILogger<PostgresReminderWakeSignal> _logger;
     private readonly Tracer _tracer;
     private readonly SemaphoreSlim _signal = new(0, 1);
@@ -18,9 +19,9 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
     private CancellationTokenSource? _cts;
     private Task? _listenerTask;
 
-    public PostgresReminderWakeSignal(NpgsqlDataSource dataSource, ILogger<PostgresReminderWakeSignal> logger, Tracer tracer)
+    public PostgresReminderWakeSignal(IDbConnectionFactory connectionFactory, ILogger<PostgresReminderWakeSignal> logger, Tracer tracer)
     {
-        _dataSource = dataSource;
+        _connectionFactory = connectionFactory;
         _logger = logger;
         _tracer = tracer;
     }
@@ -86,7 +87,8 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
 
             try
             {
-                await using var connection = await _dataSource.OpenConnectionAsync(ct);
+                using var dbConnection = await _connectionFactory.CreateConnection(ct);
+                var connection = (NpgsqlConnection)dbConnection;
                 connection.Notification += OnNotification;
 
                 await using var command = connection.CreateCommand();

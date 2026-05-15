@@ -2,6 +2,7 @@ using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Interactions;
 using WasabiBot.IntegrationTests.Infrastructure;
 using WasabiBot.TestShared.Builders;
+using WasabiBot.TestShared.Infrastructure;
 
 namespace WasabiBot.IntegrationTests.Features.DataAccess;
 
@@ -11,7 +12,7 @@ namespace WasabiBot.IntegrationTests.Features.DataAccess;
 /// </summary>
 public class InteractionServiceTests : IntegrationTestBase
 {
-    private InteractionService CreateService() => new(CreateDataSource(), TracerProvider.Default.GetTracer("test"));
+    private InteractionService CreateService() => new(new TestDbConnectionFactory(CreateDataSource()), TracerProvider.Default.GetTracer("test"));
 
     [Test]
     public async Task CreateAsync_ShouldInsertInteractionIntoDatabase()

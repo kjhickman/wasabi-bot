@@ -18,5 +18,6 @@ public static class DependencyInjection
 
             return dataSourceBuilder.Build();
         });
+        builder.Services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>();
     }
 }
