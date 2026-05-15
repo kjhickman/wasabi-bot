@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using WasabiBot.Api.Core.Responses;
 
 namespace WasabiBot.Api.Features.Interactions;
 
@@ -30,14 +31,14 @@ public class GetInteractions
             parsedCursor = ParseCursor(cursor);
             if (parsedCursor == null)
             {
-                return Results.BadRequest(new { error = "Invalid cursor format" });
+                return Results.BadRequest(new ErrorResponse("Invalid cursor format"));
             }
         }
 
         var pageLimit = limit ?? 100;
         if (pageLimit is < 1 or > 100)
         {
-            return Results.BadRequest(new { error = "Limit must be between 1 and 100" });
+            return Results.BadRequest(new ErrorResponse("Limit must be between 1 and 100"));
         }
 
         var request = new GetAllInteractionsRequest

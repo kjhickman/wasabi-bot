@@ -6,6 +6,7 @@ using WasabiBot.Api.Infrastructure.Discord;
 using WasabiBot.Api.Infrastructure.Lavalink;
 using WasabiBot.Api.Infrastructure.Auth;
 using WasabiBot.Api.Infrastructure.OpenApi;
+using WasabiBot.Api.Core.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,11 @@ builder.Host.UseDefaultServiceProvider(options =>
 {
     options.ValidateScopes = true;
     options.ValidateOnBuild = true;
+});
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, JsonContext.Default);
 });
 
 builder.AddOpenApiSpec();
