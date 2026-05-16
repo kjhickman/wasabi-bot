@@ -11,6 +11,7 @@ public static class LoginDiscord
 
         var properties = new AuthenticationProperties
         {
+            IsPersistent = true,
             RedirectUri = redirectUri
         };
 

@@ -76,6 +76,8 @@ public static class DependencyInjection
             })
             .AddCookie(options =>
             {
+                options.ExpireTimeSpan = TimeSpan.FromDays(90);
+                options.SlidingExpiration = true;
                 options.LoginPath = "/login-discord";
                 options.Events.OnRedirectToLogin = context =>
                 {
