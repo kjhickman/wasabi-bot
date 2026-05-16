@@ -8,6 +8,7 @@
     <PackageVersion Include="DictionaryEntry" Version="0.2.0" />
     <PackageVersion Include="Lavalink4NET.NetCord" Version="4.2.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0-preview.3.26207.106" />
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="11.0.0-preview.3.26207.106" />
     <PackageVersion Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.3.3" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0-preview.3.26207.106" />

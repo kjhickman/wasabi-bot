@@ -6,6 +6,7 @@ primary_region = 'dfw'
 
 [env]
   ASPNETCORE_ENVIRONMENT = 'Prod'
+  DataProtection__ApplicationName = 'WasabiBot.Prod'
 
 [http_service]
   internal_port = 8080

@@ -3,9 +3,11 @@ using AspNet.Security.OAuth.Discord;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Tokens;
 using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Features.ApiCredentials;
+using WasabiBot.Api.Persistence;
 
 namespace WasabiBot.Api.Infrastructure.Auth;
 
@@ -61,6 +63,10 @@ public static class DependencyInjection
         services.AddSingleton<IApiCredentialSecretService, ApiCredentialSecretService>();
         services.AddSingleton<IDiscordGuildAuthorizationClient, DiscordGuildAuthorizationClient>();
         services.AddScoped<IApiCredentialService, ApiCredentialService>();
+
+        services.AddDataProtection()
+            .SetApplicationName(configuration["DataProtection:ApplicationName"] ?? "WasabiBot")
+            .PersistKeysToDbContext<WasabiBotContext>();
 
         services
             .AddAuthentication(options =>

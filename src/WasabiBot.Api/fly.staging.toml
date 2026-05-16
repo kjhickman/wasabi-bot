@@ -6,6 +6,7 @@ primary_region = 'dfw'
 
 [env]
   ASPNETCORE_ENVIRONMENT = 'Staging'
+  DataProtection__ApplicationName = 'WasabiBot.Staging'
 
 [http_service]
   internal_port = 8080

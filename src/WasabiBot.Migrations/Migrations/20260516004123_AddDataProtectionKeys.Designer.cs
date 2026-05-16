@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WasabiBot.Api.Persistence;
@@ -11,14 +12,11 @@ using WasabiBot.Api.Persistence;
 namespace WasabiBot.Migrations.Migrations
 {
     [DbContext(typeof(WasabiBotContext))]
-    partial class WasabiBotContextModelSnapshot : ModelSnapshot
+    [Migration("20260516004123_AddDataProtectionKeys")]
+    partial class _20260516004123_AddDataProtectionKeys
     {
-        // If you encounter a merge conflict in the line below, it means you need to
-        // discard one of the migration branches and recreate its migrations on top of
-        // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-        public override string LatestMigrationId => "20260516004123_AddDataProtectionKeys";
-
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

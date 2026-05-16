@@ -1,11 +1,13 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using WasabiBot.Api.Persistence.Entities;
 
 namespace WasabiBot.Api.Persistence;
 
-public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options) : DbContext(options)
+public sealed class WasabiBotContext(DbContextOptions<WasabiBotContext> options) : DbContext(options), IDataProtectionKeyContext
 {
     public DbSet<ApiCredentialEntity> ApiCredentials => Set<ApiCredentialEntity>();
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<GuildTrackPlayEntity> GuildTrackPlays => Set<GuildTrackPlayEntity>();
     public DbSet<InteractionEntity> Interactions => Set<InteractionEntity>();
     public DbSet<MusicFavoriteEntity> MusicFavorites => Set<MusicFavoriteEntity>();
