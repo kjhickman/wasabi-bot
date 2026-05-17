@@ -25,10 +25,6 @@ public class StatsService : IStatsService
     public async Task<StatsData> GetStatsAsync(long? channelId = null, long? excludeInteractionId = null, CancellationToken ct = default)
     {
         using var span = _tracer.StartActiveSpan("stats.compute");
-        if (channelId.HasValue)
-            span.SetAttribute("stats.channel_id", channelId.Value.ToString());
-        if (excludeInteractionId.HasValue)
-            span.SetAttribute("stats.exclude_interaction_id", excludeInteractionId.Value);
 
         var query = _context.Interactions.AsQueryable();
 

@@ -23,7 +23,6 @@ internal sealed class RemindMeListCommand
     public async Task ExecuteAsync(ICommandContext ctx)
     {
         using var span = _tracer.StartActiveSpan("reminder.command.list");
-        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
 
         try
         {

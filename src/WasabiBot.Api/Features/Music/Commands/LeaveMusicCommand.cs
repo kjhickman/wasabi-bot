@@ -14,12 +14,9 @@ internal sealed class LeaveMusicCommand(ILogger<LeaveMusicCommand> logger, IMusi
     public async Task ExecuteAsync(ICommandContext ctx)
     {
         using var span = _tracer.StartActiveSpan("music.command.leave");
-        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
-        span.SetAttribute("discord.channel_id", ctx.ChannelId.ToString());
         try
         {
             var result = await _musicService.LeaveAsync(ctx);
-            span.SetAttribute("music.response.ephemeral", result.Ephemeral);
             await ctx.RespondAsync(result.Message, result.Ephemeral);
         }
         catch (Exception ex)

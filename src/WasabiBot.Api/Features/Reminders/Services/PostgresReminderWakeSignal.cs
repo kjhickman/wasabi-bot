@@ -156,7 +156,6 @@ public sealed class PostgresReminderWakeSignal : IReminderWakeSignal, IHostedSer
         if (e.Channel == ChannelName)
         {
             using var span = _tracer.StartActiveSpan("reminder.wake-signal.notification");
-            span.SetAttribute("messaging.destination.name", e.Channel);
             Signal();
         }
     }

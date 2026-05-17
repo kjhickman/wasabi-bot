@@ -27,12 +27,9 @@ internal sealed class MusicService(
     public async Task<MusicCommandResult> PlayAsync(ICommandContext ctx, string input, CancellationToken cancellationToken = default)
     {
         using var span = _tracer.StartActiveSpan("music.play");
-        AddContextAttributes(span, ctx);
-        span.SetAttribute("music.input.is_url", Uri.TryCreate(input.Trim(), UriKind.Absolute, out _));
 
         if (!ctx.GuildId.HasValue)
         {
-            span.SetAttribute("music.result", "guild_only");
             return PlaybackService.GuildOnly();
         }
 
@@ -40,13 +37,11 @@ internal sealed class MusicService(
         var trackLoad = await LoadTrackAsync(identifier, cancellationToken);
         if (trackLoad.Result is not null)
         {
-            span.SetAttribute("music.result", "track_load_failed");
             return trackLoad.Result;
         }
 
         if (trackLoad.LoadResult is not { } loadResult)
         {
-            span.SetAttribute("music.result", "track_load_unavailable");
             return new MusicCommandResult("Lavalink couldn't load that track right now. Please try again later.", Ephemeral: true);
         }
 
@@ -54,8 +49,6 @@ internal sealed class MusicService(
 
         if (loadResult.IsPlaylist)
         {
-            span.SetAttribute("music.load_type", "playlist");
-            span.SetAttribute("music.track_count", loadResult.Tracks.Length);
             var firstTrack = loadResult.Tracks[0];
 
             var playlistResult = await _queueMutationCoordinator.ExecuteAsync(guildId, async ct =>
@@ -79,18 +72,10 @@ internal sealed class MusicService(
                 return _playbackService.BuildPlaylistQueuedResult(loadResult.Playlist!.Name, loadResult.Tracks.Length, firstTrack);
             }, cancellationToken);
 
-            if (playlistResult.Ephemeral)
-            {
-                span.SetAttribute("music.player_retrieve_status", "failed");
-            }
-
             return playlistResult;
         }
 
         var track = loadResult.Track!;
-        span.SetAttribute("music.load_type", "track");
-        span.SetAttribute("music.track.title", track.Title);
-        span.SetAttribute("music.track.author", track.Author);
         var result = await _queueMutationCoordinator.ExecuteAsync(guildId, async ct =>
         {
             var (lavalinkPlayer, retrieveResult) = await _playbackService.RetrievePlaybackPlayerAsync(ctx, ct);
@@ -110,12 +95,10 @@ internal sealed class MusicService(
 
         if (result.Result is not null)
         {
-            span.SetAttribute("music.player_retrieve_status", "failed");
             return result.Result;
         }
 
         var position = result.Position!.Value;
-        span.SetAttribute("music.queue_position", position);
         return _playbackService.BuildQueuedTrackResult(track, position);
     }
 
@@ -124,14 +107,11 @@ internal sealed class MusicService(
         CancellationToken cancellationToken)
     {
         using var span = _tracer.StartActiveSpan("music.load-track");
-        span.SetAttribute("music.input.length", input.Length);
 
         var identifier = input.Trim();
-        span.SetAttribute("music.search_attempts", 1);
         TrackException? lastException = null;
 
         var isUrl = Uri.TryCreate(identifier, UriKind.Absolute, out _);
-        span.SetAttribute("music.search_mode", isUrl ? "url" : TrackSearchMode.SoundCloud.Prefix);
         var loadResult = await _audioService.Tracks.LoadTracksAsync(
             identifier,
             isUrl
@@ -164,7 +144,6 @@ internal sealed class MusicService(
                     filteredResult = TrackLoadResult.CreateTrack(filteredTracks[0]);
                 }
 
-                span.SetAttribute("music.search_match_count", filteredResult.Tracks.Length);
                 return (filteredResult, null);
             }
 
@@ -193,10 +172,8 @@ internal sealed class MusicService(
     public async Task<MusicCommandResult> SkipAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
     {
         using var span = _tracer.StartActiveSpan("music.skip");
-        AddContextAttributes(span, ctx);
         if (!ctx.GuildId.HasValue)
         {
-            span.SetAttribute("music.result", "player_unavailable");
             return PlaybackService.GuildOnly();
         }
 
@@ -217,17 +194,14 @@ internal sealed class MusicService(
             return new MusicCommandResult("Skipped the current track.");
         }, cancellationToken);
 
-        span.SetAttribute("music.result", result.Ephemeral ? "player_unavailable" : "skipped");
         return result;
     }
 
     public async Task<MusicCommandResult> StopAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
     {
         using var span = _tracer.StartActiveSpan("music.stop");
-        AddContextAttributes(span, ctx);
         if (!ctx.GuildId.HasValue)
         {
-            span.SetAttribute("music.result", "player_unavailable");
             return PlaybackService.GuildOnly();
         }
 
@@ -244,33 +218,27 @@ internal sealed class MusicService(
             return new MusicCommandResult("Stopped playback and cleared the queue.");
         }, cancellationToken);
 
-        span.SetAttribute("music.result", result.Ephemeral ? "player_unavailable" : "stopped");
         return result;
     }
 
     public async Task<MusicCommandResult> QueueAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
     {
         using var span = _tracer.StartActiveSpan("music.queue");
-        AddContextAttributes(span, ctx);
         var player = await GetExistingPlayerAsync(ctx, cancellationToken);
         if (player is null || (player.CurrentTrack is null && player.Queue.Count == 0))
         {
-            span.SetAttribute("music.result", "empty_queue");
             return new MusicCommandResult("The queue is currently empty.", Ephemeral: true);
         }
 
-        span.SetAttribute("music.queue_count", player.Queue.Count);
         return new MusicCommandResult(BuildQueueMessage(player));
     }
 
     public async Task<MusicCommandResult> NowPlayingAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
     {
         using var span = _tracer.StartActiveSpan("music.now-playing");
-        AddContextAttributes(span, ctx);
         var player = await GetExistingPlayerAsync(ctx, cancellationToken);
         if (player?.CurrentTrack is null)
         {
-            span.SetAttribute("music.result", "nothing_playing");
             return new MusicCommandResult("Nothing is playing right now.", Ephemeral: true);
         }
 
@@ -279,17 +247,14 @@ internal sealed class MusicService(
             ? $" {player.Queue.Count} more track(s) queued."
             : string.Empty;
 
-        span.SetAttribute("music.queue_count", player.Queue.Count);
         return new MusicCommandResult($"Now playing {_playbackService.FormatTrack(currentTrack)}.{queueSuffix}");
     }
 
     public async Task<MusicCommandResult> LeaveAsync(ICommandContext ctx, CancellationToken cancellationToken = default)
     {
         using var span = _tracer.StartActiveSpan("music.leave");
-        AddContextAttributes(span, ctx);
         if (!ctx.GuildId.HasValue)
         {
-            span.SetAttribute("music.result", "player_unavailable");
             return PlaybackService.GuildOnly();
         }
 
@@ -307,13 +272,11 @@ internal sealed class MusicService(
 
         if (result.Result is not null)
         {
-            span.SetAttribute("music.result", "player_unavailable");
             return result.Result;
         }
 
         await result.Player!.DisconnectAsync(cancellationToken);
         _musicInactivityTracker.CancelDisconnect(ctx.GuildId.GetValueOrDefault());
-        span.SetAttribute("music.result", "disconnected");
         return new MusicCommandResult("Left the voice channel.");
     }
 
@@ -363,21 +326,5 @@ internal sealed class MusicService(
         }
 
         return string.Join('\n', lines);
-    }
-
-    private static void AddContextAttributes(TelemetrySpan span, ICommandContext ctx)
-    {
-        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
-        span.SetAttribute("discord.channel_id", ctx.ChannelId.ToString());
-
-        if (ctx.GuildId.HasValue)
-        {
-            span.SetAttribute("discord.guild_id", ctx.GuildId.Value.ToString());
-        }
-
-        if (ctx.UserVoiceChannelId.HasValue)
-        {
-            span.SetAttribute("discord.voice_channel_id", ctx.UserVoiceChannelId.Value.ToString());
-        }
     }
 }

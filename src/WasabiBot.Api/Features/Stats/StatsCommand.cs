@@ -21,8 +21,6 @@ internal sealed class StatsCommand
     public async Task ExecuteAsync(ICommandContext ctx)
     {
         using var span = _tracer.StartActiveSpan("stats.command.execute");
-        span.SetAttribute("discord.channel_id", ctx.ChannelId.ToString());
-        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
 
         try
         {

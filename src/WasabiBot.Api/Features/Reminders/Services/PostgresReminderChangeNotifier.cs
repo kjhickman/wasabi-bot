@@ -13,7 +13,6 @@ public sealed class PostgresReminderChangeNotifier(IConfiguration configuration,
     public async Task NotifyReminderChangedAsync(CancellationToken ct = default)
     {
         using var span = tracer.StartActiveSpan("reminder.change-notify");
-        span.SetAttribute("messaging.destination.name", ChannelName);
 
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(ct);

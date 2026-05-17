@@ -24,8 +24,6 @@ internal sealed class RemindMeRmCommand
         int reminderId)
     {
         using var span = _tracer.StartActiveSpan("reminder.command.delete");
-        span.SetAttribute("discord.user_id", ctx.UserId.ToString());
-        span.SetAttribute("reminder.id", reminderId);
 
         try
         {
