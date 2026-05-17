@@ -2,19 +2,17 @@ using System.Collections.Concurrent;
 using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace WasabiBot.Api.Features.Music;
 
 internal sealed class MusicInactivityTracker(
     IServiceScopeFactory serviceScopeFactory,
-    IOptions<MusicInactivityOptions> options,
     ILogger<MusicInactivityTracker> logger) : IMusicInactivityTracker
 {
     private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
     private readonly ILogger<MusicInactivityTracker> _logger = logger;
-    private readonly TimeSpan _idleTimeout = TimeSpan.FromMinutes(options.Value.IdleTimeoutMinutes);
-    private readonly TimeSpan _pausedTimeout = TimeSpan.FromMinutes(options.Value.PausedTimeoutMinutes);
+    private readonly TimeSpan _idleTimeout = TimeSpan.FromMinutes(15);
+    private readonly TimeSpan _pausedTimeout = TimeSpan.FromMinutes(60);
     private readonly ConcurrentDictionary<ulong, ScheduledDisconnect> _scheduledDisconnects = new();
 
     public void ScheduleIdleDisconnect(ulong guildId)

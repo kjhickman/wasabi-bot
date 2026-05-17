@@ -3,7 +3,6 @@ using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using NSubstitute;
 using NSubstitute.Exceptions;
 using WasabiBot.Api.Features.Music;
@@ -89,7 +88,6 @@ public class MusicInactivityTrackerTests
 
         return new MusicInactivityTracker(
             provider.GetRequiredService<IServiceScopeFactory>(),
-            Options.Create(new MusicInactivityOptions()),
             NullLogger<MusicInactivityTracker>.Instance);
     }
 

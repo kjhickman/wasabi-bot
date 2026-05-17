@@ -2,7 +2,6 @@ using NetCord;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services.ApplicationCommands;
-using Microsoft.Extensions.Options;
 using WasabiBot.Api.Features.Music;
 using WasabiBot.Api.Features.Radio;
 using WasabiBot.Api.Features.CaptionThis.Abstractions;
@@ -47,10 +46,6 @@ internal static class DependencyInjection
         services.AddScoped<IReminderService, ReminderService>();
         services.AddHostedService<ReminderDispatcher>();
         services.AddScoped<IImageRetrievalService, HttpClientImageRetrievalService>();
-        services.AddOptions<MusicInactivityOptions>()
-            .BindConfiguration(MusicInactivityOptions.SectionName)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
         services.AddSingleton<RadioTrackMetadataStore>();
         services.AddSingleton<IMusicPlaybackStatsRecorder, MusicPlaybackStatsRecorder>();
         services.AddSingleton<IMusicQueueMutationCoordinator, MusicQueueMutationCoordinator>();

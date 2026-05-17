@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
 namespace WasabiBot.Api.Infrastructure.OpenApi;
@@ -7,9 +8,9 @@ internal static class OpenApiConfiguration
     private const string ApiTokenSchemeName = "ApiToken";
     private const string OAuthTokenPath = "/api/v1/oauth/token";
 
-    public static void AddOpenApiSpec(this WebApplicationBuilder builder)
+    public static Action<OpenApiOptions> Build()
     {
-        builder.Services.AddOpenApi(options =>
+        return options =>
         {
             options.AddDocumentTransformer((document, _, _) =>
             {
@@ -33,11 +34,6 @@ internal static class OpenApiConfiguration
 
                 return Task.CompletedTask;
             });
-        });
-    }
-
-    public static void MapOpenApiSpec(this WebApplication app)
-    {
-        app.MapOpenApi();
+        };
     }
 }
