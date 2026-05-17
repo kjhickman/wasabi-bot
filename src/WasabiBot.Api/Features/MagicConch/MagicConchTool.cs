@@ -6,19 +6,17 @@ namespace WasabiBot.Api.Features.MagicConch;
 public class MagicConchTool : IMagicConchTool
 {
     private readonly ILogger<MagicConchTool> _logger;
-    private readonly Random _random;
 
-    public MagicConchTool(ILogger<MagicConchTool> logger, Random random)
+    public MagicConchTool(ILogger<MagicConchTool> logger)
     {
         _logger = logger;
-        _random = random;
     }
 
     [Description("Randomly chooses a response from the magic conch shell if the answer is unknown.")]
     public string GetMagicConchResponse(string question)
     {
         _logger.LogInformation("Invoked Magic Conch tool for question: {Question}", question);
-        var randomNumber = _random.Next(TotalWeight);
+        var randomNumber = Random.Shared.Next(TotalWeight);
 
         var currentWeight = 0;
         foreach (var response in MagicConchResponses)

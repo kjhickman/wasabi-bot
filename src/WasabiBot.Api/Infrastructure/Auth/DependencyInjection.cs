@@ -13,7 +13,7 @@ namespace WasabiBot.Api.Infrastructure.Auth;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddAuthServices(this WebApplicationBuilder builder)
+    public static IServiceCollection AddAuthServices(this IHostApplicationBuilder builder)
     {
         var configuration = builder.Configuration;
         var services = builder.Services;

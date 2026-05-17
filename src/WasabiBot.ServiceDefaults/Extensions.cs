@@ -13,6 +13,7 @@ using Serilog.Events;
 using Serilog.Core;
 using Serilog.Formatting.Json;
 using System.Diagnostics;
+using Microsoft.AspNetCore.Hosting;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.Hosting;
@@ -21,6 +22,16 @@ public static class Extensions
 {
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        if (builder is WebApplicationBuilder webBuilder)
+        {
+            webBuilder.WebHost.UseKestrel(options => options.AddServerHeader = false);
+            webBuilder.Host.UseDefaultServiceProvider(options =>
+            {
+                options.ValidateScopes = true;
+                options.ValidateOnBuild = true;
+            });
+        }
+
         builder.Services.AddSingleton(TimeProvider.System);
         builder.ConfigureSerilog();
         builder.ConfigureOpenTelemetry();
