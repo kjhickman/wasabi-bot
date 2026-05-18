@@ -1,7 +1,8 @@
+using System.ClientModel;
 using Lavalink4NET;
 using Lavalink4NET.NetCord;
+using Microsoft.Extensions.AI;
 using Microsoft.EntityFrameworkCore;
-using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.OpenApi;
 using WasabiBot.Api.Infrastructure.Auth;
 using WasabiBot.Api.Persistence;
@@ -9,11 +10,16 @@ using NetCord.Hosting.Gateway;
 using NetCord.Gateway;
 using NetCord;
 using NetCord.Hosting.Services.ApplicationCommands;
+using OpenAI;
 
 namespace WasabiBot.Api.Infrastructure;
 
 public static class InfrastructureServiceExtensions
 {
+    private const string GeminiFlashModel = "gemini-3.5-flash";
+    private const string GoogleOpenAiEndpoint = "https://generativelanguage.googleapis.com/v1beta/openai/";
+    private const string GoogleApiKeyConfigKey = "GoogleAi:ApiKey";
+
     public static void AddInfrastructure(this IHostApplicationBuilder builder)
     {
         builder.Services.AddDbContext<WasabiBotContext>(options =>
@@ -51,12 +57,21 @@ public static class InfrastructureServiceExtensions
                     TimeSpan.FromSeconds(lavalinkSection.GetValue("ResumeTimeoutSeconds", 60)));
             });
 
-        builder.Services.AddOptions<OpenRouterV2Options>()
-            .Bind(builder.Configuration.GetSection(OpenRouterV2Options.SectionName))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+        builder.Services
+            .AddChatClient(serviceProvider =>
+            {
+                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+                var apiKey = configuration[GoogleApiKeyConfigKey]
+                    ?? throw new InvalidOperationException("Google AI API key is not configured.");
 
-        builder.Services.AddScoped<IChatClientFactory, ChatClientFactory>();
+                var clientOptions = new OpenAIClientOptions { Endpoint = new Uri(GoogleOpenAiEndpoint) };
+                return new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions)
+                    .GetChatClient(GeminiFlashModel)
+                    .AsIChatClient();
+            })
+            .UseOpenTelemetry(sourceName: "Microsoft.Extensions.AI")
+            .UseFunctionInvocation()
+            .UseLogging();
 
         builder.AddAuthServices();
     }

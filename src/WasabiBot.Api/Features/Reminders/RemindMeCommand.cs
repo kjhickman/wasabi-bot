@@ -51,13 +51,20 @@ internal sealed class RemindMeCommand
             DateTimeOffset remindAt;
             try
             {
-                remindAt = await _timeParsingService.ParseTimeAsync(whenText) ?? throw new InvalidOperationException("Time parser returned no value.");
+                remindAt = await _timeParsingService.ParseTimeAsync(whenText) ?? throw new TimeParsingException("Time parser returned no value.");
             }
-            catch (Exception ex)
+            catch (TimeParsingException ex)
             {
                 span.RecordException(ex);
                 _logger.LogWarning(ex, "Failed to parse reminder time for user {UserId}", ctx.UserId);
                 await ctx.SendEphemeralAsync("Sorry, I couldn't understand that time. Try phrases like 'in 30 minutes' or 'tomorrow at 9am'.");
+                return;
+            }
+            catch (Exception ex)
+            {
+                span.RecordException(ex);
+                _logger.LogError(ex, "Reminder time parsing failed for user {UserId}", ctx.UserId);
+                await ctx.SendEphemeralAsync("Something went wrong while processing that command. Please try again later.");
                 return;
             }
 

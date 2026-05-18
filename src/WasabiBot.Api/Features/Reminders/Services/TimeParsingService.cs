@@ -2,7 +2,6 @@ using System.Globalization;
 using Microsoft.Extensions.AI;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Reminders.Abstractions;
-using WasabiBot.Api.Infrastructure.AI;
 
 namespace WasabiBot.Api.Features.Reminders.Services;
 
@@ -16,11 +15,11 @@ internal sealed class TimeParsingService : ITimeParsingService
     private readonly IChatClient _chatClient;
     private readonly Tracer _tracer;
 
-    public TimeParsingService(TimeProvider timeProvider, ILogger<TimeParsingService> logger, IChatClientFactory chatClientFactory, Tracer tracer)
+    public TimeParsingService(TimeProvider timeProvider, ILogger<TimeParsingService> logger, IChatClient chatClient, Tracer tracer)
     {
         _timeProvider = timeProvider;
         _logger = logger;
-        _chatClient = chatClientFactory.GetChatClient(LlmPreset.LowLatency);
+        _chatClient = chatClient;
         _tracer = tracer;
     }
 
@@ -49,14 +48,14 @@ internal sealed class TimeParsingService : ITimeParsingService
 
             if (string.IsNullOrWhiteSpace(timestampText))
             {
-                throw new InvalidOperationException("LLM returned an empty response when parsing reminder time.");
+                throw new TimeParsingException("LLM returned an empty response when parsing reminder time.");
             }
 
             if (!DateTimeOffset.TryParse(timestampText, CultureInfo.InvariantCulture,
                     DateTimeStyles.RoundtripKind,
                     out var parsedCentral))
             {
-                throw new FormatException($"LLM response '{timestampText}' was not a valid ISO 8601 Central timestamp.");
+                throw new TimeParsingException($"LLM response '{timestampText}' was not a valid ISO 8601 Central timestamp.");
             }
 
             return parsedCentral.ToUniversalTime();

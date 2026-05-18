@@ -23,8 +23,8 @@ var discordClientSecret = builder.AddParameter("discord-client-secret", secret: 
 var discordBotToken = builder.AddParameter("discord-bot-token", secret: true)
     .WithDescription("Discord Bot Token");
 
-var openRouterKey = builder.AddParameter("openrouter-api-key", secret: true)
-    .WithDescription("OpenRouter API Key");
+var googleApiKey = builder.AddParameter("google-api-key", secret: true)
+    .WithDescription("Google API Key");
 
 const string lavalinkImagePrefix = "FROM ghcr.io/lavalink-devs/lavalink:";
 
@@ -78,7 +78,7 @@ IResourceBuilder<TResource> ConfigureApi<TResource>(IResourceBuilder<TResource> 
         .WithEnvironment("Authentication__Discord__ClientId", discordClientId)
         .WithEnvironment("Authentication__Discord__ClientSecret", discordClientSecret)
         .WithEnvironment("Discord__Token", discordBotToken)
-        .WithEnvironment("OpenRouterV2__ApiKey", openRouterKey)
+        .WithEnvironment("GoogleAi__ApiKey", googleApiKey)
         .WithEnvironment("Lavalink__BaseUrl", lavalink.GetEndpoint("http"))
         .WaitForCompletion(migrations)
         .WithUrls(context =>

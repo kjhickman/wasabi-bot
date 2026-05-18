@@ -1,18 +1,17 @@
 using Microsoft.Extensions.AI;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
-using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
 
 namespace WasabiBot.Api.Features.Ask;
 
 [CommandHandler("ask", "Ask a quick one-off question.")]
-internal sealed class AskCommand(IChatClientFactory chatClientFactory, Tracer tracer, ILogger<AskCommand> logger)
+internal sealed class AskCommand(IChatClient chatClient, Tracer tracer, ILogger<AskCommand> logger)
 {
     private const string SystemPrompt = "You answer one-off user questions in Discord. Keep the reply short and concise. There will be no follow-up conversation, so answer the question directly in a single response.";
 
-    private readonly IChatClient _chatClient = chatClientFactory.GetChatClient(LlmPreset.LowLatency);
+    private readonly IChatClient _chatClient = chatClient;
     private readonly Tracer _tracer = tracer;
     private readonly ILogger<AskCommand> _logger = logger;
 

@@ -18,7 +18,7 @@ The Aspire app prompts for these parameters on first run:
 - `discord-client-id`
 - `discord-client-secret`
 - `discord-bot-token`
-- `openrouter-api-key`
+- `google-api-key`
 
 You can enter them into the prompt when Aspire starts, or store them with Aspire user secrets for reuse.
 
@@ -36,11 +36,11 @@ Use these values for:
 - `discord-client-secret`: Discord `Client Secret`
 - `discord-bot-token`: bot token from the `Bot` page
 
-### Getting an OpenRouter API key
+### Getting a Google API key
 
-1. Create or sign in to an account at [openrouter.ai](https://openrouter.ai/).
-2. Create an API key from the OpenRouter dashboard.
-3. Use that value for `openrouter-api-key`.
+1. Create or sign in to a Google AI Studio account at [aistudio.google.com](https://aistudio.google.com/).
+2. Create an API key from the Google AI Studio dashboard.
+3. Use that value for `google-api-key`.
 
 ### Running the bot
 

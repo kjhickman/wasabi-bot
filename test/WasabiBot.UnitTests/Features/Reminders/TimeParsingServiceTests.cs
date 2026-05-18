@@ -2,8 +2,8 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using OpenTelemetry.Trace;
+using WasabiBot.Api.Features.Reminders.Abstractions;
 using WasabiBot.Api.Features.Reminders.Services;
-using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.UnitTests.Builders;
 
 namespace WasabiBot.UnitTests.Features.Reminders;
@@ -16,12 +16,10 @@ public class TimeParsingServiceTests
     {
         timeProvider ??= TimeProvider.System;
         chatClient ??= Substitute.For<IChatClient>();
-        var chatClientFactory = Substitute.For<IChatClientFactory>();
-        chatClientFactory.GetChatClient(Arg.Any<LlmPreset>()).Returns(chatClient);
         var logger = NullLogger<TimeParsingService>.Instance;
         var tracer = TracerProvider.Default.GetTracer("timeparsing-tests");
 
-        return new TimeParsingService(timeProvider, logger, chatClientFactory, tracer);
+        return new TimeParsingService(timeProvider, logger, chatClient, tracer);
     }
 
     [Test]
@@ -128,7 +126,7 @@ public class TimeParsingServiceTests
     }
 
     [Test]
-    public async Task ParseTimeAsync_ThrowsWhenLlmReturnsEmpty()
+    public async Task ParseTimeAsync_ThrowsTimeParsingExceptionWhenLlmReturnsEmpty()
     {
         var chatClient = Substitute.For<IChatClient>();
         var response = ChatResponseBuilder.Create()
@@ -139,11 +137,11 @@ public class TimeParsingServiceTests
 
         var service = CreateService(chatClient: chatClient);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ParseTimeAsync("invalid"));
+        await Assert.ThrowsAsync<TimeParsingException>(() => service.ParseTimeAsync("invalid"));
     }
 
     [Test]
-    public async Task ParseTimeAsync_ThrowsWhenLlmReturnsInvalidFormat()
+    public async Task ParseTimeAsync_ThrowsTimeParsingExceptionWhenLlmReturnsInvalidFormat()
     {
         var chatClient = Substitute.For<IChatClient>();
         var response = ChatResponseBuilder.Create()
@@ -154,7 +152,7 @@ public class TimeParsingServiceTests
 
         var service = CreateService(chatClient: chatClient);
 
-        await Assert.ThrowsAsync<FormatException>(() => service.ParseTimeAsync("bad input"));
+        await Assert.ThrowsAsync<TimeParsingException>(() => service.ParseTimeAsync("bad input"));
     }
 
     [Test]

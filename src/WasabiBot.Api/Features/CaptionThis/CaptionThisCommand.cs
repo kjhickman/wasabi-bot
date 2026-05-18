@@ -5,7 +5,6 @@ using WasabiBot.Api.Core.Extensions;
 using WasabiBot.Api.Features.CaptionThis.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
 using WasabiBot.Api.Infrastructure.Discord.Interactions;
-using WasabiBot.Api.Infrastructure.AI;
 
 namespace WasabiBot.Api.Features.CaptionThis;
 
@@ -17,10 +16,10 @@ internal sealed class CaptionThisCommand
     private readonly Tracer _tracer;
     private readonly ILogger<CaptionThisCommand> _logger;
 
-    public CaptionThisCommand(IChatClientFactory chatClientFactory, IImageRetrievalService imageRetrievalService, Tracer tracer,
+    public CaptionThisCommand(IChatClient chatClient, IImageRetrievalService imageRetrievalService, Tracer tracer,
         ILogger<CaptionThisCommand> logger)
     {
-        _chatClient = chatClientFactory.GetChatClient(LlmPreset.LowLatencyCreative);
+        _chatClient = chatClient;
         _imageRetrievalService = imageRetrievalService;
         _tracer = tracer;
         _logger = logger;

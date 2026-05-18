@@ -57,13 +57,13 @@ public class RemindMeCommandTests
     }
 
     [Test]
-    public async Task ExecuteAsync_WhenTimeParsingThrows_SendsFriendlyError()
+    public async Task ExecuteAsync_WhenTimeParsingThrowsParseError_SendsFriendlyError()
     {
         var reminderService = Substitute.For<IReminderService>();
         var timeParsingService = Substitute.For<ITimeParsingService>();
         timeParsingService
             .ParseTimeAsync(Arg.Any<string>())
-            .Returns(Task.FromException<DateTimeOffset?>(new InvalidOperationException("boom")));
+            .Returns(Task.FromException<DateTimeOffset?>(new TimeParsingException("boom")));
 
         var timeProvider = Substitute.For<TimeProvider>();
         var command = CreateCommand(reminderService, timeParsingService, timeProvider);
@@ -81,6 +81,33 @@ public class RemindMeCommandTests
         await Assert.That(ephemerals.Count).IsEqualTo(1);
         await Assert.That(ephemerals.Single())
             .IsEqualTo("Sorry, I couldn't understand that time. Try phrases like 'in 30 minutes' or 'tomorrow at 9am'.");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_WhenTimeParsingThrowsServerError_SendsServerError()
+    {
+        var reminderService = Substitute.For<IReminderService>();
+        var timeParsingService = Substitute.For<ITimeParsingService>();
+        timeParsingService
+            .ParseTimeAsync(Arg.Any<string>())
+            .Returns(Task.FromException<DateTimeOffset?>(new MissingMethodException("provider mismatch")));
+
+        var timeProvider = Substitute.For<TimeProvider>();
+        var command = CreateCommand(reminderService, timeParsingService, timeProvider);
+        var context = new FakeCommandContext();
+
+        await command.ExecuteAsync(context, "soon", "hydrate");
+
+        await reminderService.DidNotReceive().ScheduleAsync(
+            Arg.Any<ulong>(),
+            Arg.Any<ulong>(),
+            Arg.Any<string>(),
+            Arg.Any<DateTimeOffset>());
+
+        var ephemerals = context.EphemeralMessages;
+        await Assert.That(ephemerals.Count).IsEqualTo(1);
+        await Assert.That(ephemerals.Single())
+            .IsEqualTo("Something went wrong while processing that command. Please try again later.");
     }
 
     [Test]

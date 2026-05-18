@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Features.Ask;
-using WasabiBot.Api.Infrastructure.AI;
 using WasabiBot.UnitTests.Builders;
 using WasabiBot.UnitTests.Infrastructure.Discord;
 
@@ -11,16 +10,14 @@ namespace WasabiBot.UnitTests.Features.Ask;
 
 public class AskCommandTests
 {
-    private static AskCommand CreateCommand(IChatClient chatClient, out IChatClientFactory factory)
+    private static AskCommand CreateCommand(IChatClient chatClient)
     {
-        factory = Substitute.For<IChatClientFactory>();
-        factory.GetChatClient(Arg.Any<LlmPreset>()).Returns(chatClient);
         var tracer = TracerProvider.Default.GetTracer("ask-tests");
-        return new AskCommand(factory, tracer, NullLogger<AskCommand>.Instance);
+        return new AskCommand(chatClient, tracer, NullLogger<AskCommand>.Instance);
     }
 
     [Test]
-    public async Task ExecuteAsync_WhenResponseReceived_UsesLowLatencyPresetAndSendsReply()
+    public async Task ExecuteAsync_WhenResponseReceived_UsesChatClientAndSendsReply()
     {
         var chatResponse = ChatResponseBuilder.Create()
             .WithAssistantText("Short answer")
@@ -31,13 +28,12 @@ public class AskCommandTests
             .GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>())
             .Returns(Task.FromResult(chatResponse));
 
-        var command = CreateCommand(chatClient, out var factory);
+        var command = CreateCommand(chatClient);
         var context = new FakeCommandContext();
 
         const string question = "How many moons does Mars have?";
         await command.ExecuteAsync(context, question);
 
-        factory.Received(1).GetChatClient(LlmPreset.LowLatency);
         await chatClient.Received(1).GetResponseAsync(
             Arg.Is<IEnumerable<ChatMessage>>(messages => HasExpectedPrompt(messages, question)));
 
@@ -55,7 +51,7 @@ public class AskCommandTests
             .GetResponseAsync(Arg.Any<IEnumerable<ChatMessage>>())
             .Returns(Task.FromException<ChatResponse>(new InvalidOperationException("outage")));
 
-        var command = CreateCommand(chatClient, out _);
+        var command = CreateCommand(chatClient);
         var context = new FakeCommandContext();
 
         await command.ExecuteAsync(context, "What time is it?");
