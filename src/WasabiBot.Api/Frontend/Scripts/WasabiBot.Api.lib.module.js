@@ -1,5 +1,5 @@
 import { initializeCopyButtons } from './clipboard.js';
-import { replaceUrlIfNeeded } from './navigation.js';
+import { replaceCurrentUrlIfRequested } from './navigation.js';
 import { initializeThemePreference, syncThemePreferenceUi } from './theme.js';
 
 let initialized = false;
@@ -14,11 +14,11 @@ export function afterWebStarted(blazor) {
         initialized = true;
     }
 
-    replaceUrlIfNeeded();
+    replaceCurrentUrlIfRequested();
     syncThemePreferenceUi();
 
     blazor.addEventListener('enhancedload', function() {
-        replaceUrlIfNeeded();
+        replaceCurrentUrlIfRequested();
         syncThemePreferenceUi();
     });
 }

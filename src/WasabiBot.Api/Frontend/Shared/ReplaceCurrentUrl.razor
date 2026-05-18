@@ -1,0 +1,11 @@
+@namespace WasabiBot.Api.Frontend.Shared
+
+@if (!string.IsNullOrWhiteSpace(Url))
+{
+    <span hidden data-wasabi-replace-current-url="@Url"></span>
+}
+
+@code {
+    [Parameter]
+    public string? Url { get; set; }
+}

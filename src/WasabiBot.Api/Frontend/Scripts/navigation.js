@@ -1,5 +1,5 @@
-export function replaceUrlIfNeeded(root = document) {
-    const replacementUrl = root.querySelector('[data-replace-url]')?.getAttribute('data-replace-url');
+export function replaceCurrentUrlIfRequested(root = document) {
+    const replacementUrl = root.querySelector('[data-wasabi-replace-current-url]')?.getAttribute('data-wasabi-replace-current-url');
     if (!replacementUrl) {
         return;
     }
