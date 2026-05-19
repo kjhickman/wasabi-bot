@@ -79,35 +79,6 @@
   overflow-x: auto;
 }
 
-.music-queue-table {
-  inline-size: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.music-queue-table th {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--color-base-300);
-  color: color-mix(in srgb, var(--color-base-content) 70%, transparent);
-  font-weight: 600;
-  text-align: left;
-}
-
-.music-queue-table td {
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--color-base-300);
-  vertical-align: top;
-}
-
-.music-queue-table__position {
-  inline-size: 3rem;
-  color: color-mix(in srgb, var(--color-base-content) 70%, transparent);
-}
-
-.music-queue-table td.music-queue-table__cell--middle {
-  vertical-align: middle;
-}
-
 .music-queue-table__actions {
   display: flex;
   flex-wrap: wrap;

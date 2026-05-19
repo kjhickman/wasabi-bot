@@ -120,7 +120,7 @@ else
             else
             {
                 <div class="music-queue-table-wrap">
-                    <table class="music-queue-table">
+                    <table class="table table-zebra">
                         <thead>
                             <tr>
                                 <th scope="col">#</th>
@@ -132,8 +132,8 @@ else
                         <tbody id="music-queue-list">
                             @foreach (var item in Session.Queue)
                             {
-                                <tr class="music-queue-table__row">
-                                    <td class="music-queue-table__position music-queue-table__cell--middle">@item.Position</td>
+                                <tr>
+                                    <td class="w-12 align-middle text-base-content/70">@item.Position</td>
                                     <td>
                                         <div class="music-queue-table__track-row">
                                             <div class="music-queue-table__reorder-actions">
@@ -162,8 +162,8 @@ else
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="music-queue-table__cell--middle">@item.Track.DurationText</td>
-                                    <td class="music-queue-table__cell--middle">
+                                    <td class="align-middle">@item.Track.DurationText</td>
+                                    <td class="align-middle">
                                         <div class="music-queue-table__actions">
                                             <button type="button"
                                                     class="btn btn-sm btn-ghost btn-square"
