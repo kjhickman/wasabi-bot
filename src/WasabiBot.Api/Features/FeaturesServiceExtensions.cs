@@ -18,6 +18,7 @@ public static class FeaturesServiceExtensions
     public static void AddFeatures(this IHostApplicationBuilder builder)
     {
         builder.Services.AddGatewayHandler<InteractionCreatedEventHandler>();
+        builder.Services.AddGatewayHandler<VoiceStateUpdatedEventHandler>();
 
         // Scans and registers all [CommandHandler] classes
         builder.Services.AddDiscordCommandHandlers();
