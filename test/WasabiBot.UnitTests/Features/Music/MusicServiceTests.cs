@@ -51,7 +51,7 @@ public class MusicServiceTests
     }
 
     [Test]
-    public async Task PlayAsync_WhenSearchHasNoMatches_ReturnsSoundCloudSearchMessage()
+    public async Task PlayAsync_WhenSearchHasNoMatches_ReturnsGenericSearchMessage()
     {
         var trackManager = Substitute.For<ITrackManager>();
         trackManager.LoadTracksAsync(
@@ -67,7 +67,7 @@ public class MusicServiceTests
 
         await Assert.That(result.Ephemeral).IsTrue();
         await Assert.That(result.Message)
-            .IsEqualTo("I couldn't find anything playable on SoundCloud for that search.");
+            .IsEqualTo("I couldn't find anything playable for that search.");
     }
 
     [Test]
@@ -282,7 +282,7 @@ public class MusicServiceTests
         await Assert.That(result.Ephemeral).IsTrue();
         // Previews are filtered silently, so it appears as if no results were found
         await Assert.That(result.Message)
-            .IsEqualTo("I couldn't find anything playable on SoundCloud for that search.");
+            .IsEqualTo("I couldn't find anything playable for that search.");
     }
 
     private static LavalinkTrack CreateTrack(string title, string author, TimeSpan duration)

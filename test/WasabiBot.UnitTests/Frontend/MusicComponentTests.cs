@@ -349,7 +349,6 @@ public class MusicComponentTests : IDisposable
         await Assert.That(cut.Find("#music-radio-results-heading").TextContent.Trim()).IsEqualTo("Radio");
         await Assert.That(cut.Find("#music-song-results").TextContent).Contains("Creep");
         await Assert.That(cut.Find("#music-radio-results").TextContent).Contains("Radiohead FM");
-        await Assert.That(cut.Find("#music-song-results").TextContent).DoesNotContain("SoundCloud");
         await Assert.That(cut.FindAll("#music-search-error").Count).IsEqualTo(0);
     }
 
@@ -585,7 +584,6 @@ public class MusicComponentTests : IDisposable
         await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("Creep");
         await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("by Radiohead");
         await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("Played 5 time(s)");
-        await Assert.That(cut.Find("#music-most-played-list").TextContent).DoesNotContain("SoundCloud");
         await Assert.That(cut.FindAll("#music-most-played-list a").Count).IsEqualTo(0);
         await Assert.That(cut.FindAll("#music-most-played-list button").Count).IsGreaterThanOrEqualTo(3);
     }

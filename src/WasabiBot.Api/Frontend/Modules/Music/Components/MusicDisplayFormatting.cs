@@ -6,8 +6,8 @@ internal static class MusicDisplayFormatting
     {
         return sourceName.ToLowerInvariant() switch
         {
-            "scsearch" => "SoundCloud",
-            "soundcloud" => "SoundCloud",
+            "scsearch" => "Music",
+            "soundcloud" => "Music",
             "http" => "Direct stream",
             _ => sourceName
         };

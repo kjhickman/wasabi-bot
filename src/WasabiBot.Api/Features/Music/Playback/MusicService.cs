@@ -154,18 +154,18 @@ internal sealed class MusicService(
         {
             lastException = trackException;
             span.RecordException(new InvalidOperationException(trackException.Message));
-            _logger.LogWarning("Lavalink failed to load SoundCloud track for identifier {Identifier}: {Exception}", identifier, trackException.Message);
+            _logger.LogWarning("Lavalink failed to load music track for identifier {Identifier}: {Exception}", identifier, trackException.Message);
         }
 
         if (lastException is not null)
         {
-            return (null, new MusicCommandResult("SoundCloud couldn't load that track right now. Please try again later.", Ephemeral: true));
+            return (null, new MusicCommandResult("That track couldn't load right now. Please try again later.", Ephemeral: true));
         }
 
         return (null, new MusicCommandResult(
             isUrl
                 ? "I couldn't find anything playable at that URL."
-                : "I couldn't find anything playable on SoundCloud for that search.",
+                : "I couldn't find anything playable for that search.",
             Ephemeral: true));
     }
 
