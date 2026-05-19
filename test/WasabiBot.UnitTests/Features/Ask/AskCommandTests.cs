@@ -40,7 +40,7 @@ public class AskCommandTests
         await Assert.That(context.Messages.Count).IsEqualTo(1);
         var (message, ephemeral) = context.Messages.Single();
         await Assert.That(ephemeral).IsFalse();
-        await Assert.That(message).IsEqualTo("Short answer");
+        await Assert.That(message).IsEqualTo($"**Question:** {question}\n\nShort answer");
     }
 
     [Test]

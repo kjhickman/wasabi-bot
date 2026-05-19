@@ -32,7 +32,7 @@ internal sealed class AskCommand(IChatClient chatClient, Tracer tracer, ILogger<
             ]);
 
             _logger.LogInformation("Ask command responded to user {User}", ctx.UserDisplayName);
-            await ctx.RespondAsync(response.Text);
+            await ctx.RespondAsync($"**Question:** {question}\n\n{response.Text}");
         }
         catch (Exception ex)
         {

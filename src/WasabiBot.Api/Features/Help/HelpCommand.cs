@@ -65,7 +65,7 @@ internal sealed class HelpCommand(ILogger<HelpCommand> logger)
 
         // Links section
         sb.AppendLine("## Helpful Links");
-        sb.AppendLine("• [Website for API access](<https://wasabibot.com>)");
+        sb.AppendLine("• [Website](<https://wasabibot.com>)");
         sb.AppendLine("• [GitHub Repository](<https://github.com/kjhickman/wasabi-bot>)");
 
         return sb.ToString();
