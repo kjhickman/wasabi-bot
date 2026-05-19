@@ -42,7 +42,7 @@ internal sealed class MusicDashboardSearchService(
             .ToArray();
 
         var errorMessage = songs.Count == 0 && stations.Length == 0
-            ? "No playable SoundCloud songs or radio stations matched that search."
+            ? "No songs or radio stations matched that search."
             : null;
 
         return new MusicDashboardSearchResults(songs, stations, errorMessage);
