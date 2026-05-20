@@ -1,4 +1,3 @@
-using Microsoft.Extensions.AI;
 using NetCord.Services.ApplicationCommands;
 using OpenTelemetry.Trace;
 using WasabiBot.Api.Infrastructure.Discord.Abstractions;
@@ -7,11 +6,12 @@ using WasabiBot.Api.Infrastructure.Discord.Interactions;
 namespace WasabiBot.Api.Features.Ask;
 
 [CommandHandler("ask", "Ask a quick one-off question.")]
-internal sealed class AskCommand(IChatClient chatClient, Tracer tracer, ILogger<AskCommand> logger)
+internal sealed class AskCommand(IAskAnswerService askAnswerService, Tracer tracer, ILogger<AskCommand> logger)
 {
-    private const string SystemPrompt = "You answer one-off user questions in Discord. Keep the reply short and concise. There will be no follow-up conversation, so answer the question directly in a single response.";
+    private const int MaxDiscordMessageLength = 2000;
+    private const string TruncatedSuffix = "\n\n_(Answer truncated to fit Discord's 2000 character limit.)_";
 
-    private readonly IChatClient _chatClient = chatClient;
+    private readonly IAskAnswerService _askAnswerService = askAnswerService;
     private readonly Tracer _tracer = tracer;
     private readonly ILogger<AskCommand> _logger = logger;
 
@@ -26,13 +26,10 @@ internal sealed class AskCommand(IChatClient chatClient, Tracer tracer, ILogger<
 
         try
         {
-            var response = await _chatClient.GetResponseAsync([
-                new ChatMessage(ChatRole.System, SystemPrompt),
-                new ChatMessage(ChatRole.User, question)
-            ]);
+            var answer = await _askAnswerService.AnswerAsync(question);
 
             _logger.LogInformation("Ask command responded to user {User}", ctx.UserDisplayName);
-            await ctx.RespondAsync($"**Question:** {question}\n\n{response.Text}");
+            await ctx.RespondAsync(FormatResponse(question, answer));
         }
         catch (Exception ex)
         {
@@ -40,5 +37,18 @@ internal sealed class AskCommand(IChatClient chatClient, Tracer tracer, ILogger<
             _logger.LogError(ex, "Ask command failed for user {User}", ctx.UserDisplayName);
             await ctx.SendEphemeralAsync("I couldn't answer that right now. Please try again later.");
         }
+    }
+
+    private static string FormatResponse(string question, AskAnswer answer)
+    {
+        var header = $"**Question:** {question}\n\n";
+        var full = header + answer.Text;
+        if (full.Length <= MaxDiscordMessageLength)
+        {
+            return full;
+        }
+
+        var truncatedAnswerLength = Math.Max(0, MaxDiscordMessageLength - header.Length - TruncatedSuffix.Length);
+        return string.Concat(header, answer.Text.AsSpan(0, truncatedAnswerLength), TruncatedSuffix);
     }
 }

@@ -73,6 +73,15 @@ public static class InfrastructureServiceExtensions
             .UseFunctionInvocation()
             .UseLogging();
 
+        builder.Services.AddSingleton(serviceProvider =>
+        {
+            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+            var apiKey = configuration[GoogleApiKeyConfigKey]
+                ?? throw new InvalidOperationException("Google AI API key is not configured.");
+
+            return new Google.GenAI.Client(apiKey: apiKey);
+        });
+
         builder.AddAuthServices();
     }
 }

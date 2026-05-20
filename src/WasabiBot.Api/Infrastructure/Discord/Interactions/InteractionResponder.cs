@@ -16,7 +16,7 @@ namespace WasabiBot.Api.Infrastructure.Discord.Interactions;
 /// // Do work...
 /// await responder.SendAsync(resultText);
 /// </code>
-/// If the work completes before the defer cutoff (2.5 seconds after interaction creation), <see cref="SendAsync(string,bool)"/>
+/// If the work completes before the defer cutoff (2 seconds after interaction creation), <see cref="SendAsync(string,bool)"/>
 /// sends the initial response. Otherwise, the responder auto-defers first and <see cref="SendAsync(string,bool)"/> posts a follow-up message.
 /// Thread-safe acknowledgement is enforced via <see cref="Interlocked"/> so the interaction is only
 /// acknowledged once.
@@ -75,7 +75,7 @@ public sealed class InteractionResponder : IAsyncDisposable
     /// <param name="ctx">The application command context.</param>
     /// <param name="timeProvider"></param>
     /// <returns>A new <see cref="InteractionResponder"/> instance (caller is responsible for disposing).</returns>
-    public static InteractionResponder Create(IApplicationCommandContext ctx, TimeProvider timeProvider, int deferMilliseconds = 2500)
+    public static InteractionResponder Create(IApplicationCommandContext ctx, TimeProvider timeProvider, int deferMilliseconds = 2000)
     {
         var deferCutoff = ctx.Interaction.CreatedAt + TimeSpan.FromMilliseconds(deferMilliseconds);
         var remaining = deferCutoff - timeProvider.GetUtcNow();

@@ -1,4 +1,5 @@
 using NetCord.Hosting.Gateway;
+using WasabiBot.Api.Features.Ask;
 using WasabiBot.Api.Features.CaptionThis.Abstractions;
 using WasabiBot.Api.Features.CaptionThis.Services;
 using WasabiBot.Api.Features.Interactions;
@@ -24,6 +25,7 @@ public static class FeaturesServiceExtensions
         builder.Services.AddDiscordCommandHandlers();
 
         builder.Services.AddSingleton<IMagicConchTool, MagicConchTool>();
+        builder.Services.AddScoped<IAskAnswerService, GeminiAskAnswerService>();
         builder.Services.AddScoped<IInteractionService, InteractionService>();
         builder.Services.AddScoped<ITimeParsingService, TimeParsingService>();
         builder.Services.AddSingleton<IReminderWakeSignal, PostgresReminderWakeSignal>();
