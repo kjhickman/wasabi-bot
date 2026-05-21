@@ -26,13 +26,13 @@ public class MusicComponentTests : IDisposable
         _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
         _context.Services.AddSingleton(Substitute.For<IMusicGuildStatsService>());
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
-        _context.Services.GetRequiredService<NavigationManager>().NavigateTo("http://localhost/music");
+        _context.Services.GetRequiredService<NavigationManager>().NavigateTo("http://localhost/");
 
         var authState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
 
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
-        await Assert.That(cut.Find("#music-login-link").GetAttribute("href")).IsEqualTo("/login-discord?returnUrl=/music");
+        await Assert.That(cut.Find("#music-login-link").GetAttribute("href")).IsEqualTo("/login-discord");
         await Assert.That(cut.Markup).Contains("Sign in to control music");
         await Assert.That(cut.FindAll("#music-shell").Count).IsEqualTo(0);
     }
@@ -66,7 +66,7 @@ public class MusicComponentTests : IDisposable
 
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
-        await Assert.That(cut.Find("#music-tab-live").GetAttribute("href")).IsEqualTo("/music");
+        await Assert.That(cut.Find("#music-tab-live").GetAttribute("href")).IsEqualTo("/");
         await Assert.That(cut.Find("#music-tab-search").TextContent.Trim()).IsEqualTo("Search");
         await Assert.That(cut.Find("#music-tab-favorites").GetAttribute("href")).IsEqualTo("/music/library");
         await Assert.That(cut.Find("#music-tab-top-played").GetAttribute("href")).IsEqualTo("/music/stats");

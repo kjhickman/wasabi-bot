@@ -45,7 +45,7 @@ public class MainLayoutComponentTests : IDisposable
         var apiAccessLink = cut.Find("#account-menu-panel #nav-link-creds");
         await Assert.That(apiAccessLink.GetAttribute("href")).IsEqualTo("/creds");
         await Assert.That(apiAccessLink.HasAttribute("data-wasabi-close-dropdown")).IsTrue();
-        await Assert.That(cut.Find("#nav-link-music").GetAttribute("href")).IsEqualTo("/music");
+        await Assert.That(cut.FindAll("#nav-link-music").Count).IsEqualTo(0);
         await Assert.That(cut.Find("#account-menu-button").TagName).IsEqualTo("BUTTON");
     }
 
