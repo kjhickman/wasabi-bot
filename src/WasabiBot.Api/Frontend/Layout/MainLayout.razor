@@ -17,22 +17,33 @@
                         var avatarInitial = displayName[..1].ToUpperInvariant();
                     }
 
+                    <form id="nav-search-form" class="absolute left-1/2 top-1/2 hidden w-96 -translate-x-1/2 -translate-y-1/2 lg:w-[32rem] xl:w-[36rem] md:block" action="/music/search" method="get" role="search">
+                        <label class="input input-bordered flex h-11 w-full items-center gap-2 rounded-2xl border-base-300 bg-base-100/95 shadow-sm focus-within:border-base-content/20 focus-within:outline-none" for="nav-search-query">
+                            <LucideIcon Name="LucideIconName.Search" Class="size-4 shrink-0 text-base-content/50" />
+                            <span class="sr-only">Search music</span>
+                            <input id="nav-search-query"
+                                   class="grow text-sm focus:outline-none"
+                                   type="search"
+                                   name="query"
+                                   placeholder="Search music"
+                                   autocomplete="off" />
+                        </label>
+                    </form>
+
                     <div class="flex flex-none items-center gap-2">
                         <div class="dropdown dropdown-end">
                             <button id="account-menu-button"
                                     type="button"
-                                    class="btn btn-outline h-auto min-h-0 rounded-full border-base-300 bg-base-100 pl-2 pr-3 py-1.5 normal-case shadow-sm hover:bg-base-200"
+                                    class="block cursor-pointer rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                                     aria-haspopup="menu">
                                 @if (!string.IsNullOrWhiteSpace(avatarUrl))
                                 {
-                                    <img id="header-user-avatar" class="size-10 rounded-full object-cover" src="@avatarUrl" alt="" />
+                                    <img id="header-user-avatar" class="size-10 rounded-full object-cover" src="@avatarUrl" alt="@displayName" />
                                 }
                                 else
                                 {
                                     <span id="header-user-avatar-fallback" class="flex size-10 items-center justify-center rounded-full border border-base-300 bg-base-100 text-sm font-semibold" aria-hidden="true">@avatarInitial</span>
                                 }
-
-                                <span id="header-user-name" class="ml-1.5 text-sm font-medium">@displayName</span>
                             </button>
 
                             <div id="account-menu-panel"

@@ -393,6 +393,54 @@ public class MusicComponentTests : IDisposable
     }
 
     [Test]
+    public async Task Render_AuthenticatedUser_SearchTab_WithInitialQuery_SearchesOnLoad()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+        var searchService = Substitute.For<IMusicDashboardSearchService>();
+        var queueService = Substitute.For<IMusicDashboardQueueService>();
+        var favoritesService = Substitute.For<IMusicFavoritesService>();
+        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
+
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Playing",
+                null,
+                new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
+        searchService.SearchAsync("radiohead", Arg.Any<CancellationToken>())
+            .Returns(new MusicDashboardSearchResults(
+                [new MusicDashboardSongSearchResult("Creep", "Radiohead", "03:58", null, "https://soundcloud.com/radiohead/creep", "scsearch", new Lavalink4NET.Tracks.LavalinkTrack { Identifier = "creep", Title = "Creep", Author = "Radiohead" })],
+                [],
+                null));
+        favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot([], []));
+
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Services.AddSingleton(searchService);
+        _context.Services.AddSingleton(queueService);
+        _context.Services.AddSingleton(favoritesService);
+        _context.Services.AddSingleton(guildStatsService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+
+        var cut = _context.RenderWithAuthentication<MusicShell>(new AuthenticationState(user), parameters => parameters
+            .Add(x => x.ActivePage, MusicPageKind.Search)
+            .Add(x => x.InitialSearchQuery, " radiohead "));
+
+        await Assert.That(cut.Find("#music-search-query").GetAttribute("value")).IsEqualTo("radiohead");
+        await Assert.That(cut.Find("#music-song-results").TextContent).Contains("Creep");
+        await searchService.Received(1).SearchAsync("radiohead", Arg.Any<CancellationToken>());
+    }
+
+    [Test]
     public async Task Render_AuthenticatedUser_PressingEnterInSearchForm_SubmitsSearch()
     {
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));

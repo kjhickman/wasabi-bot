@@ -15,6 +15,9 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
     [Parameter]
     public MusicPageKind ActivePage { get; set; }
 
+    [Parameter]
+    public string? InitialSearchQuery { get; set; }
+
     [Inject]
     private IAuthorizationService AuthorizationService { get; set; } = default!;
 

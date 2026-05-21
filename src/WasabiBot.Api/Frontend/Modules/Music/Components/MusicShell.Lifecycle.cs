@@ -6,6 +6,8 @@ public partial class MusicShell
 {
     protected override async Task OnInitializedAsync()
     {
+        SearchQuery = InitialSearchQuery?.Trim() ?? string.Empty;
+
         var authState = await AuthenticationStateTask;
         var user = authState.User;
         IsAuthenticated = user.Identity?.IsAuthenticated ?? false;
@@ -92,6 +94,9 @@ public partial class MusicShell
     {
         switch (ActivePage)
         {
+            case MusicPageKind.Search when !string.IsNullOrWhiteSpace(SearchQuery):
+                await SearchAsync();
+                break;
             case MusicPageKind.Library:
                 await RefreshFavoritesAsync(cancellationToken);
                 break;

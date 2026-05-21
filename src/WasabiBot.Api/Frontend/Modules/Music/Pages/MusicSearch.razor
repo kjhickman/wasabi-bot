@@ -3,4 +3,9 @@
 @attribute [Authorize(Policy = "DiscordGuildMember")]
 @rendermode InteractiveServer
 
-<MusicShell ActivePage="MusicPageKind.Search" />
+<MusicShell ActivePage="MusicPageKind.Search" InitialSearchQuery="@Query" />
+
+@code {
+    [SupplyParameterFromQuery(Name = "query")]
+    public string? Query { get; set; }
+}

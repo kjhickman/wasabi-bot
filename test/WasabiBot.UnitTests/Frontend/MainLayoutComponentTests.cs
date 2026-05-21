@@ -34,14 +34,19 @@ public class MainLayoutComponentTests : IDisposable
             new Claim("urn:discord:avatar:hash", "avatarhash"));
 
         var cut = RenderLayout();
-        cut.WaitForElement("#header-user-name");
+        cut.WaitForElement("#account-menu-button");
 
-        await Assert.That(cut.Find("#header-user-name").TextContent.Trim()).IsEqualTo("Kyle");
+        await Assert.That(cut.FindAll("#header-user-name").Count).IsEqualTo(0);
         await Assert.That(cut.Markup).DoesNotContain("Hello,");
         await Assert.That(cut.Find("#header-user-avatar").GetAttribute("src")).Contains("cdn.discordapp.com/avatars/123456789/avatarhash.png?size=128");
+        await Assert.That(cut.Find("#header-user-avatar").GetAttribute("alt")).IsEqualTo("Kyle");
         await Assert.That(cut.Find("#account-menu-panel form").GetAttribute("action")).IsEqualTo("/logout");
         await Assert.That(cut.Find("#logout-button").TextContent.Trim()).IsEqualTo("Log out");
         await Assert.That(cut.Find("#account-menu-panel").TextContent).DoesNotContain("Kyle");
+        await Assert.That(cut.Find("#nav-search-form").GetAttribute("action")).IsEqualTo("/music/search");
+        await Assert.That(cut.Find("#nav-search-form").GetAttribute("method")).IsEqualTo("get");
+        await Assert.That(cut.Find("#nav-search-query").GetAttribute("name")).IsEqualTo("query");
+        await Assert.That(cut.FindAll("#nav-search-form button").Count).IsEqualTo(0);
         var apiAccessLink = cut.Find("#account-menu-panel #nav-link-creds");
         await Assert.That(apiAccessLink.GetAttribute("href")).IsEqualTo("/creds");
         await Assert.That(apiAccessLink.HasAttribute("data-wasabi-close-dropdown")).IsTrue();
@@ -60,7 +65,7 @@ public class MainLayoutComponentTests : IDisposable
             new Claim("urn:discord:user:discriminator", "1234"));
 
         var cut = RenderLayout();
-        cut.WaitForElement("#header-user-name");
+        cut.WaitForElement("#account-menu-button");
 
         await Assert.That(cut.Find("#header-user-avatar").GetAttribute("src")).Contains("cdn.discordapp.com/embed/avatars/4.png");
         await Assert.That(cut.FindAll("#header-user-avatar-fallback").Count).IsEqualTo(0);
@@ -80,7 +85,7 @@ public class MainLayoutComponentTests : IDisposable
         authContext.SetClaims(user.Claims.ToArray());
 
         var cut = RenderLayout();
-        cut.WaitForElement("#header-user-name");
+        cut.WaitForElement("#account-menu-button");
 
         await Assert.That(cut.FindAll("#header-user-avatar").Count).IsEqualTo(0);
         await Assert.That(cut.Find("#header-user-avatar-fallback").TextContent.Trim()).IsEqualTo("K");
