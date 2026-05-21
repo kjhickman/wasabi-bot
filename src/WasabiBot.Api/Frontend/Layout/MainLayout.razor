@@ -19,7 +19,6 @@
 
                     <div class="flex flex-none items-center gap-2">
                         <NavLink id="nav-link-music" class="btn btn-ghost btn-sm" href="/music" Match="NavLinkMatch.Prefix" ActiveClass="btn-active">Music Room</NavLink>
-                        <NavLink id="nav-link-creds" class="btn btn-ghost btn-sm" href="/creds" Match="NavLinkMatch.Prefix" ActiveClass="btn-active">API Access</NavLink>
 
                         <div class="dropdown dropdown-end">
                             <button id="account-menu-button"
@@ -40,12 +39,12 @@
 
                             <div id="account-menu-panel"
                                  tabindex="-1"
-                                 class="dropdown-content z-50 mt-3 w-64 rounded-box border border-base-300 bg-base-100 p-3 shadow-lg"
-                                 role="menu"
-                                 aria-labelledby="account-menu-button">
-                                <fieldset class="space-y-2.5">
-                                    <legend class="text-xs font-semibold uppercase tracking-[0.2em] text-base-content/60">Theme</legend>
-                                    <div class="join w-full">
+                                  class="dropdown-content z-50 mt-3 w-64 rounded-box border border-base-300 bg-base-100 p-3 shadow-lg"
+                                  role="menu"
+                                  aria-labelledby="account-menu-button">
+                                 <fieldset class="space-y-2.5">
+                                     <legend class="text-xs font-semibold uppercase tracking-[0.2em] text-base-content/60">Theme</legend>
+                                     <div class="join w-full">
                                         <input id="theme-preference-light"
                                                class="btn btn-sm join-item flex-1"
                                                type="radio"
@@ -67,17 +66,30 @@
                                                value="system"
                                                aria-label="System"
                                                data-theme-preference />
-                                    </div>
-                                </fieldset>
+                                     </div>
+                                 </fieldset>
 
-                                <form class="mt-3 border-t border-base-300 pt-3" action="/logout" method="post">
-                                    <AntiforgeryToken />
-                                    <button id="logout-button" class="btn btn-ghost btn-sm w-full justify-start gap-2" type="submit">
-                                        <LucideIcon Name="LucideIconName.LogOut" Class="size-4 shrink-0" />
-                                        <span>Log out</span>
-                                    </button>
-                                </form>
-                            </div>
+                                 <div class="mt-3 space-y-1 border-t border-base-300 pt-3">
+                                     <NavLink id="nav-link-creds"
+                                              class="btn btn-ghost btn-sm w-full justify-start gap-2"
+                                              href="/creds"
+                                              Match="NavLinkMatch.Prefix"
+                                              ActiveClass="btn-active"
+                                              role="menuitem"
+                                              data-wasabi-close-dropdown>
+                                         <LucideIcon Name="LucideIconName.KeyRound" Class="size-4 shrink-0" />
+                                         <span>API Access</span>
+                                     </NavLink>
+
+                                     <form action="/logout" method="post">
+                                         <AntiforgeryToken />
+                                         <button id="logout-button" class="btn btn-ghost btn-sm w-full justify-start gap-2" type="submit">
+                                             <LucideIcon Name="LucideIconName.LogOut" Class="size-4 shrink-0" />
+                                             <span>Log out</span>
+                                         </button>
+                                     </form>
+                                 </div>
+                             </div>
                         </div>
                     </div>
                 </Authorized>

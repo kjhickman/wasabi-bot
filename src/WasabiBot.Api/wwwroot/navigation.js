@@ -9,3 +9,20 @@ export function replaceCurrentUrlIfRequested(root = document) {
         window.history.replaceState(window.history.state, '', replacementUrl);
     }
 }
+
+export function initializeDropdownCloseButtons() {
+    document.addEventListener('click', event => {
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+
+        const closeButton = target.closest('[data-wasabi-close-dropdown]');
+        const dropdown = closeButton?.closest('.dropdown');
+        if (!dropdown?.contains(document.activeElement)) {
+            return;
+        }
+
+        document.activeElement.blur();
+    });
+}

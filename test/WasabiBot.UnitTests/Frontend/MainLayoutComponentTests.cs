@@ -42,7 +42,9 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.Find("#account-menu-panel form").GetAttribute("action")).IsEqualTo("/logout");
         await Assert.That(cut.Find("#logout-button").TextContent.Trim()).IsEqualTo("Log out");
         await Assert.That(cut.Find("#account-menu-panel").TextContent).DoesNotContain("Kyle");
-        await Assert.That(cut.Find("#nav-link-creds").GetAttribute("href")).IsEqualTo("/creds");
+        var apiAccessLink = cut.Find("#account-menu-panel #nav-link-creds");
+        await Assert.That(apiAccessLink.GetAttribute("href")).IsEqualTo("/creds");
+        await Assert.That(apiAccessLink.HasAttribute("data-wasabi-close-dropdown")).IsTrue();
         await Assert.That(cut.Find("#nav-link-music").GetAttribute("href")).IsEqualTo("/music");
         await Assert.That(cut.Find("#account-menu-button").TagName).IsEqualTo("BUTTON");
     }
