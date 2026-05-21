@@ -66,10 +66,7 @@ public class MusicComponentTests : IDisposable
 
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
-        await Assert.That(cut.Find("#music-tab-live").GetAttribute("href")).IsEqualTo("/");
-        await Assert.That(cut.Find("#music-tab-search").TextContent.Trim()).IsEqualTo("Search");
-        await Assert.That(cut.Find("#music-tab-favorites").GetAttribute("href")).IsEqualTo("/music/library");
-        await Assert.That(cut.Find("#music-tab-top-played").GetAttribute("href")).IsEqualTo("/music/stats");
+        await Assert.That(cut.FindAll("#music-tab-live").Count).IsEqualTo(0);
         await Assert.That(cut.Markup).Contains("Ready to join your channel");
         await Assert.That(cut.Find("#music-join-channel").TextContent.Trim()).IsEqualTo("Join my channel");
     }

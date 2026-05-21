@@ -2,7 +2,7 @@
 
 <div class="min-h-screen bg-base-200">
     <header class="relative z-40 border-b border-base-300 bg-base-100/90 backdrop-blur">
-        <nav class="navbar mx-auto max-w-6xl gap-3 px-4 md:px-6" aria-label="Primary navigation">
+        <nav class="navbar relative w-full gap-3 px-4 md:px-6" aria-label="Primary navigation">
             <div class="flex-1">
                 <a class="btn btn-ghost px-2 text-lg font-semibold normal-case" href="/" aria-label="Wasabi Bot home">
                     <strong>Wasabi Bot</strong>
@@ -25,7 +25,7 @@
                                    class="grow text-sm focus:outline-none"
                                    type="search"
                                    name="query"
-                                   placeholder="Search music"
+                                   placeholder="Search songs or radio stations..."
                                    autocomplete="off" />
                         </label>
                     </form>
@@ -106,9 +106,47 @@
         </nav>
     </header>
 
-    <main class="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-10">
-        <div class="space-y-6">
-            @Body
-        </div>
-    </main>
+    <AuthorizeView>
+        <Authorized>
+            <div class="grid w-full md:grid-cols-[12rem_minmax(0,1fr)]">
+                <aside class="border-b border-base-300 px-4 py-3 md:min-h-[calc(100vh-4rem)] md:border-b-0 md:border-r md:px-3 md:py-6" aria-label="Primary sections">
+                    <nav id="side-nav" class="flex gap-2 overflow-x-auto md:sticky md:top-20 md:h-[calc(100vh-6rem)] md:flex-col md:overflow-visible" aria-label="Primary sections">
+                        <NavLink id="music-tab-live" class="side-nav-link" href="/" Match="NavLinkMatch.All" ActiveClass="side-nav-link-active">
+                            <LucideIcon Name="LucideIconName.Disc3" Class="size-4 shrink-0" />
+                            <span>Live</span>
+                        </NavLink>
+                        <NavLink id="music-tab-search" class="side-nav-link" href="/music/search" ActiveClass="side-nav-link-active">
+                            <LucideIcon Name="LucideIconName.Search" Class="size-4 shrink-0" />
+                            <span>Search</span>
+                        </NavLink>
+                        <NavLink id="music-tab-favorites" class="side-nav-link" href="/music/library" ActiveClass="side-nav-link-active">
+                            <LucideIcon Name="LucideIconName.Heart" Class="size-4 shrink-0" />
+                            <span>Favorites</span>
+                        </NavLink>
+                        <NavLink id="music-tab-top-played" class="side-nav-link" href="/music/stats" ActiveClass="side-nav-link-active">
+                            <LucideIcon Name="LucideIconName.ChartNoAxesColumn" Class="size-4 shrink-0" />
+                            <span>Top Played</span>
+                        </NavLink>
+                        <NavLink id="side-nav-api-access" class="side-nav-link md:mt-auto" href="/creds" ActiveClass="side-nav-link-active">
+                            <LucideIcon Name="LucideIconName.KeyRound" Class="size-4 shrink-0" />
+                            <span>API Access</span>
+                        </NavLink>
+                    </nav>
+                </aside>
+
+                <main class="min-w-0 px-4 py-8 md:px-6 md:py-10">
+                    <div class="space-y-6">
+                        @Body
+                    </div>
+                </main>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <main class="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 md:py-10">
+                <div class="space-y-6">
+                    @Body
+                </div>
+            </main>
+        </NotAuthorized>
+    </AuthorizeView>
 </div>

@@ -13,6 +13,7 @@ public enum LucideIconName
     Stop,
     ChevronUp,
     ChevronDown,
+    ChartNoAxesColumn,
     Search,
     RefreshCw,
     Trash2,

@@ -35,74 +35,65 @@ else
                 </article>
             }
 
-            <div class="space-y-6">
-                <div role="tablist" class="tabs tabs-box bg-base-200 p-1">
-                    <a id="music-tab-live" href="/" role="tab" class="@GetMusicTabClass(MusicPageKind.Live)">Live</a>
-                    <a id="music-tab-search" href="/music/search" role="tab" class="@GetMusicTabClass(MusicPageKind.Search)">Search</a>
-                    <a id="music-tab-favorites" href="/music/library" role="tab" class="@GetMusicTabClass(MusicPageKind.Library)">Favorites</a>
-                    <a id="music-tab-top-played" href="/music/stats" role="tab" class="@GetMusicTabClass(MusicPageKind.Stats)">Top Played</a>
-                </div>
-
-                @switch (ActivePage)
-                {
-                    case MusicPageKind.Live:
-                        <div id="music-tabpanel-live" role="tabpanel">
-                            <MusicLivePage Session="Session"
-                                           OnJoinUserChannel="JoinUserChannelAsync"
-                                           IsSubmittingAction="IsSubmittingAction"
-                                           OnTogglePause="TogglePauseAsync"
-                                           OnSkip="SkipAsync"
-                                           OnStop="StopAsync"
-                                           OnRemoveQueueItem="RemoveQueueItemAsync"
-                                           OnMoveQueueItemUp="MoveQueueItemUpAsync"
-                                           OnMoveQueueItemDown="MoveQueueItemDownAsync"
-                                           OnClearQueue="ClearQueueAsync" />
-                        </div>
-                        break;
-                    case MusicPageKind.Search:
-                        <div id="music-tabpanel-search" role="tabpanel">
-                            <MusicSearchPage SearchQuery="@SearchQuery"
-                                             SearchQueryChanged="OnSearchQueryChanged"
-                                             IsSearching="IsSearching"
-                                             HasSearchAttempt="@HasSearchAttempt"
-                                             SearchError="@SearchError"
-                                             SearchResults="SearchResults"
-                                             IsSubmittingAction="IsSubmittingAction"
-                                             HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
-                                             OnSearch="SearchAsync"
-                                             OnQueueSong="QueueSongAsync"
-                                             OnPlaySongNext="PlaySongNextAsync"
-                                             OnSaveSongFavorite="SaveSongFavoriteAsync"
-                                             OnQueueStation="QueueStationAsync"
-                                             OnPlayStationNext="PlayStationNextAsync"
-                                             OnSaveRadioFavorite="SaveRadioFavoriteAsync" />
-                        </div>
-                        break;
-                    case MusicPageKind.Library:
-                        <div id="music-tabpanel-favorites" role="tabpanel">
-                            <MusicLibraryPage IsLoadingFavorites="IsLoadingFavorites"
-                                              Favorites="Favorites"
-                                              IsSubmittingAction="IsSubmittingAction"
-                                              HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
-                                              OnQueueFavorite="QueueFavoriteAsync"
-                                              OnPlayFavoriteNext="PlayFavoriteNextAsync"
-                                              OnRemoveFavorite="RemoveFavoriteAsync" />
-                        </div>
-                        break;
-                    case MusicPageKind.Stats:
-                        <div id="music-tabpanel-top-played" role="tabpanel">
-                            <MusicStatsPage Session="Session"
-                                            IsLoadingMostPlayed="IsLoadingMostPlayed"
-                                            MostPlayedTracks="MostPlayedTracks"
-                                            IsSubmittingAction="IsSubmittingAction"
-                                            HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
-                                            OnQueueTrack="QueueMostPlayedTrackAsync"
-                                            OnPlayTrackNext="PlayMostPlayedTrackNextAsync"
-                                            OnSaveTrackFavorite="SaveMostPlayedTrackFavoriteAsync" />
-                        </div>
-                        break;
-                }
-            </div>
+            @switch (ActivePage)
+            {
+                case MusicPageKind.Live:
+                    <div id="music-tabpanel-live">
+                        <MusicLivePage Session="Session"
+                                       OnJoinUserChannel="JoinUserChannelAsync"
+                                       IsSubmittingAction="IsSubmittingAction"
+                                       OnTogglePause="TogglePauseAsync"
+                                       OnSkip="SkipAsync"
+                                       OnStop="StopAsync"
+                                       OnRemoveQueueItem="RemoveQueueItemAsync"
+                                       OnMoveQueueItemUp="MoveQueueItemUpAsync"
+                                       OnMoveQueueItemDown="MoveQueueItemDownAsync"
+                                       OnClearQueue="ClearQueueAsync" />
+                    </div>
+                    break;
+                case MusicPageKind.Search:
+                    <div id="music-tabpanel-search">
+                        <MusicSearchPage SearchQuery="@SearchQuery"
+                                         SearchQueryChanged="OnSearchQueryChanged"
+                                         IsSearching="IsSearching"
+                                         HasSearchAttempt="@HasSearchAttempt"
+                                         SearchError="@SearchError"
+                                         SearchResults="SearchResults"
+                                         IsSubmittingAction="IsSubmittingAction"
+                                         HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
+                                         OnSearch="SearchAsync"
+                                         OnQueueSong="QueueSongAsync"
+                                         OnPlaySongNext="PlaySongNextAsync"
+                                         OnSaveSongFavorite="SaveSongFavoriteAsync"
+                                         OnQueueStation="QueueStationAsync"
+                                         OnPlayStationNext="PlayStationNextAsync"
+                                         OnSaveRadioFavorite="SaveRadioFavoriteAsync" />
+                    </div>
+                    break;
+                case MusicPageKind.Library:
+                    <div id="music-tabpanel-favorites">
+                        <MusicLibraryPage IsLoadingFavorites="IsLoadingFavorites"
+                                          Favorites="Favorites"
+                                          IsSubmittingAction="IsSubmittingAction"
+                                          HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
+                                          OnQueueFavorite="QueueFavoriteAsync"
+                                          OnPlayFavoriteNext="PlayFavoriteNextAsync"
+                                          OnRemoveFavorite="RemoveFavoriteAsync" />
+                    </div>
+                    break;
+                case MusicPageKind.Stats:
+                    <div id="music-tabpanel-top-played">
+                        <MusicStatsPage Session="Session"
+                                        IsLoadingMostPlayed="IsLoadingMostPlayed"
+                                        MostPlayedTracks="MostPlayedTracks"
+                                        IsSubmittingAction="IsSubmittingAction"
+                                        HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
+                                        OnQueueTrack="QueueMostPlayedTrackAsync"
+                                        OnPlayTrackNext="PlayMostPlayedTrackNextAsync"
+                                        OnSaveTrackFavorite="SaveMostPlayedTrackFavoriteAsync" />
+                    </div>
+                    break;
+            }
         </div>
     </section>
 }

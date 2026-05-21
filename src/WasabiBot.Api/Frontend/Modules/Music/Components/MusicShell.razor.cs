@@ -83,8 +83,4 @@ public partial class MusicShell : ComponentBase, IAsyncDisposable
         _ => "Music controls and discovery for Wasabi Bot."
     };
 
-    private string GetMusicTabClass(MusicPageKind pageKind)
-    {
-        return pageKind == ActivePage ? "tab tab-active" : "tab";
-    }
 }

@@ -32,3 +32,13 @@
     @apply min-h-screen bg-base-200 text-base-content antialiased;
   }
 }
+
+@layer components {
+  .side-nav-link {
+    @apply flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-base-content/70 no-underline hover:bg-base-content/10 hover:text-base-content focus-visible:bg-base-content/10 focus-visible:text-base-content focus-visible:outline-none md:w-full md:shrink;
+  }
+
+  .side-nav-link-active {
+    @apply bg-base-100 text-base-content shadow-sm;
+  }
+}
