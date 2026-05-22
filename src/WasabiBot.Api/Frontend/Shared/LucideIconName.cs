@@ -10,6 +10,8 @@ public enum LucideIconName
     KeyRound,
     ListPlus,
     LogOut,
+    Mic2,
+    Music,
     Pause,
     Play,
     SkipForward,

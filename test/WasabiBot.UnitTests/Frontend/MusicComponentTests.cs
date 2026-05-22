@@ -67,8 +67,10 @@ public class MusicComponentTests : IDisposable
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
         await Assert.That(cut.FindAll("#music-tab-live").Count).IsEqualTo(0);
-        await Assert.That(cut.Markup).Contains("Ready to join your channel");
-        await Assert.That(cut.Find("#music-join-channel").TextContent.Trim()).IsEqualTo("Join my channel");
+        await Assert.That(cut.Markup).DoesNotContain("Ready to join your channel");
+        await Assert.That(cut.Find("#music-join-channel").TextContent.Trim()).IsEqualTo("Join voice");
+        await Assert.That(cut.FindAll("#music-join-channel svg").Count).IsEqualTo(1);
+        await Assert.That(cut.Find("#music-join-channel").GetAttribute("title")).IsEqualTo("Join #music-room in Wasabi HQ");
     }
 
     [Test]
