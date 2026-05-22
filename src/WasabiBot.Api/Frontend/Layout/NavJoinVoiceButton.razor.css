@@ -4,9 +4,8 @@
 
 @media (min-width: 48rem) {
   .music-navbar-join {
-    position: fixed;
-    z-index: 50;
-    inset-block-start: 2rem;
+    position: absolute;
+    inset-block-start: 50%;
     inset-inline-start: calc(50% - 27rem);
     display: inline-flex;
     transform: translateY(-50%);

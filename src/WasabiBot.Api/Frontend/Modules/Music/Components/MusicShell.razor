@@ -18,19 +18,6 @@ else if (!HasGuildAccess)
 }
 else
 {
-    @if (Session?.UserChannel is { BotSharesChannel: false, BotIsConnectedInGuild: false } userChannel)
-    {
-        <button id="music-join-channel"
-                class="btn btn-primary btn-sm music-navbar-join"
-                type="button"
-                title="Join #@userChannel.VoiceChannelName in @userChannel.GuildName"
-                disabled="@IsSubmittingAction"
-                @onclick="JoinUserChannelAsync">
-            <LucideIcon Name="LucideIconName.Music" Class="size-4" />
-            <span>Join voice</span>
-        </button>
-    }
-
     <section id="music-shell" class="-mt-2 space-y-6 md:-mt-4" aria-label="Music">
         <div>
             @if (!string.IsNullOrWhiteSpace(LoadError))

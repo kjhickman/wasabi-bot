@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using WasabiBot.Api.Features.Music;
+using WasabiBot.Api.Frontend.Layout;
 using WasabiBot.Api.Frontend.Modules.Music;
 using WasabiBot.UnitTests.Builders;
 
@@ -68,9 +69,7 @@ public class MusicComponentTests : IDisposable
 
         await Assert.That(cut.FindAll("#music-tab-live").Count).IsEqualTo(0);
         await Assert.That(cut.Markup).DoesNotContain("Ready to join your channel");
-        await Assert.That(cut.Find("#music-join-channel").TextContent.Trim()).IsEqualTo("Join voice");
-        await Assert.That(cut.FindAll("#music-join-channel svg").Count).IsEqualTo(1);
-        await Assert.That(cut.Find("#music-join-channel").GetAttribute("title")).IsEqualTo("Join #music-room in Wasabi HQ");
+        await Assert.That(cut.FindAll("#music-join-channel").Count).IsEqualTo(0);
     }
 
     [Test]
@@ -260,7 +259,7 @@ public class MusicComponentTests : IDisposable
     }
 
     [Test]
-    public async Task Render_AuthenticatedUser_ClickingJoinMyChannel_CallsJoinService()
+    public async Task Render_AuthenticatedUser_ClickingNavbarJoinVoice_CallsJoinService()
     {
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
         var dashboardService = Substitute.For<IMusicDashboardService>();
@@ -291,7 +290,10 @@ public class MusicComponentTests : IDisposable
             .Build();
         var authState = new AuthenticationState(user);
 
-        var cut = _context.RenderWithAuthentication<Music>(authState);
+        var cut = _context.RenderWithAuthentication<NavJoinVoiceButton>(authState);
+        await Assert.That(cut.Find("#music-join-channel").TextContent.Trim()).IsEqualTo("Join voice");
+        await Assert.That(cut.FindAll("#music-join-channel svg").Count).IsEqualTo(1);
+        await Assert.That(cut.Find("#music-join-channel").GetAttribute("title")).IsEqualTo("Join #music-room in Wasabi HQ");
         await cut.InvokeAsync(() => cut.Find("#music-join-channel").Click());
 
         await controlService.Received(1).JoinUserChannelAsync(123456789, Arg.Any<CancellationToken>());
