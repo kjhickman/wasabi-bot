@@ -44,7 +44,7 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.Find("#account-menu-panel form").GetAttribute("action")).IsEqualTo("/logout");
         await Assert.That(cut.Find("#logout-button").TextContent.Trim()).IsEqualTo("Log out");
         await Assert.That(cut.Find("#account-menu-panel").TextContent).DoesNotContain("Kyle");
-        await Assert.That(cut.Find("#nav-search-form").GetAttribute("action")).IsEqualTo("/music/search");
+        await Assert.That(cut.Find("#nav-search-form").GetAttribute("action")).IsEqualTo("/search");
         await Assert.That(cut.Find("#nav-search-form").GetAttribute("method")).IsEqualTo("get");
         await Assert.That(cut.Find("#nav-search-query").GetAttribute("name")).IsEqualTo("query");
         await Assert.That(cut.FindAll("#nav-search-form button").Count).IsEqualTo(0);
@@ -55,8 +55,8 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.Find("#side-nav").GetAttribute("aria-label")).IsEqualTo("Primary sections");
         await Assert.That(cut.Find("#music-tab-live").GetAttribute("href")).IsEqualTo("/");
         await Assert.That(cut.FindAll("#music-tab-search").Count).IsEqualTo(0);
-        await Assert.That(cut.Find("#music-tab-favorites").GetAttribute("href")).IsEqualTo("/music/library");
-        await Assert.That(cut.Find("#music-tab-top-played").GetAttribute("href")).IsEqualTo("/music/stats");
+        await Assert.That(cut.Find("#music-tab-favorites").GetAttribute("href")).IsEqualTo("/library");
+        await Assert.That(cut.Find("#music-tab-top-played").GetAttribute("href")).IsEqualTo("/stats");
         await Assert.That(cut.Find("#side-nav-api-access").GetAttribute("href")).IsEqualTo("/creds");
         await Assert.That(cut.FindAll("#side-nav svg").Count).IsEqualTo(4);
         await Assert.That(cut.Find("#account-menu-button").TagName).IsEqualTo("BUTTON");

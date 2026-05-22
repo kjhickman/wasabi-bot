@@ -17,7 +17,7 @@
                         var avatarInitial = displayName[..1].ToUpperInvariant();
                     }
 
-                    <form id="nav-search-form" class="absolute left-1/2 top-1/2 hidden w-96 -translate-x-1/2 -translate-y-1/2 lg:w-[32rem] xl:w-[36rem] md:block" action="/music/search" method="get" role="search">
+                    <form id="nav-search-form" class="absolute left-1/2 top-1/2 hidden w-96 -translate-x-1/2 -translate-y-1/2 lg:w-[32rem] xl:w-[36rem] md:block" action="/search" method="get" role="search">
                         <label class="input input-bordered flex h-11 w-full items-center gap-2 rounded-2xl border-base-300 bg-base-100/95 shadow-sm focus-within:border-base-content/20 focus-within:outline-none" for="nav-search-query">
                             <LucideIcon Name="LucideIconName.Search" Class="size-4 shrink-0 text-base-content/50" />
                             <span class="sr-only">Search music</span>
@@ -115,11 +115,11 @@
                             <LucideIcon Name="LucideIconName.Disc3" Class="size-4 shrink-0" />
                             <span>Live</span>
                         </NavLink>
-                        <NavLink id="music-tab-favorites" class="side-nav-link" href="/music/library" ActiveClass="side-nav-link-active">
+                        <NavLink id="music-tab-favorites" class="side-nav-link" href="/library" ActiveClass="side-nav-link-active">
                             <LucideIcon Name="LucideIconName.Heart" Class="size-4 shrink-0" />
                             <span>Favorites</span>
                         </NavLink>
-                        <NavLink id="music-tab-top-played" class="side-nav-link" href="/music/stats" ActiveClass="side-nav-link-active">
+                        <NavLink id="music-tab-top-played" class="side-nav-link" href="/stats" ActiveClass="side-nav-link-active">
                             <LucideIcon Name="LucideIconName.ChartNoAxesColumn" Class="size-4 shrink-0" />
                             <span>Top Played</span>
                         </NavLink>

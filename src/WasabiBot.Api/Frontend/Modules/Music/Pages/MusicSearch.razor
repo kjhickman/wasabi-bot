@@ -1,11 +1,25 @@
 @namespace WasabiBot.Api.Frontend.Modules.Music
-@page "/music/search"
+@page "/search"
 @attribute [Authorize(Policy = "DiscordGuildMember")]
 @rendermode InteractiveServer
 
-<MusicShell ActivePage="MusicPageKind.Search" InitialSearchQuery="@Query" />
+@if (!string.IsNullOrWhiteSpace(Query))
+{
+    <MusicShell ActivePage="MusicPageKind.Search" InitialSearchQuery="@Query" />
+}
 
 @code {
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+
     [SupplyParameterFromQuery(Name = "query")]
     public string? Query { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrWhiteSpace(Query))
+        {
+            NavigationManager.NavigateTo("/", replace: true);
+        }
+    }
 }
