@@ -53,15 +53,12 @@ else
                     break;
                 case MusicPageKind.Search:
                     <div id="music-tabpanel-search">
-                        <MusicSearchPage SearchQuery="@SearchQuery"
-                                         SearchQueryChanged="OnSearchQueryChanged"
-                                         IsSearching="IsSearching"
+                        <MusicSearchPage IsSearching="IsSearching"
                                          HasSearchAttempt="@HasSearchAttempt"
                                          SearchError="@SearchError"
                                          SearchResults="SearchResults"
                                          IsSubmittingAction="IsSubmittingAction"
                                          HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
-                                         OnSearch="SearchAsync"
                                          OnQueueSong="QueueSongAsync"
                                          OnPlaySongNext="PlaySongNextAsync"
                                          OnSaveSongFavorite="SaveSongFavoriteAsync"

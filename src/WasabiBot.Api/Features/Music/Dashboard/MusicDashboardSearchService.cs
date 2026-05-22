@@ -10,7 +10,7 @@ internal sealed class MusicDashboardSearchService(
     IRadioService radioService,
     PlaybackService playbackService) : IMusicDashboardSearchService
 {
-    private const int SongResultLimit = 5;
+    private const int SongResultLimit = 6;
     private const int RadioResultLimit = 5;
 
     private readonly IAudioService _audioService = audioService;

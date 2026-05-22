@@ -4,11 +4,6 @@ namespace WasabiBot.Api.Frontend.Modules.Music;
 
 public partial class MusicShell
 {
-    private void OnSearchQueryChanged(string value)
-    {
-        SearchQuery = value;
-    }
-
     private async Task SearchAsync()
     {
         if (IsSearching)

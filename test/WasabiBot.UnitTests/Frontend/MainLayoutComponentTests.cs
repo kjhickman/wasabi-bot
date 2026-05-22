@@ -54,11 +54,11 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.FindAll("#nav-link-music").Count).IsEqualTo(0);
         await Assert.That(cut.Find("#side-nav").GetAttribute("aria-label")).IsEqualTo("Primary sections");
         await Assert.That(cut.Find("#music-tab-live").GetAttribute("href")).IsEqualTo("/");
-        await Assert.That(cut.Find("#music-tab-search").GetAttribute("href")).IsEqualTo("/music/search");
+        await Assert.That(cut.FindAll("#music-tab-search").Count).IsEqualTo(0);
         await Assert.That(cut.Find("#music-tab-favorites").GetAttribute("href")).IsEqualTo("/music/library");
         await Assert.That(cut.Find("#music-tab-top-played").GetAttribute("href")).IsEqualTo("/music/stats");
         await Assert.That(cut.Find("#side-nav-api-access").GetAttribute("href")).IsEqualTo("/creds");
-        await Assert.That(cut.FindAll("#side-nav svg").Count).IsEqualTo(5);
+        await Assert.That(cut.FindAll("#side-nav svg").Count).IsEqualTo(4);
         await Assert.That(cut.Find("#account-menu-button").TagName).IsEqualTo("BUTTON");
     }
 

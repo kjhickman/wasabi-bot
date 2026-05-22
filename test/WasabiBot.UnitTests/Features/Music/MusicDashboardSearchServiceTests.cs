@@ -84,6 +84,43 @@ public class MusicDashboardSearchServiceTests
     }
 
     [Test]
+    public async Task SearchAsync_LimitsSongsToOneMoreThanStations()
+    {
+        var audioService = Substitute.For<IAudioService>();
+        var trackManager = Substitute.For<ITrackManager>();
+        var radioService = Substitute.For<IRadioService>();
+        audioService.Tracks.Returns(trackManager);
+
+        trackManager.LoadTracksAsync(
+                "radiohead",
+                Arg.Is<TrackLoadOptions>(x => x.SearchMode == TrackSearchMode.SoundCloud),
+                Arg.Any<LavalinkApiResolutionScope>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TrackLoadResult.CreateSearch(Enumerable.Range(1, 7)
+                .Select(index => CreateTrack($"Song {index}", "Radiohead", TimeSpan.FromMinutes(3), $"https://soundcloud.com/radiohead/song-{index}"))
+                .ToImmutableArray())));
+
+        radioService.SearchStationsAsync("radiohead", Arg.Any<CancellationToken>())
+            .Returns(Enumerable.Range(1, 7)
+                .Select(index => new RadioBrowserStation
+                {
+                    StationUuid = $"station-{index}",
+                    Name = $"Radiohead FM {index}",
+                    Country = "UK",
+                    UrlResolved = $"https://stream.example.com/radiohead-{index}",
+                    LastCheckOk = 1
+                })
+                .ToArray());
+
+        var service = new MusicDashboardSearchService(audioService, radioService, new PlaybackService(audioService, new RadioTrackMetadataStore(), NullLogger<WasabiQueuedLavalinkPlayer>.Instance, Substitute.For<IMusicPlaybackStatsRecorder>()));
+
+        var result = await service.SearchAsync("radiohead");
+
+        await Assert.That(result.Songs).Count().IsEqualTo(6);
+        await Assert.That(result.Stations).Count().IsEqualTo(5);
+    }
+
+    [Test]
     public async Task SearchAsync_WhenOnlyPreviewsFound_ReturnsEmptyResults()
     {
         var audioService = Substitute.For<IAudioService>();
