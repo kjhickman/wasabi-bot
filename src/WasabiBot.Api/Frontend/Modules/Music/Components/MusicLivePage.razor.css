@@ -10,12 +10,12 @@
 
 .music-live-player {
   display: grid;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .music-live-player__artwork {
-  inline-size: 7rem;
-  block-size: 7rem;
+  inline-size: 12rem;
+  block-size: 12rem;
   border: 1px solid var(--color-base-300);
   border-radius: 1rem;
   background: var(--color-base-200);
@@ -29,6 +29,9 @@
 }
 
 .music-live-player__details {
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
   min-inline-size: 0;
 }
 
@@ -38,32 +41,19 @@
 }
 
 .music-live-player__title strong {
-  font-size: 1.5rem;
-  line-height: 1.25;
+  font-size: 2.25rem;
+  line-height: 1.15;
 }
 
 .music-live-player__title span {
   color: color-mix(in srgb, var(--color-base-content) 70%, transparent);
-}
-
-.music-progress {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.music-progress__times {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  color: color-mix(in srgb, var(--color-base-content) 70%, transparent);
-  font-size: 0.875rem;
+  font-size: 1.125rem;
 }
 
 .music-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .music-live-card__queue-top {
@@ -115,5 +105,11 @@
   .music-live-player {
     grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
+    gap: 2rem;
+  }
+
+  .music-live-player__artwork {
+    inline-size: 16rem;
+    block-size: 16rem;
   }
 }

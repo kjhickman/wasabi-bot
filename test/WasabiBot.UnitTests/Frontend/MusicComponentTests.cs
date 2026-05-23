@@ -129,8 +129,7 @@ public class MusicComponentTests : IDisposable
         await Assert.That(cut.Find("#music-now-playing-track").TextContent).Contains("Current Song");
         await Assert.That(cut.FindAll("#music-source-name").Count).IsEqualTo(0);
         await Assert.That(cut.Find("#music-artwork").GetAttribute("src")).IsEqualTo("https://cdn.example.com/current-song.jpg");
-        await Assert.That(cut.Find("#music-progress-position").TextContent.Trim()).IsEqualTo("01:30");
-        await Assert.That(cut.Find("#music-progress-duration").TextContent.Trim()).IsEqualTo("03:00");
+        await Assert.That(cut.FindAll("#music-progress").Count).IsEqualTo(0);
         await Assert.That(cut.Find("#music-queue-list").TextContent).Contains("Next Song");
         await Assert.That(cut.Find("#music-skip").HasAttribute("disabled")).IsFalse();
         await Assert.That(cut.Find("#music-stop").HasAttribute("disabled")).IsFalse();

@@ -43,43 +43,32 @@ else
                             }
                         </div>
 
-                        @if (Session.Progress is not null && Session.NowPlaying.Duration is { } duration)
-                        {
-                            <div id="music-progress" class="music-progress" aria-label="Playback progress">
-                                <progress class="progress progress-primary w-full" value="@Session.Progress.Position.TotalSeconds" max="@duration.TotalSeconds"></progress>
-                                <div class="music-progress__times">
-                                    <span id="music-progress-position">@Session.Progress.PositionText</span>
-                                    <span id="music-progress-duration">@Session.NowPlaying.DurationText</span>
-                                </div>
-                            </div>
-                        }
-
-                         <section id="music-controls" class="music-controls" aria-label="Playback controls">
-                             <button id="music-toggle-pause"
-                                     class="btn btn-sm btn-outline btn-square"
-                                     type="button"
-                                     disabled="@IsSubmittingAction"
-                                    aria-label="@(Session.PlaybackState == "Paused" ? "Resume playback" : "Pause playback")"
-                                    @onclick="OnTogglePause">
-                                <LucideIcon Name="@(Session.PlaybackState == "Paused" ? LucideIconName.Play : LucideIconName.Pause)" Class="size-4" />
+                          <section id="music-controls" class="music-controls" aria-label="Playback controls">
+                              <button id="music-toggle-pause"
+                                      class="btn btn-lg btn-outline btn-square"
+                                      type="button"
+                                      disabled="@IsSubmittingAction"
+                                     aria-label="@(Session.PlaybackState == "Paused" ? "Resume playback" : "Pause playback")"
+                                     @onclick="OnTogglePause">
+                                <LucideIcon Name="@(Session.PlaybackState == "Paused" ? LucideIconName.Play : LucideIconName.Pause)" Class="size-6" />
                             </button>
-                             <button id="music-skip"
-                                     class="btn btn-sm btn-outline btn-square"
-                                     type="button"
-                                     disabled="@IsSubmittingAction"
-                                     aria-label="Skip track"
-                                     @onclick="OnSkip">
-                                 <LucideIcon Name="LucideIconName.SkipForward" Class="size-4" />
-                             </button>
-                             <button id="music-stop"
-                                     class="btn btn-sm btn-outline btn-square"
-                                     type="button"
-                                     disabled="@IsSubmittingAction"
-                                     aria-label="Stop playback"
-                                     @onclick="OnStop">
-                                 <LucideIcon Name="LucideIconName.Stop" Class="size-4" />
-                             </button>
-                         </section>
+                              <button id="music-skip"
+                                      class="btn btn-lg btn-outline btn-square"
+                                      type="button"
+                                      disabled="@IsSubmittingAction"
+                                      aria-label="Skip track"
+                                      @onclick="OnSkip">
+                                  <LucideIcon Name="LucideIconName.SkipForward" Class="size-6" />
+                              </button>
+                              <button id="music-stop"
+                                      class="btn btn-lg btn-outline btn-square"
+                                      type="button"
+                                      disabled="@IsSubmittingAction"
+                                      aria-label="Stop playback"
+                                      @onclick="OnStop">
+                                  <LucideIcon Name="LucideIconName.Stop" Class="size-6" />
+                              </button>
+                          </section>
                     </div>
                 </div>
             }
