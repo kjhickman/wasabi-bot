@@ -39,11 +39,11 @@ public class MusicComponentTests : IDisposable
     }
 
     [Test]
-    public async Task Render_AuthenticatedUserWithoutSharedVoiceChannel_ShowsJoinPrompt()
+    public async Task Render_AuthenticatedUserInJoinableVoiceChannel_ShowsJoinPrompt()
     {
         _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
         var dashboardService = Substitute.For<IMusicDashboardService>();
-        _context.Services.AddSingleton(Substitute.For<IMusicDashboardControlService>());
+        var controlService = Substitute.For<IMusicDashboardControlService>();
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardSearchService>());
         _context.Services.AddSingleton(Substitute.For<IMusicDashboardQueueService>());
         _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
@@ -56,7 +56,10 @@ public class MusicComponentTests : IDisposable
                 null,
                 [],
                 new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: false, BotSharesChannel: false)));
+        controlService.JoinUserChannelAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new MusicCommandResult("Joined #music-room."));
         _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
         _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
 
         var user = ClaimsPrincipalBuilder.Create()
@@ -67,9 +70,103 @@ public class MusicComponentTests : IDisposable
 
         var cut = _context.RenderWithAuthentication<Music>(authState);
 
-        await Assert.That(cut.FindAll("#music-tab-live").Count).IsEqualTo(0);
-        await Assert.That(cut.Markup).DoesNotContain("Ready to join your channel");
-        await Assert.That(cut.FindAll("#music-join-channel").Count).IsEqualTo(0);
+        await Assert.That(cut.Markup).Contains("Ready to join your channel");
+        await Assert.That(cut.Find("#music-join-channel-inline").TextContent.Trim()).IsEqualTo("Join voice");
+        await Assert.That(cut.Find("#music-join-channel-inline").GetAttribute("title")).IsEqualTo("Join #music-room in Wasabi HQ");
+        await cut.InvokeAsync(() => cut.Find("#music-join-channel-inline").Click());
+
+        await controlService.Received(1).JoinUserChannelAsync(123456789, Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUserNotInVoiceChannel_ShowsJoinVoicePrompt()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardControlService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardSearchService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardQueueService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicGuildStatsService>());
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>()).Returns((ActiveMusicSession?)null);
+        _context.Services.AddSingleton(dashboardService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+
+        var cut = _context.RenderWithAuthentication<Music>(new AuthenticationState(user));
+
+        await Assert.That(cut.Markup).Contains("Join a voice channel");
+        await Assert.That(cut.FindAll("#music-join-channel-inline").Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUserWhenBotIsBusy_ShowsBusyState()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardControlService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardSearchService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardQueueService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicGuildStatsService>());
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Playing",
+                null,
+                null,
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 77, "other-room", BotIsConnectedInGuild: true, BotSharesChannel: false)));
+        _context.Services.AddSingleton(dashboardService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+
+        var cut = _context.RenderWithAuthentication<Music>(new AuthenticationState(user));
+
+        await Assert.That(cut.Markup).Contains("Wasabi Bot is busy elsewhere");
+        await Assert.That(cut.FindAll("#music-join-channel-inline").Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Render_AuthenticatedUserWithEmptyQueue_ShowsEmptyRoomState()
+    {
+        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
+        var dashboardService = Substitute.For<IMusicDashboardService>();
+        var controlService = Substitute.For<IMusicDashboardControlService>();
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardSearchService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicDashboardQueueService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicFavoritesService>());
+        _context.Services.AddSingleton(Substitute.For<IMusicGuildStatsService>());
+        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
+            .Returns(new ActiveMusicSession(
+                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
+                "Idle",
+                null,
+                null,
+                [],
+                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
+        _context.Services.AddSingleton(dashboardService);
+        _context.Services.AddSingleton(controlService);
+        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
+
+        var user = ClaimsPrincipalBuilder.Create()
+            .AsDiscordUser("123456789", "kyle")
+            .WithDiscordGlobalName("Kyle")
+            .Build();
+
+        var cut = _context.RenderWithAuthentication<Music>(new AuthenticationState(user));
+
+        await Assert.That(cut.Markup).Contains("Nothing queued yet");
+        await Assert.That(cut.Markup).Contains("Search for a song or radio station to start the room.");
+        await Assert.That(cut.FindAll("#music-queue-empty").Count).IsEqualTo(0);
     }
 
     [Test]

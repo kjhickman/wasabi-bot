@@ -8,6 +8,28 @@
   gap: 1.25rem;
 }
 
+.music-live-card--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: min(44rem, calc(100vh - 16rem));
+}
+
+.music-live-empty-state {
+  display: grid;
+  place-items: center;
+  padding-block: 2rem;
+  width: 100%;
+}
+
+.music-live-empty-state__card {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  max-inline-size: 32rem;
+  text-align: center;
+}
+
 .music-live-player {
   display: grid;
   gap: 1.5rem;
