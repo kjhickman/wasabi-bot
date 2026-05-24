@@ -25,11 +25,16 @@ public static class Extensions
         if (builder is WebApplicationBuilder webBuilder)
         {
             webBuilder.WebHost.UseKestrel(options => options.AddServerHeader = false);
-            webBuilder.Host.UseDefaultServiceProvider(options =>
+
+            // .NET 11 Preview 4 container startup can OOM while validating the full service graph.
+            if (!string.Equals(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), "true", StringComparison.OrdinalIgnoreCase))
             {
-                options.ValidateScopes = true;
-                options.ValidateOnBuild = true;
-            });
+                webBuilder.Host.UseDefaultServiceProvider(options =>
+                {
+                    options.ValidateScopes = true;
+                    options.ValidateOnBuild = true;
+                });
+            }
         }
 
         builder.Services.AddSingleton(TimeProvider.System);

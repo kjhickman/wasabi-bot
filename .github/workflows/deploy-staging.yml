@@ -21,7 +21,7 @@ jobs:
   tests:
     uses: ./.github/workflows/tests.yml
     with:
-      dotnet-version: 11.0.100-preview.3.26207.106
+      dotnet-version: 11.0.100-preview.4.26230.115
 
   lavalink:
     needs: tests

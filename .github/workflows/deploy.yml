@@ -34,7 +34,7 @@ permissions:
   contents: read
 
 env:
-  DOTNET_VERSION: 11.0.100-preview.3.26207.106
+  DOTNET_VERSION: 11.0.100-preview.4.26230.115
 
 jobs:
   db-config:

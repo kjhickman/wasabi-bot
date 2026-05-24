@@ -1,9 +1,9 @@
-FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-preview.3 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0.0-preview.4 AS base
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
-FROM oven/bun:1.2.9 AS css
+FROM oven/bun:1.3.13 AS css
 WORKDIR /src/src/WasabiBot.Api
 
 COPY ["src/WasabiBot.Api/package.json", "src/WasabiBot.Api/bun.lock", "./"]
@@ -12,7 +12,7 @@ RUN bun install --frozen-lockfile
 COPY src/WasabiBot.Api/ ./
 RUN bun run build:css
 
-FROM mcr.microsoft.com/dotnet/sdk:11.0.100-preview.3 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0.100-preview.4 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 

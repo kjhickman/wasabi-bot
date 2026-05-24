@@ -6,7 +6,7 @@ on:
       dotnet-version:
         description: .NET SDK version to install
         required: false
-        default: 11.0.100-preview.3.26207.106
+        default: 11.0.100-preview.4.26230.115
         type: string
 
 permissions:
@@ -36,7 +36,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.2.9
+          bun-version: 1.3.13
 
       - name: Restore
         run: dotnet restore WasabiBot.slnx

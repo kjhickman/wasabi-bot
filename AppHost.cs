@@ -1,5 +1,7 @@
-#:sdk Aspire.AppHost.Sdk@13.3.3
+#:sdk Aspire.AppHost.Sdk@13.3.5
 #:package Aspire.Hosting.PostgreSQL
+#:property TargetFramework=net10.0
+#:property RollForward=Major
 #:property UserSecretsId=e740d40c-c13c-443b-a0cf-73ed8ab1c695
 
 using Aspire.Hosting.ApplicationModel;
