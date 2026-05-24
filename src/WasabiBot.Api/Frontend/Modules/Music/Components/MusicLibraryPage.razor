@@ -35,20 +35,28 @@ else
                                         </div>
                                     }
                                     <div class="music-search-result-item__details">
-                                        <strong>@favorite.Title</strong>
+                                        <strong class="music-search-result-item__title" title="@favorite.Title">@favorite.Title</strong>
                                         <span>by @favorite.Subtitle</span>
-                                        @if (!string.IsNullOrWhiteSpace(favorite.Song?.DurationText))
-                                        {
-                                            <div class="music-now-playing__meta-row">
-                                                <span class="music-track-meta">@favorite.Song.DurationText</span>
-                                            </div>
-                                        }
                                     </div>
                                 </div>
                                 <div class="music-search-result-item__actions music-search-result-item__actions--right">
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)">Add to queue</button>
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)">Play next</button>
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)">Remove</button>
+                                    @if (!string.IsNullOrWhiteSpace(favorite.Song?.DurationText))
+                                    {
+                                        <span class="music-search-result-item__duration">@favorite.Song.DurationText</span>
+                                    }
+                                    <button class="btn btn-ghost btn-sm btn-square" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)" aria-label="Add @favorite.Title to queue" title="Add to queue">
+                                        <LucideIcon Name="LucideIconName.ListPlus" Class="size-5" />
+                                    </button>
+                                    <div class="dropdown dropdown-end">
+                                        <button class="btn btn-ghost btn-sm btn-square" type="button" tabindex="0" aria-label="More actions for @favorite.Title">
+                                            <LucideIcon Name="LucideIconName.EllipsisVertical" Class="size-5" />
+                                        </button>
+                                        <ul class="dropdown-content menu z-20 w-44 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg" tabindex="0">
+                                            <li><button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)"><LucideIcon Name="LucideIconName.Play" Class="size-4" />Play next</button></li>
+                                            <li><button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)"><LucideIcon Name="LucideIconName.ListPlus" Class="size-4" />Add to queue</button></li>
+                                            <li><button type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)"><LucideIcon Name="LucideIconName.Trash2" Class="size-4" />Remove</button></li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </li>
@@ -83,21 +91,27 @@ else
                                         </div>
                                     }
                                     <div class="music-search-result-item__details">
-                                        <strong>@favorite.Title</strong>
+                                        <strong class="music-search-result-item__title" title="@favorite.Title">@favorite.Title</strong>
                                         @if (!string.IsNullOrWhiteSpace(favorite.Subtitle))
                                         {
                                             <span>@favorite.Subtitle</span>
                                         }
-                                        @if (!string.IsNullOrWhiteSpace(favorite.Radio?.Tags))
-                                        {
-                                            <span class="music-track-meta">@MusicDisplayFormatting.FormatStationTags(favorite.Radio.Tags)</span>
-                                        }
                                     </div>
                                 </div>
                                 <div class="music-search-result-item__actions music-search-result-item__actions--right">
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)">Add to queue</button>
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)">Play next</button>
-                                    <button class="btn btn-sm btn-outline" type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)">Remove</button>
+                                    <button class="btn btn-ghost btn-sm btn-square" type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)" aria-label="Add @favorite.Title to queue" title="Add to queue">
+                                        <LucideIcon Name="LucideIconName.ListPlus" Class="size-5" />
+                                    </button>
+                                    <div class="dropdown dropdown-end">
+                                        <button class="btn btn-ghost btn-sm btn-square" type="button" tabindex="0" aria-label="More actions for @favorite.Title">
+                                            <LucideIcon Name="LucideIconName.EllipsisVertical" Class="size-5" />
+                                        </button>
+                                        <ul class="dropdown-content menu z-20 w-44 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg" tabindex="0">
+                                            <li><button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnPlayFavoriteNext.InvokeAsync(favorite)"><LucideIcon Name="LucideIconName.Play" Class="size-4" />Play next</button></li>
+                                            <li><button type="button" disabled="@(IsSubmittingAction || !HasSharedSession)" @onclick="() => OnQueueFavorite.InvokeAsync(favorite)"><LucideIcon Name="LucideIconName.ListPlus" Class="size-4" />Add to queue</button></li>
+                                            <li><button type="button" disabled="@IsSubmittingAction" @onclick="() => OnRemoveFavorite.InvokeAsync(favorite)"><LucideIcon Name="LucideIconName.Trash2" Class="size-4" />Remove</button></li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </li>

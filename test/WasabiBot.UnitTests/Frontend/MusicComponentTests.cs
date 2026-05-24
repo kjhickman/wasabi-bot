@@ -655,6 +655,19 @@ public class MusicComponentTests : IDisposable
 
         await Assert.That(cut.Find("#music-favorite-songs").TextContent).Contains("Creep");
         await Assert.That(cut.Find("#music-favorite-radio").TextContent).Contains("Radiohead FM");
+        await Assert.That(cut.Find("#music-favorite-songs .music-search-result-item__duration").TextContent.Trim()).IsEqualTo("03:58");
+        await Assert.That(cut.FindAll("#music-favorite-songs button[aria-label='Add Creep to queue']").Count).IsEqualTo(1);
+        await Assert.That(cut.FindAll("#music-favorite-radio button[aria-label='Add Radiohead FM to queue']").Count).IsEqualTo(1);
+        await Assert.That(cut.FindAll("#music-favorite-songs button[aria-label='More actions for Creep']").Count).IsEqualTo(1);
+        await Assert.That(cut.FindAll("#music-favorite-radio button[aria-label='More actions for Radiohead FM']").Count).IsEqualTo(1);
+        await Assert.That(cut.FindAll("#music-favorite-radio .music-search-result-item__duration").Count).IsEqualTo(0);
+        await Assert.That(cut.Find("#music-favorite-radio").TextContent).DoesNotContain("alternative");
+        await Assert.That(cut.Find("#music-favorite-songs").TextContent).Contains("Play next");
+        await Assert.That(cut.Find("#music-favorite-songs").TextContent).Contains("Add to queue");
+        await Assert.That(cut.Find("#music-favorite-songs").TextContent).Contains("Remove");
+        await Assert.That(cut.Find("#music-favorite-radio").TextContent).Contains("Play next");
+        await Assert.That(cut.Find("#music-favorite-radio").TextContent).Contains("Add to queue");
+        await Assert.That(cut.Find("#music-favorite-radio").TextContent).Contains("Remove");
     }
 
     [Test]
