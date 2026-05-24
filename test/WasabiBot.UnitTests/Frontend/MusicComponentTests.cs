@@ -670,54 +670,6 @@ public class MusicComponentTests : IDisposable
         await Assert.That(cut.Find("#music-favorite-radio").TextContent).Contains("Remove");
     }
 
-    [Test]
-    public async Task Render_AuthenticatedUser_ShowsMostPlayedTracks()
-    {
-        _context.Services.AddSingleton<IAuthorizationService>(new TestAuthorizationService(true));
-        var dashboardService = Substitute.For<IMusicDashboardService>();
-        var controlService = Substitute.For<IMusicDashboardControlService>();
-        var searchService = Substitute.For<IMusicDashboardSearchService>();
-        var queueService = Substitute.For<IMusicDashboardQueueService>();
-        var favoritesService = Substitute.For<IMusicFavoritesService>();
-        var guildStatsService = Substitute.For<IMusicGuildStatsService>();
-
-        dashboardService.GetActiveSessionAsync(123456789, Arg.Any<CancellationToken>())
-            .Returns(new ActiveMusicSession(
-                new SharedVoiceChannel(42, "Wasabi HQ", 99, "music-room"),
-                "Playing",
-                null,
-                new MusicTrackSnapshot("Current Song", "Artist", "03:00", TimeSpan.FromMinutes(3), false, false, null, null, "scsearch"),
-                [],
-                new UserVoiceChannel(42, "Wasabi HQ", 99, "music-room", BotIsConnectedInGuild: true, BotSharesChannel: true)));
-        favoritesService.ListAsync(123456789, Arg.Any<CancellationToken>()).Returns(new MusicFavoritesSnapshot([], []));
-        guildStatsService.GetTopTracksAsync(42, Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([
-            new GuildTopTrackSummary("Creep", "Radiohead", "scsearch", "https://soundcloud.com/radiohead/creep", "", 5, DateTimeOffset.UtcNow)
-        ]);
-
-        _context.Services.AddSingleton(dashboardService);
-        _context.Services.AddSingleton(controlService);
-        _context.Services.AddSingleton(searchService);
-        _context.Services.AddSingleton(queueService);
-        _context.Services.AddSingleton(favoritesService);
-        _context.Services.AddSingleton(guildStatsService);
-        _context.Renderer.SetRendererInfo(new RendererInfo("Static", false));
-
-        var user = ClaimsPrincipalBuilder.Create()
-            .AsDiscordUser("123456789", "kyle")
-            .WithDiscordGlobalName("Kyle")
-            .Build();
-
-        var cut = _context.RenderWithAuthentication<MusicShell>(new AuthenticationState(user), parameters => parameters
-            .Add(x => x.ActivePage, MusicPageKind.Stats));
-
-        await Assert.That(cut.Find("#music-most-played-heading").TextContent.Trim()).IsEqualTo("Most played in Wasabi HQ");
-        await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("Creep");
-        await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("by Radiohead");
-        await Assert.That(cut.Find("#music-most-played-list").TextContent).Contains("Played 5 time(s)");
-        await Assert.That(cut.FindAll("#music-most-played-list a").Count).IsEqualTo(0);
-        await Assert.That(cut.FindAll("#music-most-played-list button").Count).IsGreaterThanOrEqualTo(3);
-    }
-
     public void Dispose()
     {
         _context.Dispose();

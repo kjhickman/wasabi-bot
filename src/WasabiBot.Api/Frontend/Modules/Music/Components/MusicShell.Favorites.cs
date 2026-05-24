@@ -86,7 +86,6 @@ public partial class MusicShell
         {
             Favorites = await MusicFavoritesService.ListAsync((long)UserId.Value, cancellationToken);
             ApplyFavoriteStateToSearchResults();
-            ApplyFavoriteStateToMostPlayedTracks();
         }
         finally
         {

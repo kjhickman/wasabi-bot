@@ -78,18 +78,6 @@ else
                                           OnRemoveFavorite="RemoveFavoriteAsync" />
                     </div>
                     break;
-                case MusicPageKind.Stats:
-                    <div id="music-tabpanel-top-played">
-                        <MusicStatsPage Session="Session"
-                                        IsLoadingMostPlayed="IsLoadingMostPlayed"
-                                        MostPlayedTracks="MostPlayedTracks"
-                                        IsSubmittingAction="IsSubmittingAction"
-                                        HasSharedSession="@(Session?.UserChannel?.BotSharesChannel == true)"
-                                        OnQueueTrack="QueueMostPlayedTrackAsync"
-                                        OnPlayTrackNext="PlayMostPlayedTrackNextAsync"
-                                        OnSaveTrackFavorite="SaveMostPlayedTrackFavoriteAsync" />
-                    </div>
-                    break;
             }
         </div>
     </section>

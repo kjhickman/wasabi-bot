@@ -5,5 +5,4 @@ public enum MusicPageKind
     Live,
     Search,
     Library,
-    Stats,
 }

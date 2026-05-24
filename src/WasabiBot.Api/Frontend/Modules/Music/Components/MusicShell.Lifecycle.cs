@@ -80,12 +80,6 @@ public partial class MusicShell
         {
             await RefreshSessionAsync(cancellationToken);
 
-            if (ActivePage == MusicPageKind.Stats && Session is not null)
-            {
-                await RefreshFavoritesAsync(cancellationToken);
-                await RefreshMostPlayedAsync(cancellationToken);
-            }
-
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -99,10 +93,6 @@ public partial class MusicShell
                 break;
             case MusicPageKind.Library:
                 await RefreshFavoritesAsync(cancellationToken);
-                break;
-            case MusicPageKind.Stats when Session is not null:
-                await RefreshFavoritesAsync(cancellationToken);
-                await RefreshMostPlayedAsync(cancellationToken);
                 break;
         }
     }

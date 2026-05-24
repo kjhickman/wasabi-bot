@@ -43,10 +43,6 @@ public partial class MusicShell
                 await RefreshFavoritesAsync();
             }
 
-            if (ActivePage == MusicPageKind.Stats && Session is not null)
-            {
-                await RefreshMostPlayedAsync();
-            }
         }
         catch
         {

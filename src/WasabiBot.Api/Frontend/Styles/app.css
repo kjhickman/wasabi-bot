@@ -41,4 +41,8 @@
   .side-nav-link-active {
     @apply bg-base-100 text-base-content shadow-sm;
   }
+
+  .side-nav-link-disabled {
+    @apply cursor-not-allowed text-base-content/35 hover:bg-transparent hover:text-base-content/35 focus-visible:bg-transparent focus-visible:text-base-content/35;
+  }
 }

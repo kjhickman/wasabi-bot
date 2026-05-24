@@ -56,7 +56,10 @@ public class MainLayoutComponentTests : IDisposable
         await Assert.That(cut.Find("#music-tab-live").GetAttribute("href")).IsEqualTo("/");
         await Assert.That(cut.FindAll("#music-tab-search").Count).IsEqualTo(0);
         await Assert.That(cut.Find("#music-tab-favorites").GetAttribute("href")).IsEqualTo("/library");
-        await Assert.That(cut.Find("#music-tab-top-played").GetAttribute("href")).IsEqualTo("/stats");
+        var topPlayedTab = cut.Find("#music-tab-top-played");
+        await Assert.That(topPlayedTab.TagName).IsEqualTo("SPAN");
+        await Assert.That(topPlayedTab.GetAttribute("aria-disabled")).IsEqualTo("true");
+        await Assert.That(topPlayedTab.GetAttribute("href")).IsNull();
         await Assert.That(cut.Find("#side-nav-api-access").GetAttribute("href")).IsEqualTo("/creds");
         await Assert.That(cut.FindAll("#side-nav svg").Count).IsEqualTo(4);
         await Assert.That(cut.Find("#account-menu-button").TagName).IsEqualTo("BUTTON");
