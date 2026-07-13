@@ -1,5 +1,5 @@
 use poise::serenity_prelude as serenity;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 pub struct Data {
     pub pool: sqlx::PgPool,
