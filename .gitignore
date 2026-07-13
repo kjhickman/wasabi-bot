@@ -122,3 +122,6 @@ Thumbs.db
 # Frontend build artifacts
 node_modules/
 src/WasabiBot.Api/wwwroot/app.css
+
+# Rust build artifacts
+target/

@@ -1,5 +1,5 @@
 {
   "appHost": {
-    "path": "AppHost.cs"
+    "path": "apphost.cs"
   }
 }

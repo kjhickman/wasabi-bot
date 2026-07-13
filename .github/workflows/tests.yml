@@ -59,3 +59,24 @@ jobs:
 
       - name: Summarize tests
         run: echo "::notice title=CI Tests::${{ matrix.suite }} test suite completed"
+
+  rust-tests:
+    name: Run rust tests
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-rs/wasabi-bot
+
+      - name: Test
+        run: cargo test
+        working-directory: src-rs/wasabi-bot
