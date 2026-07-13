@@ -33,6 +33,9 @@ var migrations = builder.AddRustApp("migrations", "src-rs/wasabi-bot", args: ["-
     .WaitFor(database)
     .WithParentRelationship(postgres);
 
+var register = builder.AddRustApp("register", "src-rs/wasabi-bot", args: ["--bin", "register"])
+    .WithEnvironment("Discord__Token", discordBotToken);
+
 builder.AddRustApp("wasabi-bot", "src-rs/wasabi-bot")
     .WithHttpEndpoint(env: "PORT")
     .WithHttpHealthCheck("/health")
@@ -40,6 +43,7 @@ builder.AddRustApp("wasabi-bot", "src-rs/wasabi-bot")
     .WithEnvironment("Discord__Token", discordBotToken)
     .WithOtlpExporter()
     .WaitFor(database)
-    .WaitForCompletion(migrations);
+    .WaitForCompletion(migrations)
+    .WaitForCompletion(register);
 
 builder.Build().Run();

@@ -27,9 +27,8 @@ async fn main() -> anyhow::Result<()> {
             on_error: |error| Box::pin(on_error(error)),
             ..Default::default()
         })
-        .setup(|ctx, ready, framework| {
+        .setup(|_ctx, ready, _framework| {
             Box::pin(async move {
-                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 tracing::info!("logged in as {}", ready.user.name);
                 Ok(Data { pool })
             })

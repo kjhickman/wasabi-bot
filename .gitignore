@@ -1,5 +1,7 @@
 # Build results
 [Bb]in/
+!src-rs/wasabi-bot/src/bin/
+!src-rs/wasabi-bot/src/bin/*.rs
 [Oo]bj/
 [Dd]ebug/
 [Rr]elease/
