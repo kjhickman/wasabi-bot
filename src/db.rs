@@ -1,5 +1,5 @@
 use sqlx::PgPool;
-use sqlx::postgres::PgConnectOptions;
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use time::OffsetDateTime;
 
 /// Builds connection options from `DATABASE_URL` (URI) or the Aspire-injected
@@ -30,10 +30,26 @@ pub fn parse_connection_string(raw: &str) -> anyhow::Result<PgConnectOptions> {
             "username" | "user id" | "userid" | "user" => opts = opts.username(value),
             "password" => opts = opts.password(value),
             "database" => opts = opts.database(value),
+            "ssl mode" | "sslmode" => opts = opts.ssl_mode(parse_ssl_mode(value)?),
+            "trust server certificate" if value.eq_ignore_ascii_case("true") => {
+                opts = opts.ssl_mode(PgSslMode::Require)
+            }
             _ => {}
         }
     }
     Ok(opts)
+}
+
+fn parse_ssl_mode(value: &str) -> anyhow::Result<PgSslMode> {
+    match value.trim().to_ascii_lowercase().replace([' ', '-'], "").as_str() {
+        "disable" => Ok(PgSslMode::Disable),
+        "allow" => Ok(PgSslMode::Allow),
+        "prefer" => Ok(PgSslMode::Prefer),
+        "require" => Ok(PgSslMode::Require),
+        "verifyca" => Ok(PgSslMode::VerifyCa),
+        "verifyfull" => Ok(PgSslMode::VerifyFull),
+        other => anyhow::bail!("unsupported postgres SSL mode: {other}"),
+    }
 }
 
 pub struct InteractionRecord {
@@ -142,5 +158,14 @@ mod tests {
         assert_eq!(opts.get_host(), "db.example");
         assert_eq!(opts.get_port(), 5433);
         assert_eq!(opts.get_database(), Some("mydb"));
+    }
+
+    #[test]
+    fn parses_dotnet_ssl_mode() {
+        let opts = parse_connection_string(
+            "Host=db.example;Username=u;Password=p;Database=d;SSL Mode=Require;Trust Server Certificate=true",
+        )
+        .unwrap();
+        assert_eq!(opts.get_host(), "db.example");
     }
 }
