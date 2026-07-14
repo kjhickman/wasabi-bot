@@ -6,6 +6,13 @@ use crate::db;
 pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
     let token =
         std::env::var("DISCORD_TOKEN").map_err(|_| anyhow::anyhow!("DISCORD_TOKEN is not set"))?;
+    let gemini_api_key = std::env::var("GEMINI_API_KEY").ok();
+    if gemini_api_key.is_none() {
+        tracing::warn!("GEMINI_API_KEY is not set; /conch will use weighted fallback only");
+    }
+    let http = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()?;
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -19,7 +26,11 @@ pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
                 tracing::info!("logged in as {}", ready.user.name);
                 poise::builtins::register_globally(&ctx.http, &framework.options().commands)
                     .await?;
-                Ok(Data { pool })
+                Ok(Data {
+                    pool,
+                    http,
+                    gemini_api_key,
+                })
             })
         })
         .build();

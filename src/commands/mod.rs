@@ -6,6 +6,8 @@ pub use utility::{help, stats};
 
 pub struct Data {
     pub pool: sqlx::PgPool,
+    pub http: reqwest::Client,
+    pub gemini_api_key: Option<String>,
 }
 
 pub type Error = anyhow::Error;

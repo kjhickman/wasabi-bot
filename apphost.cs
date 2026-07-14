@@ -18,6 +18,9 @@ builder.Configuration.AddInMemoryCollection(
 var discordBotToken = builder.AddParameter("discord-bot-token", secret: true)
     .WithDescription("Discord Bot Token");
 
+var googleApiKey = builder.AddParameter("google-api-key", secret: true)
+    .WithDescription("Google API Key");
+
 var postgres = builder.AddPostgres("postgres")
     .WithLifetime(ContainerLifetime.Persistent);
 
@@ -35,6 +38,7 @@ builder.AddRustApp("wasabi-bot", ".")
     .WithHttpHealthCheck("/health")
     .WithEnvironment("DATABASE_URL", database.Resource.UriExpression)
     .WithEnvironment("DISCORD_TOKEN", discordBotToken)
+    .WithEnvironment("GEMINI_API_KEY", googleApiKey)
     .WithOtlpExporter()
     .WaitFor(database)
     .WaitForCompletion(migrations);

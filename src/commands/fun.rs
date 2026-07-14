@@ -3,6 +3,7 @@ use rand::seq::IndexedRandom;
 use rand::{Rng, RngExt};
 
 use super::{Context, Error, display_name, send_ephemeral};
+use crate::llm;
 
 /// Flip a coin.
 #[poise::command(slash_command)]
@@ -76,8 +77,19 @@ pub async fn conch(
     ctx: Context<'_>,
     #[description = "A yes/no question"] question: String,
 ) -> Result<(), Error> {
-    // ponytail: weighted-random only, LLM answer path returns post-MVP
-    let answer = conch_response(&mut rand::rng());
+    ctx.defer().await?;
+
+    let answer = match &ctx.data().gemini_api_key {
+        Some(api_key) => match llm::conch_answer(&ctx.data().http, api_key, &question).await {
+            Ok(Some(answer)) => answer,
+            Ok(None) => conch_response(&mut rand::rng()).to_string(),
+            Err(error) => {
+                tracing::warn!("magic conch LLM call failed, using fallback: {error:?}");
+                conch_response(&mut rand::rng()).to_string()
+            }
+        },
+        None => conch_response(&mut rand::rng()).to_string(),
+    };
     let name = display_name(&ctx).await;
     ctx.say(format!(
         "{name} asked: *{question}*\nThe Magic Conch says... {answer}"
