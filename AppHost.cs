@@ -11,8 +11,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.Configuration.AddInMemoryCollection(
 [
-    new KeyValuePair<string, string?>("Logging:LogLevel:Microsoft.AspNetCore", "Warning"),
-    new KeyValuePair<string, string?>("Logging:LogLevel:Aspire.Hosting.Dcp", "Warning"),
     new KeyValuePair<string, string?>("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:18889"),
     new KeyValuePair<string, string?>("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true")
 ]);
