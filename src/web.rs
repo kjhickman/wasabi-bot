@@ -1,3 +1,5 @@
+use tower_http::trace::TraceLayer;
+
 pub fn router() -> axum::Router {
     axum::Router::new()
         .route(
@@ -6,6 +8,7 @@ pub fn router() -> axum::Router {
         )
         .route("/health", axum::routing::get(|| async { "ok" }))
         .route("/alive", axum::routing::get(|| async { "ok" }))
+        .layer(TraceLayer::new_for_http())
 }
 
 pub async fn serve() -> anyhow::Result<()> {

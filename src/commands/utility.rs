@@ -2,6 +2,7 @@ use super::{Context, Error, send_ephemeral};
 
 /// Shows all available commands and helpful links.
 #[poise::command(slash_command)]
+#[tracing::instrument(name = "discord.command", skip(ctx), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get()))]
 pub async fn help(ctx: Context<'_>) -> Result<(), Error> {
     send_ephemeral(&ctx, HELP_MESSAGE).await
 }
@@ -28,6 +29,7 @@ const HELP_MESSAGE: &str = "\
 
 /// Show bot usage statistics.
 #[poise::command(slash_command)]
+#[tracing::instrument(name = "discord.command", skip(ctx), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get()))]
 pub async fn stats(ctx: Context<'_>) -> Result<(), Error> {
     let stats = crate::db::get_stats(
         &ctx.data().pool,

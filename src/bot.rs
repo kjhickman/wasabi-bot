@@ -4,22 +4,21 @@ use crate::commands::{self, Data, Error};
 use crate::db;
 
 pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
-    let token = std::env::var("DISCORD_TOKEN")
-        .map_err(|_| anyhow::anyhow!("DISCORD_TOKEN is not set"))?;
+    let token =
+        std::env::var("DISCORD_TOKEN").map_err(|_| anyhow::anyhow!("DISCORD_TOKEN is not set"))?;
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: commands::all(),
-            event_handler: |_ctx, event, _framework, data| {
-                Box::pin(handle_event(event, data))
-            },
+            event_handler: |_ctx, event, _framework, data| Box::pin(handle_event(event, data)),
             on_error: |error| Box::pin(on_error(error)),
             ..Default::default()
         })
         .setup(|ctx, ready, framework| {
             Box::pin(async move {
                 tracing::info!("logged in as {}", ready.user.name);
-                poise::builtins::register_globally(&ctx.http, &framework.options().commands).await?;
+                poise::builtins::register_globally(&ctx.http, &framework.options().commands)
+                    .await?;
                 Ok(Data { pool })
             })
         })

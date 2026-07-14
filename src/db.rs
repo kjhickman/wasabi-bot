@@ -18,6 +18,7 @@ pub struct InteractionRecord {
     pub created_at: OffsetDateTime,
 }
 
+#[tracing::instrument(name = "db.insert_interaction", skip(pool, r), fields(interaction_id = r.id, channel_id = r.channel_id, guild_id = ?r.guild_id, user_id = r.user_id))]
 pub async fn insert_interaction(pool: &PgPool, r: &InteractionRecord) -> sqlx::Result<()> {
     sqlx::query(
         r#"INSERT INTO interactions
@@ -47,6 +48,11 @@ pub struct Stats {
     pub top_user: Option<(String, i64)>,
 }
 
+#[tracing::instrument(
+    name = "db.get_stats",
+    skip(pool),
+    fields(channel_id, exclude_interaction_id)
+)]
 pub async fn get_stats(
     pool: &PgPool,
     channel_id: i64,

@@ -5,19 +5,26 @@ use super::{Context, Error, display_name, send_ephemeral};
 
 /// Flip a coin.
 #[poise::command(slash_command)]
+#[tracing::instrument(name = "discord.command", skip(ctx), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get()))]
 pub async fn flip(ctx: Context<'_>) -> Result<(), Error> {
     let result = flip_coin(&mut rand::rng());
-    ctx.say(format!("The coin lands on... **{result}!**")).await?;
+    ctx.say(format!("The coin lands on... **{result}!**"))
+        .await?;
     Ok(())
 }
 
 pub fn flip_coin(rng: &mut impl Rng) -> &'static str {
-    if rng.random_range(0..2) == 0 { "Heads" } else { "Tails" }
+    if rng.random_range(0..2) == 0 {
+        "Heads"
+    } else {
+        "Tails"
+    }
 }
 
 /// Choose randomly from 2-7 options.
 #[poise::command(slash_command)]
 #[allow(clippy::too_many_arguments)]
+#[tracing::instrument(name = "discord.command", skip(ctx, option1, option2, option3, option4, option5, option6, option7), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get()))]
 pub async fn choose(
     ctx: Context<'_>,
     #[description = "First option"] option1: String,
@@ -70,6 +77,7 @@ pub fn distinct_options(raw: &[Option<String>]) -> Vec<String> {
 
 /// Ask the magic conch a question.
 #[poise::command(slash_command)]
+#[tracing::instrument(name = "discord.command", skip(ctx, question), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get()))]
 pub async fn conch(
     ctx: Context<'_>,
     #[description = "A yes/no question"] question: String,
@@ -105,6 +113,7 @@ pub fn conch_response(rng: &mut impl Rng) -> &'static str {
 }
 
 #[poise::command(context_menu_command = "Mock")]
+#[tracing::instrument(name = "discord.command", skip(ctx, message), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get(), message_id = %message.id.get()))]
 pub async fn mock(ctx: Context<'_>, message: serenity::Message) -> Result<(), Error> {
     if message.content.trim().is_empty() {
         return send_ephemeral(&ctx, "That message has no text to mock.").await;
