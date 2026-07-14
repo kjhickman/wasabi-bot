@@ -3,12 +3,12 @@ use testcontainers_modules::testcontainers::runners::AsyncRunner;
 use time::OffsetDateTime;
 use wasabi_bot::db::{self, InteractionRecord};
 
-fn record(id: i64, channel_id: i64, user: &str, command: &str) -> InteractionRecord {
+fn record(id: i64, channel_id: i64, user_id: i64, user: &str, command: &str) -> InteractionRecord {
     InteractionRecord {
         id,
         channel_id,
         application_id: 100,
-        user_id: user.len() as i64,
+        user_id,
         guild_id: Some(500),
         username: user.to_string(),
         global_name: None,
@@ -28,11 +28,11 @@ async fn insert_interaction_and_compute_stats() -> anyhow::Result<()> {
     let pool = sqlx::PgPool::connect(&url).await?;
     sqlx::migrate!().run(&pool).await?;
 
-    db::insert_interaction(&pool, &record(1, 10, "kyle", "flip")).await?;
-    db::insert_interaction(&pool, &record(2, 10, "kyle", "flip")).await?;
-    db::insert_interaction(&pool, &record(3, 20, "sam", "choose")).await?;
+    db::insert_interaction(&pool, &record(1, 10, 100, "kyle", "flip")).await?;
+    db::insert_interaction(&pool, &record(2, 10, 100, "kyle", "flip")).await?;
+    db::insert_interaction(&pool, &record(3, 20, 200, "sam", "choose")).await?;
     // The interaction being excluded (simulates the in-flight /stats interaction).
-    db::insert_interaction(&pool, &record(4, 10, "sam", "stats")).await?;
+    db::insert_interaction(&pool, &record(4, 10, 200, "sam", "stats")).await?;
 
     let stats = db::get_stats(&pool, 10, 4).await?;
 

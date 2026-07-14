@@ -23,7 +23,8 @@ pub async fn insert_interaction(pool: &PgPool, r: &InteractionRecord) -> sqlx::R
     sqlx::query(
         r#"INSERT INTO interactions
            (id, channel_id, application_id, user_id, guild_id, username, global_name, nickname, data, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           ON CONFLICT (id) DO NOTHING"#,
     )
     .bind(r.id)
     .bind(r.channel_id)
@@ -48,11 +49,7 @@ pub struct Stats {
     pub top_user: Option<(String, i64)>,
 }
 
-#[tracing::instrument(
-    name = "db.get_stats",
-    skip(pool),
-    fields(channel_id, exclude_interaction_id)
-)]
+#[tracing::instrument(name = "db.get_stats", skip(pool))]
 pub async fn get_stats(
     pool: &PgPool,
     channel_id: i64,

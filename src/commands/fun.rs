@@ -1,4 +1,5 @@
 use poise::serenity_prelude as serenity;
+use rand::seq::IndexedRandom;
 use rand::{Rng, RngExt};
 
 use super::{Context, Error, display_name, send_ephemeral};
@@ -14,11 +15,7 @@ pub async fn flip(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 pub fn flip_coin(rng: &mut impl Rng) -> &'static str {
-    if rng.random_range(0..2) == 0 {
-        "Heads"
-    } else {
-        "Tails"
-    }
+    if rng.random() { "Heads" } else { "Tails" }
 }
 
 /// Choose randomly from 2-7 options.
@@ -49,7 +46,7 @@ pub async fn choose(
         return send_ephemeral(&ctx, "Please provide at least 2 distinct options.").await;
     }
 
-    let chosen = &options[rand::rng().random_range(0..options.len())];
+    let chosen = options.choose(&mut rand::rng()).unwrap();
     let response = format!(
         "Options: {}\nAnd the choice is... **{chosen}**",
         options.join(", ")
@@ -65,10 +62,7 @@ pub fn distinct_options(raw: &[Option<String>]) -> Vec<String> {
         if trimmed.is_empty() {
             continue;
         }
-        if !options
-            .iter()
-            .any(|o| o.to_lowercase() == trimmed.to_lowercase())
-        {
+        if !options.iter().any(|o| o.eq_ignore_ascii_case(trimmed)) {
             options.push(trimmed.to_string());
         }
     }
