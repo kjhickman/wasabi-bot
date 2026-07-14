@@ -89,7 +89,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Apply migrations
-        run: cargo run --release --bin migrate
+        run: cargo run --bin migrate
 
       - name: Show Fly proxy log on failure
         if: failure()
