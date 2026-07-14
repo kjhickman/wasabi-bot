@@ -14,28 +14,75 @@ on:
       - "fly.db.toml"
       - "fly.staging.toml"
   workflow_dispatch:
+    inputs:
+      deploy-db-config:
+        description: Deploy database Fly config
+        type: boolean
+        default: false
+      deploy-lavalink:
+        description: Deploy shared Lavalink
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect deploy changes
+    runs-on: ubuntu-latest
+    outputs:
+      db-config: ${{ steps.paths.outputs.db-config }}
+      lavalink: ${{ steps.paths.outputs.lavalink }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: paths
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "db-config=${{ inputs.deploy-db-config }}" >> "$GITHUB_OUTPUT"
+            echo "lavalink=${{ inputs.deploy-lavalink }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed="$(git diff --name-only '${{ github.event.before }}' '${{ github.sha }}')"
+
+          if printf '%s\n' "$changed" | grep -qx 'fly.db.toml'; then
+            echo "db-config=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "db-config=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if printf '%s\n' "$changed" | grep -q '^lavalink/'; then
+            echo "lavalink=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "lavalink=false" >> "$GITHUB_OUTPUT"
+          fi
+
   tests:
+    needs: changes
     uses: ./.github/workflows/tests.yml
 
   lavalink:
-    needs: tests
+    needs: [changes, tests]
+    if: needs.changes.outputs.lavalink == 'true'
     uses: ./.github/workflows/deploy-lavalink.yml
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       LAVALINK_PASSWORD: ${{ secrets.LAVALINK_PASSWORD }}
 
   deploy:
-    needs: tests
+    needs: [changes, tests]
     uses: ./.github/workflows/deploy.yml
     with:
       environment: staging
       fly-app: wasabi-bot-staging
       fly-config: fly.staging.toml
+      deploy-db-config: ${{ needs.changes.outputs.db-config == 'true' }}
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}

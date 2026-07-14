@@ -15,6 +15,11 @@ on:
         description: Fly config file to deploy.
         required: true
         type: string
+      deploy-db-config:
+        description: Deploy Fly Postgres config before migrations.
+        required: false
+        default: false
+        type: boolean
     secrets:
       FLY_API_TOKEN:
         description: Fly API token used for Fly deployments.
@@ -29,6 +34,7 @@ permissions:
 jobs:
   db-config:
     uses: ./.github/workflows/deploy-db.yml
+    if: inputs.deploy-db-config
     with:
       fly-config: fly.db.toml
       fly-image: flyio/postgres-flex:17.2
@@ -39,6 +45,7 @@ jobs:
     name: Run migrations for ${{ inputs.environment }}
     runs-on: ubuntu-24.04-arm
     needs: db-config
+    if: ${{ always() && !failure() && !cancelled() }}
     environment: ${{ inputs.environment }}
     steps:
       - name: Checkout

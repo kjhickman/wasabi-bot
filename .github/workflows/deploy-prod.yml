@@ -2,6 +2,15 @@ name: Deploy Production
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy-db-config:
+        description: Deploy database Fly config
+        type: boolean
+        default: false
+      deploy-lavalink:
+        description: Deploy shared Lavalink
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -12,6 +21,7 @@ jobs:
 
   lavalink:
     needs: tests
+    if: inputs.deploy-lavalink
     uses: ./.github/workflows/deploy-lavalink.yml
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -24,6 +34,7 @@ jobs:
       environment: prod
       fly-app: wasabi-bot-prod
       fly-config: fly.prod.toml
+      deploy-db-config: ${{ inputs.deploy-db-config }}
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
