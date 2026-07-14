@@ -26,4 +26,4 @@ jobs:
       fly-config: fly.prod.toml
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}

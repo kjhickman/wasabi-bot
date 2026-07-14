@@ -1,55 +1,8 @@
 use sqlx::PgPool;
-use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use time::OffsetDateTime;
 
-/// Builds connection options from `DATABASE_URL` (URI) or the Aspire-injected
-/// `ConnectionStrings__wasabi_db` (ADO.NET key=value format).
-pub fn connect_options_from_env() -> anyhow::Result<PgConnectOptions> {
-    if let Ok(url) = std::env::var("DATABASE_URL") {
-        return Ok(url.parse()?);
-    }
-    let raw = std::env::var("ConnectionStrings__wasabi_db").map_err(|_| {
-        anyhow::anyhow!("neither DATABASE_URL nor ConnectionStrings__wasabi_db is set")
-    })?;
-    parse_connection_string(&raw)
-}
-
-pub fn parse_connection_string(raw: &str) -> anyhow::Result<PgConnectOptions> {
-    if raw.starts_with("postgres://") || raw.starts_with("postgresql://") {
-        return Ok(raw.parse()?);
-    }
-    let mut opts = PgConnectOptions::new();
-    for pair in raw.split(';').map(str::trim).filter(|s| !s.is_empty()) {
-        let (key, value) = pair
-            .split_once('=')
-            .ok_or_else(|| anyhow::anyhow!("invalid connection string segment: {pair}"))?;
-        let value = value.trim();
-        match key.trim().to_ascii_lowercase().as_str() {
-            "host" | "server" => opts = opts.host(value),
-            "port" => opts = opts.port(value.parse()?),
-            "username" | "user id" | "userid" | "user" => opts = opts.username(value),
-            "password" => opts = opts.password(value),
-            "database" => opts = opts.database(value),
-            "ssl mode" | "sslmode" => opts = opts.ssl_mode(parse_ssl_mode(value)?),
-            "trust server certificate" if value.eq_ignore_ascii_case("true") => {
-                opts = opts.ssl_mode(PgSslMode::Require)
-            }
-            _ => {}
-        }
-    }
-    Ok(opts)
-}
-
-fn parse_ssl_mode(value: &str) -> anyhow::Result<PgSslMode> {
-    match value.trim().to_ascii_lowercase().replace([' ', '-'], "").as_str() {
-        "disable" => Ok(PgSslMode::Disable),
-        "allow" => Ok(PgSslMode::Allow),
-        "prefer" => Ok(PgSslMode::Prefer),
-        "require" => Ok(PgSslMode::Require),
-        "verifyca" => Ok(PgSslMode::VerifyCa),
-        "verifyfull" => Ok(PgSslMode::VerifyFull),
-        other => anyhow::bail!("unsupported postgres SSL mode: {other}"),
-    }
+pub fn database_url_from_env() -> anyhow::Result<String> {
+    std::env::var("DATABASE_URL").map_err(|_| anyhow::anyhow!("DATABASE_URL is not set"))
 }
 
 pub struct InteractionRecord {
@@ -134,38 +87,4 @@ pub async fn get_stats(
         most_used_command,
         top_user,
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parses_ado_net_connection_string() {
-        let opts = parse_connection_string(
-            "Host=localhost;Port=54320;Username=postgres;Password=p w;Database=wasabi_db",
-        )
-        .unwrap();
-        assert_eq!(opts.get_host(), "localhost");
-        assert_eq!(opts.get_port(), 54320);
-        assert_eq!(opts.get_username(), "postgres");
-        assert_eq!(opts.get_database(), Some("wasabi_db"));
-    }
-
-    #[test]
-    fn parses_uri_connection_string() {
-        let opts = parse_connection_string("postgres://u:p@db.example:5433/mydb").unwrap();
-        assert_eq!(opts.get_host(), "db.example");
-        assert_eq!(opts.get_port(), 5433);
-        assert_eq!(opts.get_database(), Some("mydb"));
-    }
-
-    #[test]
-    fn parses_dotnet_ssl_mode() {
-        let opts = parse_connection_string(
-            "Host=db.example;Username=u;Password=p;Database=d;SSL Mode=Require;Trust Server Certificate=true",
-        )
-        .unwrap();
-        assert_eq!(opts.get_host(), "db.example");
-    }
 }

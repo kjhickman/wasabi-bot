@@ -19,8 +19,8 @@ on:
       FLY_API_TOKEN:
         description: Fly API token used for Fly deployments.
         required: true
-      DB_CONNECTION_STRING:
-        description: Database connection string for migrations.
+      DATABASE_URL:
+        description: PostgreSQL URL for migrations.
         required: true
 
 permissions:
@@ -46,8 +46,8 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Export connection string
-        run: echo "ConnectionStrings__wasabi_db=${{ secrets.DB_CONNECTION_STRING }}" >> "$GITHUB_ENV"
+      - name: Export database URL
+        run: echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> "$GITHUB_ENV"
 
       - name: Setup Flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master

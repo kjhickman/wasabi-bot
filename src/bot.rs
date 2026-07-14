@@ -4,9 +4,8 @@ use crate::commands::{self, Data, Error};
 use crate::db;
 
 pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
-    let token = std::env::var("Discord__Token")
-        .or_else(|_| std::env::var("DISCORD_TOKEN"))
-        .map_err(|_| anyhow::anyhow!("neither Discord__Token nor DISCORD_TOKEN is set"))?;
+    let token = std::env::var("DISCORD_TOKEN")
+        .map_err(|_| anyhow::anyhow!("DISCORD_TOKEN is not set"))?;
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {

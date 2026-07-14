@@ -29,6 +29,11 @@ Use these values for:
 
 - `discord-bot-token`: bot token from the `Bot` page
 
+The Rust app reads these runtime environment variables:
+
+- `DATABASE_URL`: PostgreSQL URL
+- `DISCORD_TOKEN`: Discord bot token, injected from the `discord-bot-token` Aspire parameter locally
+
 ### Running the bot
 
 ```bash

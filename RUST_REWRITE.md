@@ -29,7 +29,7 @@ src/
 tests/                      # Rust integration tests
 ```
 
-Existing leftover scaffolding in `wasabi-bot-api/` moves into this layout (its `migrate.rs` already reads `ConnectionStrings__wasabi_db`).
+Existing leftover scaffolding in `wasabi-bot-api/` moves into this layout.
 
 ## MVP Scope
 
@@ -37,7 +37,7 @@ Explicitly out: reminders, music/radio/Lavalink, all LLM commands (`/ask`, `/cap
 
 In:
 
-1. **Bot skeleton** — serenity/poise gateway connection, `Discord__Token` env var (keep the same name Aspire already injects), guild command registration.
+1. **Bot skeleton** — serenity/poise gateway connection, `DISCORD_TOKEN` env var, guild command registration.
 2. **DB-free commands** — `/flip`, `/choose` (2–7 distinct options, case-insensitive dedupe), `/help`, `Mock` (message context-menu, SpOnGeBoB-casing), `/conch` (weighted-random fallback table only: Yes 44, No 32, "I don't think so" 12, Maybe 9, "Try asking again" 3 — no LLM).
 3. **Interactions table + logging** — single sqlx migration reproducing the current schema (`Id` bigint PK not generated, `ChannelId`, `ApplicationId`, `UserId`, `GuildId` nullable, `Username`, `GlobalName`, `Nickname`, `Data` jsonb, `CreatedAt` timestamptz). Persist every interaction from the gateway handler, same as `InteractionCreatedEventHandler` does today. Snowflakes stored as signed bigint (matches existing data).
 4. **`/stats`** — total interactions, per-channel count, most-used command (parsed from `Data` jsonb), top user. First DB-read command; proves sqlx queries against jsonb.

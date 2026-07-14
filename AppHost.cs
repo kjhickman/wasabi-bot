@@ -28,15 +28,15 @@ postgres.WithPgWeb(pgWeb => pgWeb.WithParentRelationship(postgres));
 var database = postgres.AddDatabase("wasabi-db", "wasabi_db");
 
 var migrations = builder.AddRustApp("migrations", ".", args: ["--bin", "migrate"])
-    .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
+    .WithEnvironment("DATABASE_URL", database.Resource.UriExpression)
     .WaitFor(database)
     .WithParentRelationship(postgres);
 
 builder.AddRustApp("wasabi-bot", ".")
     .WithHttpEndpoint(env: "PORT")
     .WithHttpHealthCheck("/health")
-    .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
-    .WithEnvironment("Discord__Token", discordBotToken)
+    .WithEnvironment("DATABASE_URL", database.Resource.UriExpression)
+    .WithEnvironment("DISCORD_TOKEN", discordBotToken)
     .WithOtlpExporter()
     .WaitFor(database)
     .WaitForCompletion(migrations);
