@@ -17,9 +17,10 @@ pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
             on_error: |error| Box::pin(on_error(error)),
             ..Default::default()
         })
-        .setup(|_ctx, ready, _framework| {
+        .setup(|ctx, ready, framework| {
             Box::pin(async move {
                 tracing::info!("logged in as {}", ready.user.name);
+                poise::builtins::register_globally(&ctx.http, &framework.options().commands).await?;
                 Ok(Data { pool })
             })
         })

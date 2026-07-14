@@ -6,7 +6,7 @@ on:
       fly-config:
         description: Fly config file for the database app.
         required: false
-        default: src/WasabiBot.Api/fly.db.toml
+        default: fly.db.toml
         type: string
       fly-image:
         description: Fly image to deploy for the database app.

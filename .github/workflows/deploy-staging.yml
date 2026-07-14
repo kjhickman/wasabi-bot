@@ -5,13 +5,14 @@ on:
     branches: [ main ]
     paths:
       - "src/**"
+      - "migrations/**"
       - "infra/lavalink/**"
       - ".github/workflows/**"
-      - "Directory.Build.props"
-      - "Directory.Packages.props"
-      - "global.json"
-      - "src/WasabiBot.Api/fly.db.toml"
-      - "src/WasabiBot.Api/fly.staging.toml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Dockerfile"
+      - "fly.db.toml"
+      - "fly.staging.toml"
   workflow_dispatch:
 
 permissions:
@@ -20,8 +21,6 @@ permissions:
 jobs:
   tests:
     uses: ./.github/workflows/tests.yml
-    with:
-      dotnet-version: 11.0.100-preview.4.26230.115
 
   lavalink:
     needs: tests
@@ -36,9 +35,7 @@ jobs:
     with:
       environment: staging
       fly-app: wasabi-bot-staging
-      fly-config: src/WasabiBot.Api/fly.staging.toml
-      lavalink-base-url: https://wasabi-bot-lavalink.fly.dev
+      fly-config: fly.staging.toml
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
-      LAVALINK_PASSWORD: ${{ secrets.LAVALINK_PASSWORD }}

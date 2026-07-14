@@ -15,10 +15,6 @@ on:
         description: Fly config file to deploy.
         required: true
         type: string
-      lavalink-base-url:
-        description: Shared Lavalink base URL.
-        required: true
-        type: string
     secrets:
       FLY_API_TOKEN:
         description: Fly API token used for Fly deployments.
@@ -26,21 +22,15 @@ on:
       DB_CONNECTION_STRING:
         description: Database connection string for migrations.
         required: true
-      LAVALINK_PASSWORD:
-        description: Shared Lavalink password for bot app configuration.
-        required: true
 
 permissions:
   contents: read
-
-env:
-  DOTNET_VERSION: 11.0.100-preview.4.26230.115
 
 jobs:
   db-config:
     uses: ./.github/workflows/deploy-db.yml
     with:
-      fly-config: src/WasabiBot.Api/fly.db.toml
+      fly-config: fly.db.toml
       fly-image: flyio/postgres-flex:17.2
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -85,19 +75,14 @@ jobs:
               raise SystemExit("Fly Postgres proxy did not become ready in time")
           PY
 
-      - name: Setup .NET
-        uses: fast-actions/setup-dotnet@v1
-        with:
-          sdk-version: ${{ env.DOTNET_VERSION }}
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Restore migrations project
-        run: dotnet restore WasabiBot.slnx
-
-      - name: Build migrations project
-        run: dotnet build src/WasabiBot.Migrations/WasabiBot.Migrations.csproj --configuration Release --no-restore
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
 
       - name: Apply migrations
-        run: dotnet run --project src/WasabiBot.Migrations/WasabiBot.Migrations.csproj --configuration Release --no-build
+        run: cargo run --release --bin migrate
 
       - name: Show Fly proxy log on failure
         if: failure()
@@ -119,15 +104,6 @@ jobs:
 
       - name: Setup Flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Set app secrets
-        run: >-
-          flyctl secrets set
-          Lavalink__BaseUrl="${{ inputs.lavalink-base-url }}"
-          Lavalink__Password="${{ secrets.LAVALINK_PASSWORD }}"
-          -a "${{ inputs.fly-app }}"
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy app
         run: flyctl deploy . --remote-only --config "${{ inputs.fly-config }}"

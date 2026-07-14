@@ -20,10 +20,11 @@ Cargo.toml
 apphost.cs                  # Aspire AppHost
 migrations/                 # sqlx migrations (0001_interactions.sql)
 src/
-  main.rs                   # bot + axum health server
+  main.rs                   # process wiring
+  bot.rs                    # Discord gateway + command registration
+  web.rs                    # axum routes + server
   bin/migrate.rs            # standalone migration runner (Aspire resource, replaces WasabiBot.Migrations)
-  bin/register.rs           # standalone Discord global command registration runner
-  commands.rs               # command definitions
+  commands/                 # command definitions
   db.rs                     # pool + interaction persistence
 tests/                      # Rust integration tests
 ```
@@ -42,7 +43,7 @@ In:
 4. **`/stats`** — total interactions, per-channel count, most-used command (parsed from `Data` jsonb), top user. First DB-read command; proves sqlx queries against jsonb.
 5. **Health endpoint** — tiny axum server on `PORT` (injected by `WithHttpEndpoint(env: "PORT")`) serving `/health` and `/alive` so Aspire shows the resource healthy.
 6. **Telemetry basics** — `tracing` subscriber with OTLP export so logs/traces show up in the Aspire dashboard.
-7. **Aspire wiring** — use `apphost.cs`; add `#:package CommunityToolkit.Aspire.Hosting.Rust@*`; replace the API + migrations project resources with `AddRustApp("wasabi-bot", ".")` and migrate/register resources; keep PostgreSQL + PgWeb; drop Lavalink, frontend bun steps, Google/Discord OAuth params from the apphost for now (keep `discord-bot-token`).
+7. **Aspire wiring** — use `apphost.cs`; add `#:package CommunityToolkit.Aspire.Hosting.Rust@*`; replace the API + migrations project resources with `AddRustApp("wasabi-bot", ".")` and a migrate resource; keep PostgreSQL + PgWeb; drop Lavalink, frontend bun steps, Google/Discord OAuth params from the apphost for now (keep `discord-bot-token`).
 8. **Tests** — unit tests inline (`#[cfg(test)]`) for choose/mock/conch-weights logic; one integration test hitting Postgres via `testcontainers` for interaction insert + stats query. Update `.github/workflows/tests.yml` to run `cargo test`.
 
 ### MVP build order
@@ -103,8 +104,8 @@ Everything the .NET app does today, to be re-added (or consciously dropped) afte
 - [ ] Health checks beyond liveness (DB connectivity)
 
 ### Ops / deployment
-- [ ] Fly.io deploy workflows (staging on push to main, prod manual), migrations via flyctl proxy step
-- [ ] Dockerfile for the Rust app (`--api-container` equivalent)
+- [x] Fly.io deploy workflows (staging on push to main, prod manual), migrations via flyctl proxy step
+- [x] Dockerfile for the Rust app (`--api-container` equivalent)
 - [ ] Lavalink shared app deploy (when music returns)
 - [x] Remove .NET projects/solution once parity reached; drop `src/`, `test/`, source generators, Bun/Tailwind toolchain (unless frontend returns)
 
