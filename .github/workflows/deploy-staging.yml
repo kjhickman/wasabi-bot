@@ -6,7 +6,7 @@ on:
     paths:
       - "src/**"
       - "migrations/**"
-      - "infra/lavalink/**"
+      - "lavalink/**"
       - ".github/workflows/**"
       - "Cargo.toml"
       - "Cargo.lock"

@@ -4,11 +4,11 @@ Wasabi Bot is a Rust Discord bot built with poise and serenity. Keep this file s
 
 ## What This Repo Contains
 
-- `src/`: Rust bot source, plus `src/bin` one-shot binaries for migrations and Discord command registration
+- `src/`: Rust bot source, plus `src/bin` one-shot binaries for migrations
 - `migrations/`: sqlx migrations
 - `tests/`: Rust integration tests
-- `apphost.cs`: Aspire orchestration for PostgreSQL, migrations, Discord command registration, and the bot
-- `infra/lavalink`: legacy Lavalink deployment assets kept for future music work
+- `apphost.cs`: Aspire orchestration for PostgreSQL, migrations, and the bot
+- `lavalink/`: legacy Lavalink deployment assets kept for future music work
 
 ## How To Work In This Repo
 
