@@ -1,6 +1,6 @@
 # Rust Rewrite Plan
 
-Rewrite Wasabi Bot (currently .NET 10 / NetCord) in Rust. Start with a small MVP, then rebuild features incrementally. All Rust source lives under `src-rs/` during the rewrite. Aspire stays as the local orchestrator via the Community Toolkit Rust integration.
+Rewrite Wasabi Bot (currently .NET 10 / NetCord) in Rust. Start with a small MVP, then rebuild features incrementally. The Rust crate now lives at the repo root. Aspire stays as the local orchestrator via the Community Toolkit Rust integration.
 
 ## Stack
 
@@ -16,16 +16,16 @@ Rewrite Wasabi Bot (currently .NET 10 / NetCord) in Rust. Start with a small MVP
 ## Layout
 
 ```
-apphost.cs                  # renamed from AppHost.cs
-src-rs/
-  wasabi-bot/
-    Cargo.toml
-    migrations/             # sqlx migrations (0001_interactions.sql)
-    src/
-      main.rs               # bot + axum health server
-      bin/migrate.rs        # standalone migration runner (Aspire resource, replaces WasabiBot.Migrations)
-      commands/             # one module per command
-      db.rs                 # pool + interaction persistence
+Cargo.toml
+apphost.cs                  # Aspire AppHost
+migrations/                 # sqlx migrations (0001_interactions.sql)
+src/
+  main.rs                   # bot + axum health server
+  bin/migrate.rs            # standalone migration runner (Aspire resource, replaces WasabiBot.Migrations)
+  bin/register.rs           # standalone Discord global command registration runner
+  commands.rs               # command definitions
+  db.rs                     # pool + interaction persistence
+tests/                      # Rust integration tests
 ```
 
 Existing leftover scaffolding in `wasabi-bot-api/` moves into this layout (its `migrate.rs` already reads `ConnectionStrings__wasabi_db`).
@@ -42,7 +42,7 @@ In:
 4. **`/stats`** — total interactions, per-channel count, most-used command (parsed from `Data` jsonb), top user. First DB-read command; proves sqlx queries against jsonb.
 5. **Health endpoint** — tiny axum server on `PORT` (injected by `WithHttpEndpoint(env: "PORT")`) serving `/health` and `/alive` so Aspire shows the resource healthy.
 6. **Telemetry basics** — `tracing` subscriber with OTLP export so logs/traces show up in the Aspire dashboard.
-7. **Aspire wiring** — rename `AppHost.cs` → `apphost.cs`; add `#:package CommunityToolkit.Aspire.Hosting.Rust@*`; replace the API + migrations project resources with `AddRustApp("wasabi-bot", "src-rs/wasabi-bot")` and a migrate resource; keep PostgreSQL + PgWeb; drop Lavalink, frontend bun steps, Google/Discord OAuth params from the apphost for now (keep `discord-bot-token`).
+7. **Aspire wiring** — use `apphost.cs`; add `#:package CommunityToolkit.Aspire.Hosting.Rust@*`; replace the API + migrations project resources with `AddRustApp("wasabi-bot", ".")` and migrate/register resources; keep PostgreSQL + PgWeb; drop Lavalink, frontend bun steps, Google/Discord OAuth params from the apphost for now (keep `discord-bot-token`).
 8. **Tests** — unit tests inline (`#[cfg(test)]`) for choose/mock/conch-weights logic; one integration test hitting Postgres via `testcontainers` for interaction insert + stats query. Update `.github/workflows/tests.yml` to run `cargo test`.
 
 ### MVP build order
@@ -106,9 +106,9 @@ Everything the .NET app does today, to be re-added (or consciously dropped) afte
 - [ ] Fly.io deploy workflows (staging on push to main, prod manual), migrations via flyctl proxy step
 - [ ] Dockerfile for the Rust app (`--api-container` equivalent)
 - [ ] Lavalink shared app deploy (when music returns)
-- [ ] Remove .NET projects/solution once parity reached; drop `src/`, `test/`, source generators, Bun/Tailwind toolchain (unless frontend returns)
+- [x] Remove .NET projects/solution once parity reached; drop `src/`, `test/`, source generators, Bun/Tailwind toolchain (unless frontend returns)
 
 ### Testing parity
 - [ ] Unit tests per command (ports of the TUnit suites)
 - [ ] Integration tests: interactions service, reminders service, credentials persistence (testcontainers + real migrations, reset between tests)
-- [ ] CI matrix update: replace .NET SDK/Bun setup with Rust toolchain + cargo caching
+- [x] CI matrix update: replace .NET SDK/Bun setup with Rust toolchain + cargo caching

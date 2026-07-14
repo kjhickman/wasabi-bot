@@ -1,11 +1,10 @@
 #:sdk Aspire.AppHost.Sdk@13.4.6
-#:package Aspire.Hosting.PostgreSQL
-#:package CommunityToolkit.Aspire.Hosting.Rust
+#:package Aspire.Hosting.PostgreSQL@13.4.6
+#:package CommunityToolkit.Aspire.Hosting.Rust@13.4.0
 #:property TargetFramework=net10.0
 #:property RollForward=Major
 #:property UserSecretsId=e740d40c-c13c-443b-a0cf-73ed8ab1c695
 
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -28,15 +27,15 @@ postgres.WithPgWeb(pgWeb => pgWeb.WithParentRelationship(postgres));
 
 var database = postgres.AddDatabase("wasabi-db", "wasabi_db");
 
-var migrations = builder.AddRustApp("migrations", "src-rs/wasabi-bot", args: ["--bin", "migrate"])
+var migrations = builder.AddRustApp("migrations", ".", args: ["--bin", "migrate"])
     .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
     .WaitFor(database)
     .WithParentRelationship(postgres);
 
-var register = builder.AddRustApp("register", "src-rs/wasabi-bot", args: ["--bin", "register"])
+var register = builder.AddRustApp("register", ".", args: ["--bin", "register"])
     .WithEnvironment("Discord__Token", discordBotToken);
 
-builder.AddRustApp("wasabi-bot", "src-rs/wasabi-bot")
+builder.AddRustApp("wasabi-bot", ".")
     .WithHttpEndpoint(env: "PORT")
     .WithHttpHealthCheck("/health")
     .WithEnvironment("ConnectionStrings__wasabi_db", database.Resource.ConnectionStringExpression)
