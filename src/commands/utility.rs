@@ -23,6 +23,16 @@ const HELP_MESSAGE: &str = "\
 • `/stats` - Show bot usage statistics
 • `/help` - Shows this help message
 
+### Music
+• `/play` - Play a URL or search YouTube Music, YouTube, then SoundCloud
+• `/queue` - Show the current queue
+• `/nowplaying` - Show the current track
+• `/pause` - Pause playback
+• `/resume` - Resume playback
+• `/skip` - Skip the current track
+• `/stop` - Stop playback and clear the queue
+• `/leave` - Leave the voice channel
+
 ## Helpful Links
 • [Website](<https://wasabibot.com>)
 • [GitHub Repository](<https://github.com/kjhickman/wasabi-bot>)

@@ -1,6 +1,8 @@
 use poise::serenity_prelude as serenity;
+use serenity::utils::MessageBuilder;
+use songbird::SerenityInit;
 
-use crate::commands::{self, Data, Error};
+use crate::commands::{self, Data, Error, PlayerChannel};
 use crate::db;
 
 pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
@@ -9,6 +11,10 @@ pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
     let gemini_api_key = std::env::var("GEMINI_API_KEY").ok();
     if gemini_api_key.is_none() {
         tracing::warn!("GEMINI_API_KEY is not set; /conch will use weighted fallback only");
+    }
+    let lavalink_url = std::env::var("LAVALINK_URL").ok();
+    if lavalink_url.is_none() {
+        tracing::warn!("LAVALINK_URL is not set; music commands are disabled");
     }
     let http = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
@@ -26,20 +32,124 @@ pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
                 tracing::info!("logged in as {}", ready.user.name);
                 poise::builtins::register_globally(&ctx.http, &framework.options().commands)
                     .await?;
+                let lavalink = match lavalink_url {
+                    Some(url) => Some(build_lavalink_client(&url, ready.user.id).await?),
+                    None => None,
+                };
                 Ok(Data {
                     pool,
                     http,
                     gemini_api_key,
+                    lavalink,
                 })
             })
         })
         .build();
 
-    let mut client = serenity::ClientBuilder::new(&token, serenity::GatewayIntents::empty())
+    let intents = serenity::GatewayIntents::GUILDS | serenity::GatewayIntents::GUILD_VOICE_STATES;
+    let mut client = serenity::ClientBuilder::new(&token, intents)
+        .register_songbird()
         .framework(framework)
         .await?;
     client.start().await?;
     Ok(())
+}
+
+async fn build_lavalink_client(
+    url: &str,
+    user_id: serenity::UserId,
+) -> anyhow::Result<lavalink_rs::prelude::LavalinkClient> {
+    use lavalink_rs::{model::events, prelude::*};
+
+    let events = events::Events {
+        track_exception: Some(track_exception_event),
+        track_stuck: Some(track_stuck_event),
+        ..Default::default()
+    };
+    let password = std::env::var("LAVALINK_PASSWORD").unwrap_or_else(|_| "youshallnotpass".into());
+    let (is_ssl, rest) = match url.strip_prefix("https://") {
+        Some(rest) => (true, rest),
+        None => (false, url.strip_prefix("http://").unwrap_or(url)),
+    };
+    let hostname = rest.trim_end_matches('/').to_string();
+
+    let node = NodeBuilder {
+        hostname,
+        is_ssl,
+        events: events::Events::default(),
+        password,
+        user_id: user_id.get().into(),
+        session_id: None,
+    };
+
+    Ok(LavalinkClient::new(events, vec![node], NodeDistributionStrategy::round_robin()).await)
+}
+
+fn track_exception_event(
+    client: lavalink_rs::prelude::LavalinkClient,
+    _session_id: String,
+    event: &lavalink_rs::model::events::TrackException,
+) -> lavalink_rs::model::BoxFuture<'_, ()> {
+    Box::pin(async move {
+        tracing::warn!(
+            guild_id = %event.guild_id,
+            title = %event.track.info.title,
+            message = %event.exception.message,
+            cause = %event.exception.cause,
+            "Lavalink track exception"
+        );
+        if let Some((channel_id, http)) = player_text_channel(&client, event.guild_id) {
+            let _ = channel_id
+                .say(
+                    http,
+                    format!(
+                        "Could not play **{}**: {}",
+                        safe_text(&event.track.info.title),
+                        safe_text(&event.exception.message)
+                    ),
+                )
+                .await;
+        }
+    })
+}
+
+fn track_stuck_event(
+    client: lavalink_rs::prelude::LavalinkClient,
+    _session_id: String,
+    event: &lavalink_rs::model::events::TrackStuck,
+) -> lavalink_rs::model::BoxFuture<'_, ()> {
+    Box::pin(async move {
+        tracing::warn!(
+            guild_id = %event.guild_id,
+            title = %event.track.info.title,
+            threshold_ms = event.threshold_ms,
+            "Lavalink track stuck"
+        );
+        if let Some((channel_id, http)) = player_text_channel(&client, event.guild_id) {
+            let _ = channel_id
+                .say(
+                    http,
+                    format!(
+                        "Playback got stuck on **{}**.",
+                        safe_text(&event.track.info.title)
+                    ),
+                )
+                .await;
+        }
+    })
+}
+
+fn player_text_channel(
+    client: &lavalink_rs::prelude::LavalinkClient,
+    guild_id: lavalink_rs::model::GuildId,
+) -> Option<PlayerChannel> {
+    let player = client.get_player_context(guild_id)?;
+    let data = player.data::<PlayerChannel>().ok()?;
+    Some((data.0, data.1.clone()))
+}
+
+fn safe_text(value: &str) -> String {
+    MessageBuilder::new().push_safe(value).build()
 }
 
 async fn handle_event(event: &serenity::FullEvent, data: &Data) -> Result<(), Error> {

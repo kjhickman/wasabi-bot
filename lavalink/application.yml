@@ -2,8 +2,11 @@ server:
   port: ${SERVER_PORT:2333}
 
 lavalink:
+  plugins:
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
+      snapshot: false
   server:
-    password: ${LAVALINK_SERVER_PASSWORD:youshallnotpass}
+    password: ${LAVALINK_PASSWORD:youshallnotpass}
     sources:
       youtube: false
       bandcamp: false
@@ -13,3 +16,25 @@ lavalink:
       nico: false
       http: true
       local: false
+    soundcloudFilterOutPreviewTracks: true
+
+plugins:
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      - MUSIC
+      - MWEB
+      - ANDROID_VR
+      - ANDROID_MUSIC
+      - IOS
+      - WEB
+      - WEBEMBEDDED
+    clientOptions:
+      WEB:
+        playback: false
+      WEBEMBEDDED:
+        playlistLoading: false
+        searching: false

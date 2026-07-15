@@ -28,6 +28,12 @@ postgres.WithPgWeb(pgWeb => pgWeb.WithParentRelationship(postgres));
 
 var database = postgres.AddDatabase("wasabi-db", "wasabi_db");
 
+var lavalink = builder.AddContainer("lavalink", "ghcr.io/lavalink-devs/lavalink", "4.2.2-alpine")
+    .WithHttpEndpoint(port: 2333, targetPort: 2333, name: "http")
+    .WithContainerFiles("/opt/Lavalink", "./lavalink")
+    .WithEnvironment("SERVER_PORT", "2333")
+    .WithLifetime(ContainerLifetime.Persistent);
+
 var migrations = builder.AddRustApp("migrations", ".", args: ["--bin", "migrate"])
     .WithEnvironment("DATABASE_URL", database.Resource.UriExpression)
     .WaitFor(database)
@@ -39,8 +45,10 @@ builder.AddRustApp("wasabi-bot", ".")
     .WithEnvironment("DATABASE_URL", database.Resource.UriExpression)
     .WithEnvironment("DISCORD_TOKEN", discordBotToken)
     .WithEnvironment("GEMINI_API_KEY", googleApiKey)
+    .WithEnvironment("LAVALINK_URL", lavalink.GetEndpoint("http"))
     .WithOtlpExporter()
     .WaitFor(database)
+    .WaitFor(lavalink)
     .WaitForCompletion(migrations);
 
 builder.Build().Run();
