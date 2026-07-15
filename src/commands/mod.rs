@@ -11,20 +11,27 @@ pub struct Data {
     pub http: reqwest::Client,
     pub gemini_api_key: Option<String>,
     pub lavalink: Option<lavalink_rs::prelude::LavalinkClient>,
-    pub voice_locks: tokio::sync::Mutex<
-        std::collections::HashMap<
-            poise::serenity_prelude::GuildId,
-            std::sync::Arc<tokio::sync::Mutex<()>>,
+    pub voice_locks: std::sync::Arc<
+        tokio::sync::Mutex<
+            std::collections::HashMap<
+                poise::serenity_prelude::GuildId,
+                std::sync::Arc<tokio::sync::Mutex<()>>,
+            >,
         >,
     >,
+    pub voice_state: std::sync::Arc<
+        tokio::sync::Mutex<std::collections::HashMap<poise::serenity_prelude::GuildId, VoiceState>>,
+    >,
+}
+
+#[derive(Default)]
+pub struct VoiceState {
+    pub idle_since: Option<std::time::Instant>,
+    pub paused_since: Option<std::time::Instant>,
 }
 
 pub type Error = anyhow::Error;
 pub type Context<'a> = poise::Context<'a, Data, Error>;
-pub(crate) type PlayerChannel = (
-    poise::serenity_prelude::model::id::ChannelId,
-    std::sync::Arc<poise::serenity_prelude::Http>,
-);
 
 pub fn all() -> Vec<poise::Command<Data, Error>> {
     vec![

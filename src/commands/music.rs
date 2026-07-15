@@ -1,11 +1,10 @@
 use lavalink_rs::model::track::{TrackData, TrackInfo};
 use lavalink_rs::prelude::*;
 use poise::serenity_prelude as serenity;
-use serenity::Mentionable;
 use serenity::utils::MessageBuilder;
 use tokio::sync::OwnedMutexGuard;
 
-use super::{Context, Error, PlayerChannel, send_ephemeral};
+use super::{Context, Error, send_ephemeral};
 
 /// Play a song.
 #[poise::command(slash_command, guild_only)]
@@ -66,6 +65,7 @@ pub async fn play(
     if player.get_player().await?.track.is_none() && queue.get_track(0).await?.is_some() {
         player.skip()?;
     }
+    mark_voice_active(&ctx).await;
 
     ctx.say(response).await?;
     Ok(())
@@ -85,6 +85,7 @@ pub async fn skip(ctx: Context<'_>) -> Result<(), Error> {
 
     if let Some(track) = player.get_player().await?.track {
         player.skip()?;
+        mark_voice_active(&ctx).await;
         ctx.say(format!("Skipped {}.", safe_text(&track.info.title)))
             .await?;
     } else {
@@ -110,8 +111,10 @@ pub async fn stop(ctx: Context<'_>) -> Result<(), Error> {
     queue.clear()?;
     if player.get_player().await?.track.is_some() {
         player.stop_now().await?;
+        mark_voice_idle(&ctx).await;
         ctx.say("Stopped playback and cleared the queue.").await?;
     } else if had_queue {
+        mark_voice_idle(&ctx).await;
         ctx.say("Cleared the queue.").await?;
     } else {
         ctx.say("Nothing is playing.").await?;
@@ -205,6 +208,7 @@ pub async fn leave(ctx: Context<'_>) -> Result<(), Error> {
     if let Some(lavalink) = &ctx.data().lavalink {
         let _ = lavalink.delete_player(lava_guild(guild_id)).await;
     }
+    clear_voice_state(&ctx).await;
     let manager = songbird::get(ctx.serenity_context())
         .await
         .ok_or_else(|| anyhow::anyhow!("songbird is not registered"))?
@@ -231,8 +235,37 @@ async fn set_pause(ctx: Context<'_>, paused: bool) -> Result<(), Error> {
         return Ok(());
     }
     player.set_pause(paused).await?;
+    mark_voice_paused(&ctx, paused).await;
     ctx.say(if paused { "Paused." } else { "Resumed." }).await?;
     Ok(())
+}
+
+async fn mark_voice_active(ctx: &Context<'_>) {
+    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
+    let mut voice_state = ctx.data().voice_state.lock().await;
+    let state = voice_state.entry(guild_id).or_default();
+    state.idle_since = None;
+    state.paused_since = None;
+}
+
+async fn mark_voice_idle(ctx: &Context<'_>) {
+    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
+    let mut voice_state = ctx.data().voice_state.lock().await;
+    let state = voice_state.entry(guild_id).or_default();
+    state.idle_since = Some(std::time::Instant::now());
+    state.paused_since = None;
+}
+
+async fn mark_voice_paused(ctx: &Context<'_>, paused: bool) {
+    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
+    let mut voice_state = ctx.data().voice_state.lock().await;
+    let state = voice_state.entry(guild_id).or_default();
+    state.paused_since = paused.then(std::time::Instant::now);
+}
+
+async fn clear_voice_state(ctx: &Context<'_>) {
+    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
+    ctx.data().voice_state.lock().await.remove(&guild_id);
 }
 
 async fn guild_voice_lock(ctx: &Context<'_>) -> OwnedMutexGuard<()> {
@@ -277,13 +310,8 @@ async fn join_author_channel(
     let (connection_info, _) = manager.join_gateway(guild_id, channel_id).await?;
 
     let player = lavalink
-        .create_player_context_with_data::<PlayerChannel>(
-            lava_guild(guild_id),
-            connection_info,
-            std::sync::Arc::new((ctx.channel_id(), ctx.serenity_context().http.clone())),
-        )
+        .create_player_context(lava_guild(guild_id), connection_info)
         .await?;
-    ctx.say(format!("Joined {}.", channel_id.mention())).await?;
     Ok(player)
 }
 

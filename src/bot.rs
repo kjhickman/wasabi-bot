@@ -1,9 +1,20 @@
 use poise::serenity_prelude as serenity;
-use serenity::utils::MessageBuilder;
 use songbird::SerenityInit;
 
-use crate::commands::{self, Data, Error, PlayerChannel};
+use crate::commands::{self, Data, Error, VoiceState};
 use crate::db;
+
+type VoiceLocks = std::sync::Arc<
+    tokio::sync::Mutex<
+        std::collections::HashMap<serenity::GuildId, std::sync::Arc<tokio::sync::Mutex<()>>>,
+    >,
+>;
+type VoiceStates =
+    std::sync::Arc<tokio::sync::Mutex<std::collections::HashMap<serenity::GuildId, VoiceState>>>;
+
+const IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+const PAUSED_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+const VOICE_MAINTENANCE_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
 
 pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
     let token =
@@ -23,7 +34,7 @@ pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: commands::all(),
-            event_handler: |_ctx, event, _framework, data| Box::pin(handle_event(event, data)),
+            event_handler: |ctx, event, _framework, data| Box::pin(handle_event(ctx, event, data)),
             on_error: |error| Box::pin(on_error(error)),
             ..Default::default()
         })
@@ -36,12 +47,21 @@ pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
                     Some(url) => Some(build_lavalink_client(&url, ready.user.id).await?),
                     None => None,
                 };
+                let voice_locks = std::sync::Arc::new(tokio::sync::Mutex::default());
+                let voice_state = std::sync::Arc::new(tokio::sync::Mutex::default());
+                start_voice_maintenance(
+                    ctx.clone(),
+                    lavalink.clone(),
+                    voice_locks.clone(),
+                    voice_state.clone(),
+                );
                 Ok(Data {
                     pool,
                     http,
                     gemini_api_key,
                     lavalink,
-                    voice_locks: tokio::sync::Mutex::default(),
+                    voice_locks,
+                    voice_state,
                 })
             })
         })
@@ -87,7 +107,7 @@ async fn build_lavalink_client(
 }
 
 fn track_exception_event(
-    client: lavalink_rs::prelude::LavalinkClient,
+    _client: lavalink_rs::prelude::LavalinkClient,
     _session_id: String,
     event: &lavalink_rs::model::events::TrackException,
 ) -> lavalink_rs::model::BoxFuture<'_, ()> {
@@ -99,23 +119,11 @@ fn track_exception_event(
             cause = %event.exception.cause,
             "Lavalink track exception"
         );
-        if let Some((channel_id, http)) = player_text_channel(&client, event.guild_id) {
-            let _ = channel_id
-                .say(
-                    http,
-                    format!(
-                        "Could not play **{}**: {}",
-                        safe_text(&event.track.info.title),
-                        safe_text(&event.exception.message)
-                    ),
-                )
-                .await;
-        }
     })
 }
 
 fn track_stuck_event(
-    client: lavalink_rs::prelude::LavalinkClient,
+    _client: lavalink_rs::prelude::LavalinkClient,
     _session_id: String,
     event: &lavalink_rs::model::events::TrackStuck,
 ) -> lavalink_rs::model::BoxFuture<'_, ()> {
@@ -126,44 +134,220 @@ fn track_stuck_event(
             threshold_ms = event.threshold_ms,
             "Lavalink track stuck"
         );
-        if let Some((channel_id, http)) = player_text_channel(&client, event.guild_id) {
-            let _ = channel_id
-                .say(
-                    http,
-                    format!(
-                        "Playback got stuck on **{}**.",
-                        safe_text(&event.track.info.title)
-                    ),
-                )
-                .await;
-        }
     })
 }
 
-fn player_text_channel(
-    client: &lavalink_rs::prelude::LavalinkClient,
-    guild_id: lavalink_rs::model::GuildId,
-) -> Option<PlayerChannel> {
-    let player = client.get_player_context(guild_id)?;
-    let data = player.data::<PlayerChannel>().ok()?;
-    Some((data.0, data.1.clone()))
+async fn handle_event(
+    ctx: &serenity::Context,
+    event: &serenity::FullEvent,
+    data: &Data,
+) -> Result<(), Error> {
+    match event {
+        serenity::FullEvent::InteractionCreate {
+            interaction: serenity::Interaction::Command(command),
+        } => {
+            let record = to_record(command);
+            if let Err(error) = db::insert_interaction(&data.pool, &record).await {
+                tracing::error!("failed to persist interaction {}: {error:?}", record.id);
+            }
+        }
+        serenity::FullEvent::VoiceStateUpdate { old, new } => {
+            if let Some(guild_id) = new
+                .guild_id
+                .or_else(|| old.as_ref().and_then(|old| old.guild_id))
+            {
+                disconnect_if_alone(ctx, data, guild_id).await?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
-fn safe_text(value: &str) -> String {
-    MessageBuilder::new().push_safe(value).build()
+fn start_voice_maintenance(
+    ctx: serenity::Context,
+    lavalink: Option<lavalink_rs::prelude::LavalinkClient>,
+    voice_locks: VoiceLocks,
+    voice_state: VoiceStates,
+) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(VOICE_MAINTENANCE_INTERVAL);
+        loop {
+            interval.tick().await;
+            if let Err(error) = maintain_voice(&ctx, &lavalink, &voice_locks, &voice_state).await {
+                tracing::warn!(?error, "voice maintenance failed");
+            }
+        }
+    });
 }
 
-async fn handle_event(event: &serenity::FullEvent, data: &Data) -> Result<(), Error> {
-    if let serenity::FullEvent::InteractionCreate {
-        interaction: serenity::Interaction::Command(command),
-    } = event
-    {
-        let record = to_record(command);
-        if let Err(error) = db::insert_interaction(&data.pool, &record).await {
-            tracing::error!("failed to persist interaction {}: {error:?}", record.id);
+async fn maintain_voice(
+    ctx: &serenity::Context,
+    lavalink: &Option<lavalink_rs::prelude::LavalinkClient>,
+    voice_locks: &VoiceLocks,
+    voice_state: &VoiceStates,
+) -> Result<(), Error> {
+    let Some(lavalink) = lavalink else {
+        return Ok(());
+    };
+    let guild_ids: Vec<_> = {
+        let voice_state = voice_state.lock().await;
+        voice_state.keys().copied().collect()
+    };
+
+    for guild_id in guild_ids {
+        let _guard = guild_voice_lock(voice_locks, guild_id).await;
+        if bot_voice_channel(&ctx.cache, guild_id).is_none() {
+            clear_voice_state(voice_state, guild_id).await;
+            continue;
+        }
+        let Some(player) = lavalink.get_player_context(lava_guild(guild_id)) else {
+            clear_voice_state(voice_state, guild_id).await;
+            continue;
+        };
+
+        let player_data = match player.get_player().await {
+            Ok(player_data) => player_data,
+            Err(error) => {
+                tracing::warn!(?error, %guild_id, "failed to inspect voice player");
+                continue;
+            }
+        };
+        let queue_empty = match player.get_queue().get_count().await {
+            Ok(count) => count == 0,
+            Err(error) => {
+                tracing::warn!(?error, %guild_id, "failed to inspect voice queue");
+                continue;
+            }
+        };
+        let idle = player_data.track.is_none() && queue_empty;
+        let now = std::time::Instant::now();
+        let should_disconnect = {
+            let mut voice_state = voice_state.lock().await;
+            let state = voice_state.entry(guild_id).or_default();
+            if idle {
+                state.idle_since.get_or_insert(now);
+            } else {
+                state.idle_since = None;
+            }
+            let idle_expired = state
+                .idle_since
+                .is_some_and(|since| now.duration_since(since) >= IDLE_TIMEOUT);
+            let paused_expired = state
+                .paused_since
+                .is_some_and(|since| now.duration_since(since) >= PAUSED_TIMEOUT);
+            idle_expired || paused_expired
+        };
+        if should_disconnect {
+            disconnect_voice(ctx, lavalink, voice_state, guild_id).await?;
         }
     }
     Ok(())
+}
+
+async fn disconnect_if_alone(
+    ctx: &serenity::Context,
+    data: &Data,
+    guild_id: serenity::GuildId,
+) -> Result<(), Error> {
+    let Some(bot_channel_id) = bot_voice_channel(&ctx.cache, guild_id) else {
+        return Ok(());
+    };
+    if has_human_in_voice_channel(&ctx.cache, guild_id, bot_channel_id) {
+        return Ok(());
+    }
+    let _guard = guild_voice_lock(&data.voice_locks, guild_id).await;
+    let Some(bot_channel_id) = bot_voice_channel(&ctx.cache, guild_id) else {
+        return Ok(());
+    };
+    if !has_human_in_voice_channel(&ctx.cache, guild_id, bot_channel_id) {
+        if let Some(lavalink) = &data.lavalink {
+            disconnect_voice(ctx, lavalink, &data.voice_state, guild_id).await?;
+        } else {
+            remove_voice_connection(ctx, guild_id).await?;
+            clear_voice_state(&data.voice_state, guild_id).await;
+        }
+    }
+    Ok(())
+}
+
+async fn disconnect_voice(
+    ctx: &serenity::Context,
+    lavalink: &lavalink_rs::prelude::LavalinkClient,
+    voice_state: &VoiceStates,
+    guild_id: serenity::GuildId,
+) -> Result<(), Error> {
+    let _ = lavalink.delete_player(lava_guild(guild_id)).await;
+    remove_voice_connection(ctx, guild_id).await?;
+    clear_voice_state(voice_state, guild_id).await;
+    Ok(())
+}
+
+async fn remove_voice_connection(
+    ctx: &serenity::Context,
+    guild_id: serenity::GuildId,
+) -> Result<(), Error> {
+    let manager = songbird::get(ctx)
+        .await
+        .ok_or_else(|| anyhow::anyhow!("songbird is not registered"))?;
+    if manager.get(guild_id).is_some() {
+        manager.remove(guild_id).await?;
+    }
+    Ok(())
+}
+
+async fn guild_voice_lock(
+    voice_locks: &VoiceLocks,
+    guild_id: serenity::GuildId,
+) -> tokio::sync::OwnedMutexGuard<()> {
+    let lock = {
+        let mut locks = voice_locks.lock().await;
+        locks
+            .entry(guild_id)
+            .or_insert_with(|| std::sync::Arc::new(tokio::sync::Mutex::new(())))
+            .clone()
+    };
+    lock.lock_owned().await
+}
+
+async fn clear_voice_state(voice_state: &VoiceStates, guild_id: serenity::GuildId) {
+    voice_state.lock().await.remove(&guild_id);
+}
+
+fn bot_voice_channel(
+    cache: &impl AsRef<serenity::Cache>,
+    guild_id: serenity::GuildId,
+) -> Option<serenity::ChannelId> {
+    let cache = cache.as_ref();
+    cache
+        .guild(guild_id)?
+        .voice_states
+        .get(&cache.current_user().id)
+        .and_then(|state| state.channel_id)
+}
+
+fn has_human_in_voice_channel(
+    cache: &impl AsRef<serenity::Cache>,
+    guild_id: serenity::GuildId,
+    channel_id: serenity::ChannelId,
+) -> bool {
+    let cache = cache.as_ref();
+    let current_user_id = cache.current_user().id;
+    cache.guild(guild_id).is_some_and(|guild| {
+        guild.voice_states.values().any(|state| {
+            state.channel_id == Some(channel_id)
+                && state.user_id != current_user_id
+                && !state
+                    .member
+                    .as_ref()
+                    .or_else(|| guild.members.get(&state.user_id))
+                    .is_some_and(|member| member.user.bot)
+        })
+    })
+}
+
+fn lava_guild(guild_id: serenity::GuildId) -> lavalink_rs::model::GuildId {
+    guild_id.get().into()
 }
 
 fn to_record(command: &serenity::CommandInteraction) -> db::InteractionRecord {
