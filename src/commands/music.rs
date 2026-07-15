@@ -3,6 +3,7 @@ use lavalink_rs::prelude::*;
 use poise::serenity_prelude as serenity;
 use serenity::Mentionable;
 use serenity::utils::MessageBuilder;
+use tokio::sync::OwnedMutexGuard;
 
 use super::{Context, Error, PlayerChannel, send_ephemeral};
 
@@ -21,9 +22,9 @@ pub async fn play(
     };
     ctx.defer().await?;
     let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
-    let Some(channel_id) = ensure_same_voice_channel(&ctx).await? else {
+    if ensure_same_voice_channel(&ctx).await?.is_none() {
         return Ok(());
-    };
+    }
 
     let loaded = match load_tracks(&lavalink, guild_id, &input).await? {
         Some(result) => result,
@@ -31,6 +32,11 @@ pub async fn play(
             ctx.say("No playable tracks found.").await?;
             return Ok(());
         }
+    };
+
+    let _guard = guild_voice_lock(&ctx).await;
+    let Some(channel_id) = ensure_same_voice_channel(&ctx).await? else {
+        return Ok(());
     };
     let player = join_author_channel(&ctx, &lavalink, guild_id, channel_id).await?;
     let queue = player.get_queue();
@@ -69,6 +75,7 @@ pub async fn play(
 #[poise::command(slash_command, guild_only)]
 #[tracing::instrument(name = "discord.command", skip(ctx), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get()))]
 pub async fn skip(ctx: Context<'_>) -> Result<(), Error> {
+    let _guard = guild_voice_lock(&ctx).await;
     let Some(player) = current_player(&ctx).await? else {
         return Ok(());
     };
@@ -90,6 +97,7 @@ pub async fn skip(ctx: Context<'_>) -> Result<(), Error> {
 #[poise::command(slash_command, guild_only)]
 #[tracing::instrument(name = "discord.command", skip(ctx), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get()))]
 pub async fn stop(ctx: Context<'_>) -> Result<(), Error> {
+    let _guard = guild_voice_lock(&ctx).await;
     let Some(player) = current_player(&ctx).await? else {
         return Ok(());
     };
@@ -188,6 +196,7 @@ pub async fn nowplaying(ctx: Context<'_>) -> Result<(), Error> {
 #[poise::command(slash_command, guild_only)]
 #[tracing::instrument(name = "discord.command", skip(ctx), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get()))]
 pub async fn leave(ctx: Context<'_>) -> Result<(), Error> {
+    let _guard = guild_voice_lock(&ctx).await;
     let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
     if ensure_same_voice_channel(&ctx).await?.is_none() {
         return Ok(());
@@ -210,6 +219,7 @@ pub async fn leave(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 async fn set_pause(ctx: Context<'_>, paused: bool) -> Result<(), Error> {
+    let _guard = guild_voice_lock(&ctx).await;
     let Some(player) = current_player(&ctx).await? else {
         return Ok(());
     };
@@ -223,6 +233,18 @@ async fn set_pause(ctx: Context<'_>, paused: bool) -> Result<(), Error> {
     player.set_pause(paused).await?;
     ctx.say(if paused { "Paused." } else { "Resumed." }).await?;
     Ok(())
+}
+
+async fn guild_voice_lock(ctx: &Context<'_>) -> OwnedMutexGuard<()> {
+    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
+    let lock = {
+        let mut locks = ctx.data().voice_locks.lock().await;
+        locks
+            .entry(guild_id)
+            .or_insert_with(|| std::sync::Arc::new(tokio::sync::Mutex::new(())))
+            .clone()
+    };
+    lock.lock_owned().await
 }
 
 async fn current_player(ctx: &Context<'_>) -> Result<Option<PlayerContext>, Error> {

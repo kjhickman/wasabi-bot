@@ -11,6 +11,12 @@ pub struct Data {
     pub http: reqwest::Client,
     pub gemini_api_key: Option<String>,
     pub lavalink: Option<lavalink_rs::prelude::LavalinkClient>,
+    pub voice_locks: tokio::sync::Mutex<
+        std::collections::HashMap<
+            poise::serenity_prelude::GuildId,
+            std::sync::Arc<tokio::sync::Mutex<()>>,
+        >,
+    >,
 }
 
 pub type Error = anyhow::Error;

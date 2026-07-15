@@ -41,6 +41,7 @@ pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
                     http,
                     gemini_api_key,
                     lavalink,
+                    voice_locks: tokio::sync::Mutex::default(),
                 })
             })
         })
