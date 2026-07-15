@@ -1,7 +1,7 @@
 mod fun;
 mod utility;
 
-pub use fun::{choose, conch, flip, mock};
+pub use fun::{caption, choose, conch, flip, mock};
 pub use utility::{help, stats};
 
 pub struct Data {
@@ -14,7 +14,15 @@ pub type Error = anyhow::Error;
 pub type Context<'a> = poise::Context<'a, Data, Error>;
 
 pub fn all() -> Vec<poise::Command<Data, Error>> {
-    vec![flip(), choose(), conch(), help(), stats(), mock()]
+    vec![
+        flip(),
+        choose(),
+        conch(),
+        caption(),
+        help(),
+        stats(),
+        mock(),
+    ]
 }
 
 async fn display_name(ctx: &Context<'_>) -> String {

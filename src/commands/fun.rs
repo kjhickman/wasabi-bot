@@ -118,6 +118,92 @@ pub fn conch_response(rng: &mut impl Rng) -> &'static str {
     unreachable!("weights exhausted")
 }
 
+/// Generate a funny caption for an image.
+#[poise::command(slash_command)]
+#[tracing::instrument(name = "discord.command", skip(ctx, image), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get(), attachment_id = %image.id.get()))]
+pub async fn caption(
+    ctx: Context<'_>,
+    #[description = "Image to caption"] image: serenity::Attachment,
+) -> Result<(), Error> {
+    let Some(content_type) = image.content_type.as_deref() else {
+        return send_ephemeral(
+            &ctx,
+            "Please provide a valid image file (jpg, jpeg, png, gif, webp).",
+        )
+        .await;
+    };
+    if !is_supported_caption_image(content_type) {
+        return send_ephemeral(
+            &ctx,
+            "Please provide a valid image file (jpg, jpeg, png, gif, webp).",
+        )
+        .await;
+    }
+    if image.size > MAX_CAPTION_IMAGE_BYTES {
+        return send_ephemeral(
+            &ctx,
+            "Image is too large. Please provide an image smaller than 10MB.",
+        )
+        .await;
+    }
+
+    let Some(api_key) = ctx.data().gemini_api_key.as_deref() else {
+        return send_ephemeral(
+            &ctx,
+            "Captioning is unavailable right now. Please try again later.",
+        )
+        .await;
+    };
+
+    ctx.defer().await?;
+
+    match caption_image(&ctx, api_key, content_type, &image).await {
+        Ok(caption) => {
+            ctx.say(build_caption_message(&image.url, &caption)).await?;
+        }
+        Err(error) => {
+            tracing::error!("failed to generate caption: {error:?}");
+            ctx.say("Sorry, I had trouble processing that image. Please try again with a different image.").await?;
+        }
+    }
+    Ok(())
+}
+
+async fn caption_image(
+    ctx: &Context<'_>,
+    api_key: &str,
+    content_type: &str,
+    image: &serenity::Attachment,
+) -> anyhow::Result<String> {
+    let image_bytes = ctx
+        .data()
+        .http
+        .get(&image.url)
+        .send()
+        .await?
+        .error_for_status()?
+        .bytes()
+        .await?;
+
+    llm::caption_answer(&ctx.data().http, api_key, content_type, &image_bytes).await
+}
+
+const MAX_CAPTION_IMAGE_BYTES: u32 = 10 * 1024 * 1024;
+
+pub fn is_supported_caption_image(content_type: &str) -> bool {
+    matches!(
+        content_type.to_ascii_lowercase().as_str(),
+        "image/jpeg" | "image/jpg" | "image/png" | "image/gif" | "image/webp"
+    )
+}
+
+pub fn build_caption_message(image_url: &str, caption: &str) -> String {
+    serenity::MessageBuilder::new()
+        .push_line(image_url)
+        .push_safe(caption)
+        .build()
+}
+
 #[poise::command(context_menu_command = "Mock")]
 #[tracing::instrument(name = "discord.command", skip(ctx, message), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get(), message_id = %message.id.get()))]
 pub async fn mock(ctx: Context<'_>, message: serenity::Message) -> Result<(), Error> {
@@ -179,6 +265,35 @@ mod tests {
             let response = conch_response(&mut rng);
             assert!(CONCH_RESPONSES.iter().any(|(r, _)| *r == response));
         }
+    }
+
+    #[test]
+    fn is_supported_caption_image_accepts_only_known_image_types() {
+        for content_type in [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "IMAGE/PNG",
+        ] {
+            assert!(is_supported_caption_image(content_type));
+        }
+
+        assert!(!is_supported_caption_image("application/pdf"));
+        assert!(!is_supported_caption_image(""));
+    }
+
+    #[test]
+    fn build_caption_message_escapes_generated_markdown() {
+        let message = build_caption_message(
+            "https://example.com/image.png",
+            "Lord of the Fountain\"\n*<system-reminder>",
+        );
+        assert_eq!(
+            message,
+            "https://example.com/image.png\nLord of the Fountain\"\n\\*<system-reminder>"
+        );
     }
 
     #[test]

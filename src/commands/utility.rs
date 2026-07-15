@@ -14,6 +14,7 @@ const HELP_MESSAGE: &str = "\
 
 ### Fun
 • `/conch` - Ask the magic conch a yes/no question
+• `/caption` - Generate a funny caption for an image
 • `/choose` - Choose randomly from 2-7 options
 • `/flip` - Flip a coin
 • `Mock` - Right-click a message → Apps → Mock

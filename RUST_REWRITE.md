@@ -61,7 +61,7 @@ Everything the .NET app does today, to be re-added (or consciously dropped) afte
 
 ### Bot commands
 - [ ] `/ask <question>` — Gemini with Google Search grounding (native GenAI API, not OpenAI-compat)
-- [ ] `/caption <image>` — LLM meme caption; image content-type validation (jpeg/png/gif/webp), 10MB limit, HTTP image download
+- [x] `/caption <image>` — LLM meme caption; image content-type validation (jpeg/png/gif/webp), 10MB limit, HTTP image download
 - [ ] `/conch` LLM path — LLM yes/no answer with weighted-random fallback tool (MVP ships fallback only)
 - [ ] `/reminder <when> <message>` — LLM natural-language time parsing (America/Chicago anchor, ISO 8601), reject past times
 - [ ] `/reminder-list` — pending/processing reminders, ephemeral, `<t:...:R>` timestamps
