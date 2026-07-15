@@ -28,7 +28,7 @@ pub async fn play(
     let loaded = match load_tracks(&lavalink, guild_id, &input).await? {
         Some(result) => result,
         None => {
-            ctx.say("No playable tracks found.").await?;
+            send_ephemeral(&ctx, "No playable tracks found.").await?;
             return Ok(());
         }
     };
@@ -89,7 +89,7 @@ pub async fn skip(ctx: Context<'_>) -> Result<(), Error> {
         ctx.say(format!("Skipped {}.", safe_text(&track.info.title)))
             .await?;
     } else {
-        ctx.say("Nothing is playing.").await?;
+        send_ephemeral(&ctx, "Nothing is playing.").await?;
     }
     Ok(())
 }
@@ -117,7 +117,7 @@ pub async fn stop(ctx: Context<'_>) -> Result<(), Error> {
         mark_voice_idle(&ctx).await;
         ctx.say("Cleared the queue.").await?;
     } else {
-        ctx.say("Nothing is playing.").await?;
+        send_ephemeral(&ctx, "Nothing is playing.").await?;
     }
     Ok(())
 }
@@ -190,7 +190,7 @@ pub async fn nowplaying(ctx: Context<'_>) -> Result<(), Error> {
         ))
         .await?;
     } else {
-        ctx.say("Nothing is playing.").await?;
+        send_ephemeral(&ctx, "Nothing is playing.").await?;
     }
     Ok(())
 }
@@ -217,7 +217,7 @@ pub async fn leave(ctx: Context<'_>) -> Result<(), Error> {
         manager.remove(guild_id).await?;
         ctx.say("Left voice channel.").await?;
     } else {
-        ctx.say("Nothing to leave.").await?;
+        send_ephemeral(&ctx, "Nothing to leave.").await?;
     }
     Ok(())
 }
@@ -231,7 +231,7 @@ async fn set_pause(ctx: Context<'_>, paused: bool) -> Result<(), Error> {
         return Ok(());
     }
     if player.get_player().await?.track.is_none() {
-        ctx.say("Nothing is playing.").await?;
+        send_ephemeral(&ctx, "Nothing is playing.").await?;
         return Ok(());
     }
     player.set_pause(paused).await?;
@@ -287,7 +287,7 @@ async fn current_player(ctx: &Context<'_>) -> Result<Option<PlayerContext>, Erro
         return Ok(None);
     };
     let Some(player) = lavalink.get_player_context(lava_guild(guild_id)) else {
-        ctx.say("Nothing is playing.").await?;
+        send_ephemeral(ctx, "Nothing is playing.").await?;
         return Ok(None);
     };
     Ok(Some(player))
@@ -319,14 +319,14 @@ async fn ensure_same_voice_channel(
     ctx: &Context<'_>,
 ) -> Result<Option<serenity::ChannelId>, Error> {
     let Some(author_channel) = author_voice_channel(ctx) else {
-        ctx.say("Join a voice channel first.").await?;
+        send_ephemeral(ctx, "Join a voice channel first.").await?;
         return Ok(None);
     };
     let bot_channel = bot_voice_channel(ctx);
     if let Some(bot) = bot_channel
         && author_channel != bot
     {
-        ctx.say("Join my voice channel first.").await?;
+        send_ephemeral(ctx, "Join my voice channel first.").await?;
         return Ok(None);
     }
     Ok(Some(author_channel))

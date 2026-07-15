@@ -163,7 +163,11 @@ pub async fn caption(
         }
         Err(error) => {
             tracing::error!("failed to generate caption: {error:?}");
-            ctx.say("Sorry, I had trouble processing that image. Please try again with a different image.").await?;
+            send_ephemeral(
+                &ctx,
+                "Sorry, I had trouble processing that image. Please try again with a different image.",
+            )
+            .await?;
         }
     }
     Ok(())
