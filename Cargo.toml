@@ -6,7 +6,6 @@ default-run = "wasabi-bot"
 
 [dependencies]
 anyhow = "1"
-axum = "0.8"
 base64 = "0.22"
 lavalink-rs = { version = "0.15", features = ["songbird"] }
 opentelemetry = "0.32"
@@ -26,6 +25,7 @@ tracing = { version = "0.1", features = ["attributes"] }
 tracing-opentelemetry = "0.33"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower-http = { version = "0.6", features = ["trace"] }
+topcoat = "0.3.1"
 
 [dev-dependencies]
 testcontainers-modules = { version = "0.15", features = ["postgres"] }

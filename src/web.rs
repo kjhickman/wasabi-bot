@@ -1,14 +1,42 @@
-use tower_http::trace::TraceLayer;
+use topcoat::{
+    Result,
+    router::{Router, page, route},
+    view::view,
+};
 
-pub fn router() -> axum::Router {
-    axum::Router::new()
-        .route(
-            "/",
-            axum::routing::get(|| async { "Wasabi Bot is under construction." }),
-        )
-        .route("/health", axum::routing::get(|| async { "ok" }))
-        .route("/alive", axum::routing::get(|| async { "ok" }))
-        .layer(TraceLayer::new_for_http())
+pub fn router() -> Router {
+    Router::builder()
+        .page(home)
+        .route(health)
+        .route(alive)
+        .build()
+}
+
+#[page("/")]
+async fn home() -> Result {
+    view! {
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <title>"Wasabi Bot"</title>
+            </head>
+            <body>
+                <p>"Wasabi Bot is under construction."</p>
+            </body>
+        </html>
+    }
+}
+
+#[route(GET "/health")]
+async fn health() -> Result<&'static str> {
+    Ok("ok")
+}
+
+#[route(GET "/alive")]
+async fn alive() -> Result<&'static str> {
+    Ok("ok")
 }
 
 pub async fn serve() -> anyhow::Result<()> {
@@ -18,6 +46,6 @@ pub async fn serve() -> anyhow::Result<()> {
         .unwrap_or(8080);
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", port)).await?;
     tracing::info!("web server listening on port {port}");
-    axum::serve(listener, router()).await?;
+    topcoat::serve_until(listener, router(), std::future::pending::<()>()).await?;
     Ok(())
 }
