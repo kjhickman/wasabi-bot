@@ -73,35 +73,46 @@ pub async fn now_playing_panel() -> Result {
                         </div>
                     </div>
 
-                    <div class="mt-6 flex items-center justify-center gap-1 sm:gap-3">
-                        control(
-                            data: iconify_icon!("lucide:shuffle"),
-                            label: "Shuffle"
-                        )
-                        control(
-                            data: iconify_icon!("lucide:skip-back"),
-                            label: "Previous track"
-                        )
+                    <div class="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                         button(
                             size: ButtonSize::Icon,
                             attrs: attributes! {
                                 disabled=(true)
-                                aria-label="Play"
+                                aria-label="Pause playback"
                                 title="Playback controls are not connected"
-                                class="mx-1 size-12 rounded-full sm:mx-2"
+                                class="size-12 rounded-full"
                             },
                             icon(
-                                data: iconify_icon!("lucide:play"),
-                                attrs: attributes! {
-                                    class = "size-5 translate-x-px"
-                                }
+                                data: iconify_icon!("lucide:pause"),
+                                attrs: attributes! { class="size-5" }
                             )
                         )
-                        control(
-                            data: iconify_icon!("lucide:skip-forward"),
-                            label: "Next track"
+                        button(
+                            variant: ButtonVariant::Secondary,
+                            size: ButtonSize::Icon,
+                            attrs: attributes! {
+                                disabled=(true)
+                                aria-label="Skip track"
+                                title="Playback controls are not connected"
+                            },
+                            icon(
+                                data: iconify_icon!("lucide:skip-forward"),
+                                attrs: attributes! { class="size-4" }
+                            )
                         )
-                        control(data: iconify_icon!("lucide:repeat"), label: "Repeat")
+                        button(
+                            variant: ButtonVariant::Outline,
+                            size: ButtonSize::Icon,
+                            attrs: attributes! {
+                                disabled=(true)
+                                aria-label="Stop playback"
+                                title="Playback controls are not connected"
+                            },
+                            icon(
+                                data: iconify_icon!("lucide:square"),
+                                attrs: attributes! { class="size-3.5" }
+                            )
+                        )
                     </div>
 
                     <div
@@ -156,26 +167,5 @@ async fn album_art() -> Result {
                 "Green Static"
             </p>
         </div>
-    }
-}
-
-#[component]
-async fn control(data: topcoat::icon::IconData, label: &str) -> Result {
-    view! {
-        button(
-            variant: ButtonVariant::Ghost,
-            size: ButtonSize::Icon,
-            attrs: attributes! {
-                disabled=(true)
-                aria-label=(label)
-                title="Playback controls are not connected"
-            },
-            icon(
-                data: data,
-                attrs: attributes! {
-                    class = "size-4"
-                }
-            )
-        )
     }
 }

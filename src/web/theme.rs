@@ -1,78 +1,63 @@
 use topcoat::{
     Result,
-    icon::{icon, iconify::iconify_icon},
-    view::{attributes, component, view},
+    view::{Unescaped, attributes, component, view},
 };
 
-use super::components::button::{ButtonSize, ButtonVariant, button};
+use super::components::select::select;
+
+const THEME_SCRIPT: &str = r"(() => {
+    const key = 'wasabi-theme';
+    const root = document.documentElement;
+    const media = matchMedia('(prefers-color-scheme: dark)');
+    let theme = 'system';
+    try { theme = localStorage.getItem(key) || 'system'; } catch {}
+    if (!['system', 'light', 'dark'].includes(theme)) theme = 'system';
+
+    const apply = () => {
+        root.classList.toggle(
+            'dark',
+            theme === 'dark' || (theme === 'system' && media.matches),
+        );
+        root.dataset.theme = theme;
+        const select = document.getElementById('theme-select');
+        if (select) select.value = theme;
+    };
+    apply();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const select = document.getElementById('theme-select');
+        apply();
+        select?.addEventListener('change', (event) => {
+            theme = event.target.value;
+            try { localStorage.setItem(key, theme); } catch {}
+            apply();
+        });
+    });
+
+    media.addEventListener('change', () => {
+        if (theme === 'system') apply();
+    });
+})();";
 
 #[component]
 pub async fn theme_script() -> Result {
     view! {
-        <script>
-            "(() => {
-                const key = 'wasabi-theme';
-                const root = document.documentElement;
-                const media = matchMedia('(prefers-color-scheme: dark)');
-                let saved = null;
-                try { saved = localStorage.getItem(key); } catch {}
-                root.classList.toggle(
-                    'dark',
-                    saved ? saved === 'dark' : media.matches,
-                );
-
-                const syncButton = () => {
-                    const button = document.getElementById('theme-toggle');
-                    if (!button) return;
-                    const dark = root.classList.contains('dark');
-                    button.setAttribute('aria-pressed', String(dark));
-                    button.setAttribute('aria-label', dark ? 'Use light theme' : 'Use dark theme');
-                    button.title = dark ? 'Use light theme' : 'Use dark theme';
-                };
-
-                document.addEventListener('DOMContentLoaded', () => {
-                    const button = document.getElementById('theme-toggle');
-                    syncButton();
-                    button?.addEventListener('click', () => {
-                        const dark = !root.classList.contains('dark');
-                        root.classList.toggle('dark', dark);
-                        saved = dark ? 'dark' : 'light';
-                        try { localStorage.setItem(key, dark ? 'dark' : 'light'); } catch {}
-                        syncButton();
-                    });
-                });
-
-                media.addEventListener('change', (event) => {
-                    if (saved) return;
-                    root.classList.toggle('dark', event.matches);
-                    syncButton();
-                });
-            })();"
-        </script>
+        <script>(Unescaped::new_unchecked(THEME_SCRIPT))</script>
     }
 }
 
 #[component]
-pub async fn theme_toggle() -> Result {
+pub async fn theme_selector() -> Result {
     view! {
-        button(
-            variant: ButtonVariant::Ghost,
-            size: ButtonSize::Icon,
+        select(
             attrs: attributes! {
-                id="theme-toggle"
-                type="button"
-                aria-label="Use dark theme"
-                aria-pressed="false"
-                title="Use dark theme"
+                id="theme-select"
+                aria-label="Color theme"
+                class="w-28"
             },
-            icon(
-                data: iconify_icon!("lucide:sun"),
-                attrs: attributes! { class="size-4 dark:hidden" }
-            )
-            icon(
-                data: iconify_icon!("lucide:moon"),
-                attrs: attributes! { class="hidden size-4 dark:block" }
-            )
+            <option value="system">"System"</option>
+            <option value="light">"Light"</option>
+            <option value="dark">"Dark"</option>
         )
     }
 }

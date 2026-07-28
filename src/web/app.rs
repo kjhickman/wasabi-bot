@@ -27,7 +27,7 @@ async fn root_layout(slot: Result) -> Result {
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1">
-                <title>"Wasabi Music"</title>
+                <title>"Wasabi Bot"</title>
                 theme_script()
                 <link rel="stylesheet" href=(topcoat::tailwind::stylesheet!())>
                 topcoat::font::link(

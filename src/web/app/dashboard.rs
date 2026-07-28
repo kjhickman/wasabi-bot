@@ -18,32 +18,15 @@ async fn dashboard() -> Result {
             <main
                 class="relative mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
             >
-                <header
-                    class="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between"
-                >
-                    <div>
-                        <p
-                            class="mb-2 text-xs font-semibold tracking-[0.2em] text-primary uppercase"
-                        >
-                            "Music dashboard"
-                        </p>
-                        <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">
-                            "The listening room"
-                        </h1>
-                    </div>
-                    <p class="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span class="size-2 rounded-full bg-primary"></span>
-                        "Interface preview · controls offline"
-                    </p>
-                </header>
-
                 <div
                     class="grid items-start gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.7fr)]"
                 >
-                    now_playing_panel()
-                    <aside class="grid gap-6">
-                        search_panel()
+                    <section class="grid gap-6">
+                        now_playing_panel()
                         queue_panel()
+                    </section>
+                    <aside>
+                        search_panel()
                     </aside>
                 </div>
             </main>
