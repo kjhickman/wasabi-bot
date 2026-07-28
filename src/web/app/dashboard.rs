@@ -258,7 +258,7 @@ async fn status_panel(
                 <input type="hidden" name="csrf" value=(csrf)>
                 <button
                     type="submit"
-                    class="inline-flex h-10 items-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/30"
+                    class="inline-flex h-10 cursor-pointer items-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/30"
                 >
                     "Join voice channel"
                 </button>
