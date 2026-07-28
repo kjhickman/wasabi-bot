@@ -1,0 +1,29 @@
+# Topcoat UI install state. Managed by `topcoat ui`.
+version = 1
+components_dir = "src/web/components"
+
+[theme]
+name = "neutral"
+registry = "topcoat"
+hash = "sha256:c7bdcb5ea4ff757611ba616e92178169b262be98155c06dfa2407584d51e7459"
+file = "styles.css"
+
+[registries.topcoat.components.button]
+hash = "sha256:8dcc9609183d0a51138c7a15de06d5525388f25a3958071fab25b96efaa2b160"
+file = "src/web/components/button.rs"
+
+[registries.topcoat.components.card]
+hash = "sha256:f7baecc0a71b59126d311ac504c36a14fa98d438d18230b807f10f7e976a30b7"
+file = "src/web/components/card.rs"
+
+[registries.topcoat.components.input]
+hash = "sha256:7769330ae511769c1c50b39c75b7475b676af9072d2156398762cf505a3bf306"
+file = "src/web/components/input.rs"
+
+[registries.topcoat.components.progress]
+hash = "sha256:d7d302b5f397313d827cce12183c4fa6dec7245d79c75fe55eb3337e3fbf557e"
+file = "src/web/components/progress.rs"
+
+[registries.topcoat.components.select]
+hash = "sha256:5d6bc5c890c12fad1b004569212b6bb83fda3a1e2bd5da261225845419dfbc85"
+file = "src/web/components/select.rs"
