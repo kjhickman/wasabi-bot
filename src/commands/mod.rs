@@ -40,6 +40,7 @@ pub struct Data {
     pub lavalink: Option<lavalink_rs::prelude::LavalinkClient>,
     pub voice_locks: VoiceLocks,
     pub voice_state: VoiceStates,
+    pub ui_events: crate::web::UiEvents,
 }
 
 #[derive(Default)]

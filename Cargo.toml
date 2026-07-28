@@ -23,10 +23,11 @@ songbird = { version = "0.5", default-features = false, features = ["gateway", "
 sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls", "postgres", "json", "time", "migrate", "macros"] }
 time = "0.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
 tracing = { version = "0.1", features = ["attributes"] }
 tracing-opentelemetry = "0.33"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-topcoat = { version = "0.5", features = ["tailwind", "ui", "icon-iconify"] }
+topcoat = { version = "0.5", features = ["tailwind", "ui", "icon-iconify", "sse"] }
 
 [build-dependencies]
 topcoat = { version = "0.5", default-features = false, features = ["tailwind", "icon-iconify"] }

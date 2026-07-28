@@ -5,7 +5,7 @@ use topcoat::{
     Result,
     context::{Cx, app_context},
     router::page,
-    view::{component, view},
+    view::{Unescaped, component, view},
 };
 
 use crate::web::{
@@ -16,15 +16,90 @@ use components::{dashboard_header, now_playing_panel, queue_panel, search_panel}
 
 topcoat::router::segment!(kind = Group);
 
+const VOICE_UPDATES_SCRIPT: &str = r"(() => {
+    const events = new EventSource('/events');
+    let timer;
+    let refreshing = false;
+    let pending = false;
+
+    const refresh = async () => {
+        if (refreshing) {
+            pending = true;
+            return;
+        }
+        refreshing = true;
+        do {
+            pending = false;
+            try {
+                const response = await fetch('/content', { cache: 'no-store' });
+                if (response.status === 401 || response.status === 403) {
+                    events.close();
+                    location.reload();
+                    return;
+                }
+                if (!response.ok) break;
+                const template = document.createElement('template');
+                template.innerHTML = await response.text();
+                const current = document.getElementById('dashboard-content');
+                const next = template.content.querySelector('#dashboard-content');
+                if (current && next) current.replaceWith(next);
+            } catch {
+                break;
+            }
+        } while (pending);
+        refreshing = false;
+    };
+
+    events.addEventListener('voice', () => {
+        clearTimeout(timer);
+        timer = setTimeout(refresh, 100);
+    });
+})();";
+
 #[page]
 #[tracing::instrument(name = "web.dashboard", skip(cx))]
 async fn dashboard(cx: &Cx) -> Result {
+    let (session, bot) = dashboard_state(cx).await?;
+    let updates = if session.is_some() {
+        view! { <script>(Unescaped::new_unchecked(VOICE_UPDATES_SCRIPT))</script> }?
+    } else {
+        view! {}?
+    };
+
+    view! {
+        <div class="relative min-h-screen overflow-x-hidden">
+            <div
+                aria-hidden="true"
+                class="pointer-events-none fixed -top-32 -right-32 size-96 rounded-full bg-primary/10 blur-3xl"
+            ></div>
+            dashboard_header(session: session.as_ref())
+            <main
+                class="relative mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+            >
+                <div id="dashboard-content">
+                    dashboard_content(session: session.as_ref(), bot: bot.as_ref())
+                </div>
+            </main>
+            (updates)
+        </div>
+    }
+}
+
+pub(super) async fn dashboard_state(cx: &Cx) -> Result<(Option<auth::Session>, Option<BotState>)> {
     let state = app_context::<State>(cx);
     let session = auth::current_session(cx).await?;
     let bot = state.bot.read().await.clone();
-    let access = match &session {
+    Ok((session, bot))
+}
+
+#[component]
+pub(super) async fn dashboard_content(
+    session: Option<&auth::Session>,
+    bot: Option<&BotState>,
+) -> Result {
+    let access = match session {
         Some(session) if bot.is_some() => {
-            resolve_access(bot.as_ref().unwrap(), session.user_id, &session.guilds)
+            resolve_access(bot.unwrap(), session.user_id, &session.guilds)
         }
         Some(_) => Access::Unavailable,
         None => Access::LoggedOut,
@@ -49,7 +124,7 @@ async fn dashboard(cx: &Cx) -> Result {
         Access::NotInVoice => view! {
             status_panel(
                 title: "Join a voice channel",
-                description: "Connect to a voice channel in a server you share with Wasabi Bot, then refresh this page.",
+                description: "Connect to a voice channel in a server you share with Wasabi Bot. This page will update automatically.",
                 link: Some(("Refresh", "/")),
                 join_csrf: None,
             )
@@ -67,7 +142,7 @@ async fn dashboard(cx: &Cx) -> Result {
                 title: "Ready to join",
                 description: format!("You're in {} / {}. Bring Wasabi Bot into the channel to continue.", channel.channel_name, channel.guild_name),
                 link: None,
-                join_csrf: session.as_ref().map(|session| session.csrf_token.as_str()),
+                join_csrf: session.map(|session| session.csrf_token.as_str()),
             )
         }?,
         Access::Conflict(channel) => view! {
@@ -94,20 +169,7 @@ async fn dashboard(cx: &Cx) -> Result {
         }?,
     };
 
-    view! {
-        <div class="relative min-h-screen overflow-x-hidden">
-            <div
-                aria-hidden="true"
-                class="pointer-events-none fixed -top-32 -right-32 size-96 rounded-full bg-primary/10 blur-3xl"
-            ></div>
-            dashboard_header(session: session.as_ref())
-            <main
-                class="relative mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
-            >
-                (content)
-            </main>
-        </div>
-    }
+    Ok(content)
 }
 
 #[derive(Clone, Debug)]
@@ -166,17 +228,11 @@ pub(super) fn ready_target(
 fn resolve_access(bot: &BotState, user_id: u64, guilds: &[DiscordGuild]) -> Access {
     let user_id = serenity::UserId::new(user_id);
     let bot_id = bot.serenity.cache.current_user().id;
-    let mut shares_guild = false;
 
-    for oauth_guild in guilds {
-        let Ok(guild_id) = oauth_guild.id.parse::<u64>() else {
-            continue;
-        };
-        let guild_id = serenity::GuildId::new(guild_id);
+    for guild_id in bot.serenity.cache.guilds() {
         let Some(guild) = bot.serenity.cache.guild(guild_id) else {
             continue;
         };
-        shares_guild = true;
         let Some(channel_id) = guild
             .voice_states
             .get(&user_id)
@@ -197,7 +253,7 @@ fn resolve_access(bot: &BotState, user_id: u64, guilds: &[DiscordGuild]) -> Acce
             .and_then(|id| guild.channels.get(&id).map(|channel| channel.name.clone()));
         let channel = ChannelAccess {
             guild_id,
-            guild_name: oauth_guild.name.clone(),
+            guild_name: guild.name.clone(),
             channel_id,
             channel_name,
             bot_channel_name,
@@ -210,6 +266,13 @@ fn resolve_access(bot: &BotState, user_id: u64, guilds: &[DiscordGuild]) -> Acce
         };
     }
 
+    let shares_guild = guilds.iter().any(|guild| {
+        guild
+            .id
+            .parse::<u64>()
+            .ok()
+            .is_some_and(|guild_id| bot.serenity.cache.guild(guild_id).is_some())
+    });
     if shares_guild {
         Access::NotInVoice
     } else {

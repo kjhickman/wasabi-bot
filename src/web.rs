@@ -8,6 +8,17 @@ pub use app::router;
 
 pub(crate) const FAVICON_URL: &str = concat!("/favicon?v=", env!("WASABI_FAVICON_VERSION"));
 
+#[derive(Clone, Copy, Debug)]
+pub enum UiEvent {
+    VoiceStateChanged {
+        guild_id: poise::serenity_prelude::GuildId,
+        user_id: poise::serenity_prelude::UserId,
+        is_bot: bool,
+    },
+}
+
+pub type UiEvents = tokio::sync::broadcast::Sender<UiEvent>;
+
 #[derive(Clone)]
 pub struct BotState {
     pub(crate) serenity: poise::serenity_prelude::Context,
@@ -24,9 +35,14 @@ pub struct State {
     pub(crate) http: reqwest::Client,
     pub(crate) bot: SharedBotState,
     pub(crate) oauth: auth::OAuthConfig,
+    pub(crate) ui_events: UiEvents,
 }
 
-pub async fn serve(pool: sqlx::PgPool, bot: SharedBotState) -> anyhow::Result<()> {
+pub async fn serve(
+    pool: sqlx::PgPool,
+    bot: SharedBotState,
+    ui_events: UiEvents,
+) -> anyhow::Result<()> {
     let port: u16 = std::env::var("PORT")
         .ok()
         .and_then(|p| p.parse().ok())
@@ -41,6 +57,7 @@ pub async fn serve(pool: sqlx::PgPool, bot: SharedBotState) -> anyhow::Result<()
             .build()?,
         bot,
         oauth: auth::OAuthConfig::from_env()?,
+        ui_events,
     };
     auth::start_maintenance(state.clone());
     topcoat::serve_until(listener, router(state)?, std::future::pending::<()>()).await?;

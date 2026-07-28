@@ -8,7 +8,11 @@ const IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 const PAUSED_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
 const VOICE_MAINTENANCE_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
 
-pub async fn run(pool: sqlx::PgPool, bot_state: crate::web::SharedBotState) -> anyhow::Result<()> {
+pub async fn run(
+    pool: sqlx::PgPool,
+    bot_state: crate::web::SharedBotState,
+    ui_events: crate::web::UiEvents,
+) -> anyhow::Result<()> {
     let token =
         std::env::var("DISCORD_TOKEN").map_err(|_| anyhow::anyhow!("DISCORD_TOKEN is not set"))?;
     let gemini_api_key = std::env::var("GEMINI_API_KEY").ok();
@@ -60,6 +64,7 @@ pub async fn run(pool: sqlx::PgPool, bot_state: crate::web::SharedBotState) -> a
                     lavalink,
                     voice_locks,
                     voice_state,
+                    ui_events,
                 })
             })
         })
@@ -154,6 +159,11 @@ async fn handle_event(
                 .guild_id
                 .or_else(|| old.as_ref().and_then(|old| old.guild_id))
             {
+                let _ = data.ui_events.send(crate::web::UiEvent::VoiceStateChanged {
+                    guild_id,
+                    user_id: new.user_id,
+                    is_bot: new.user_id == ctx.cache.current_user().id,
+                });
                 disconnect_if_alone(ctx, data, guild_id).await?;
             }
         }

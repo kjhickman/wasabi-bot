@@ -1,6 +1,8 @@
 mod alive;
 mod auth;
+mod content;
 mod dashboard;
+mod events;
 mod favicon;
 mod health;
 mod styles;
