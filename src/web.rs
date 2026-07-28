@@ -16,6 +16,7 @@ pub struct BotState {
 
 pub type SharedBotState = std::sync::Arc<tokio::sync::RwLock<Option<BotState>>>;
 
+#[derive(Clone)]
 pub struct State {
     pub(crate) pool: sqlx::PgPool,
     pub(crate) http: reqwest::Client,
@@ -30,7 +31,6 @@ pub async fn serve(pool: sqlx::PgPool, bot: SharedBotState) -> anyhow::Result<()
         .unwrap_or(8080);
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", port)).await?;
     tracing::info!("web server listening on port {port}");
-    auth::start_cleanup(pool.clone());
     let state = State {
         pool,
         http: reqwest::Client::builder()
@@ -40,6 +40,7 @@ pub async fn serve(pool: sqlx::PgPool, bot: SharedBotState) -> anyhow::Result<()
         bot,
         oauth: auth::OAuthConfig::from_env()?,
     };
+    auth::start_maintenance(state.clone());
     topcoat::serve_until(listener, router(state)?, std::future::pending::<()>()).await?;
     Ok(())
 }

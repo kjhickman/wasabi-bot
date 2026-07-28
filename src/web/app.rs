@@ -31,11 +31,10 @@ async fn root_layout(slot: Result) -> Result {
                 <meta name="viewport" content="width=device-width,initial-scale=1">
                 <title>"Wasabi Bot"</title>
                 theme_script()
-                <link rel="stylesheet" href="/styles">
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.2.8/400.css">
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.2.8/500.css">
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.2.8/600.css">
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.2.8/700.css">
+                <link rel="stylesheet" href=(format!("/styles?v={}", env!("WASABI_CSS_VERSION")))>
+                <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="anonymous">
+                <link rel="preconnect" href="https://cdn.discordapp.com" crossorigin="anonymous">
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.2.8/index.css">
             </head>
             <body>(slot?)</body>
         </html>

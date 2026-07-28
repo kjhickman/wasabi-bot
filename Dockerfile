@@ -8,7 +8,7 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef AS build
 COPY --from=planner /src/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
-COPY build.rs styles.css ./
+COPY build.rs ./
 COPY migrations ./migrations
 COPY src ./src
 RUN cargo build --release

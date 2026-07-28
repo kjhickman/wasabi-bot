@@ -5,7 +5,16 @@ fn main() {
         .unwrap();
 
     topcoat::tailwind::BuildConfig::new()
-        .input("styles.css")
+        .input("src/web/styles.css")
         .render()
         .unwrap();
+
+    use std::hash::{Hash, Hasher};
+    let css = std::fs::read(
+        std::path::Path::new(&std::env::var("OUT_DIR").unwrap()).join("tailwind.css"),
+    )
+    .unwrap();
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    css.hash(&mut hasher);
+    println!("cargo:rustc-env=WASABI_CSS_VERSION={:x}", hasher.finish());
 }

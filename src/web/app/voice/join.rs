@@ -20,16 +20,19 @@ async fn join(cx: &Cx, Form(form): Form<JoinForm>) -> Result<SeeOther> {
     let state = app_context::<State>(cx);
     let session = auth::current_session(cx).await?.ok_or_else(forbidden)?;
     auth::verify_csrf(&session, &form.csrf)?;
-    let guilds = auth::discord_guilds(state, &session).await?;
+    if session.guilds_fetched_at <= time::OffsetDateTime::now_utc() - time::Duration::minutes(15) {
+        return Err(forbidden().into());
+    }
     let bot = state.bot.read().await.clone().ok_or_else(forbidden)?;
-    let target = super::super::dashboard::join_target(&bot, session.user_id, &guilds)
+    let target = super::super::dashboard::join_target(&bot, session.user_id, &session.guilds)
         .ok_or_else(forbidden)?;
     let _guard = commands::lock_guild_voice(&bot.voice_locks, target.guild_id).await;
 
-    if super::super::dashboard::ready_target(&bot, session.user_id, &guilds) == Some(target) {
+    if super::super::dashboard::ready_target(&bot, session.user_id, &session.guilds) == Some(target)
+    {
         return Ok(see_other("/"));
     }
-    let target = super::super::dashboard::join_target(&bot, session.user_id, &guilds)
+    let target = super::super::dashboard::join_target(&bot, session.user_id, &session.guilds)
         .filter(|current| current == &target)
         .ok_or_else(forbidden)?;
     let lavalink = bot.lavalink.as_ref().ok_or_else(forbidden)?;

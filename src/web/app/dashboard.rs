@@ -17,14 +17,14 @@ use components::{dashboard_header, now_playing_panel, queue_panel, search_panel}
 topcoat::router::segment!(kind = Group);
 
 #[page]
+#[tracing::instrument(name = "web.dashboard", skip(cx))]
 async fn dashboard(cx: &Cx) -> Result {
     let state = app_context::<State>(cx);
     let session = auth::current_session(cx).await?;
     let bot = state.bot.read().await.clone();
     let access = match &session {
         Some(session) if bot.is_some() => {
-            let guilds = auth::discord_guilds(state, session).await?;
-            resolve_access(bot.as_ref().unwrap(), session.user_id, &guilds)
+            resolve_access(bot.as_ref().unwrap(), session.user_id, &session.guilds)
         }
         Some(_) => Access::Unavailable,
         None => Access::LoggedOut,

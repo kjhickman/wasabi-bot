@@ -19,6 +19,7 @@ const CSRF_COOKIE: &str = "wasabi_csrf";
 const OAUTH_STATE_COOKIE: &str = "wasabi_oauth_state";
 const SESSION_DAYS: i64 = 30;
 
+#[derive(Clone)]
 pub(crate) struct OAuthConfig {
     client_id: String,
     client_secret: String,
@@ -65,6 +66,8 @@ pub(crate) struct Session {
     pub(crate) avatar: Option<String>,
     csrf_hash: Vec<u8>,
     pub(crate) csrf_token: String,
+    pub(crate) guilds: Vec<DiscordGuild>,
+    pub(crate) guilds_fetched_at: OffsetDateTime,
 }
 
 impl Session {
@@ -99,10 +102,13 @@ struct SessionRow {
     discriminator: String,
     avatar: Option<String>,
     csrf_hash: Vec<u8>,
+    guilds: sqlx::types::Json<Vec<DiscordGuild>>,
+    guilds_fetched_at: OffsetDateTime,
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(Clone, sqlx::FromRow)]
 struct TokenRow {
+    id_hash: Vec<u8>,
     access_token: Vec<u8>,
     refresh_token: Vec<u8>,
     token_expires_at: OffsetDateTime,
@@ -136,7 +142,7 @@ struct DiscordUser {
     avatar: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize, serde::Serialize)]
 pub(crate) struct DiscordGuild {
     pub(crate) id: String,
     pub(crate) name: String,
@@ -205,7 +211,10 @@ pub(crate) async fn callback(cx: &Cx, Form(query): Form<CallbackQuery>) -> Resul
         .ok_or_else(|| bad_request("missing authorization code"))?;
 
     let token = exchange_code(state, &code).await?;
-    let user = discord_user(state, &token.access_token).await?;
+    let (user, guilds) = tokio::try_join!(
+        discord_user(state, &token.access_token),
+        fetch_discord_guilds(state, &token.access_token),
+    )?;
     let user_id: u64 = user
         .id
         .parse()
@@ -219,8 +228,9 @@ pub(crate) async fn callback(cx: &Cx, Form(query): Form<CallbackQuery>) -> Resul
     sqlx::query(
         r#"INSERT INTO web_sessions
            (id_hash, user_id, username, global_name, discriminator, avatar,
-            access_token, refresh_token, token_expires_at, csrf_hash, expires_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#,
+             access_token, refresh_token, token_expires_at, csrf_hash, expires_at,
+             guilds, guilds_fetched_at, guilds_refresh_attempted_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)"#,
     )
     .bind(hash(session_token.as_bytes()))
     .bind(database_user_id)
@@ -239,6 +249,9 @@ pub(crate) async fn callback(cx: &Cx, Form(query): Form<CallbackQuery>) -> Resul
     .bind(now + time::Duration::seconds(token.expires_in))
     .bind(hash(csrf_token.as_bytes()))
     .bind(now + time::Duration::days(SESSION_DAYS))
+    .bind(sqlx::types::Json(guilds))
+    .bind(now)
+    .bind(now)
     .execute(&state.pool)
     .await?;
 
@@ -288,6 +301,7 @@ pub(crate) async fn logout(cx: &Cx, Form(form): Form<LogoutForm>) -> Result<SeeO
     Ok(see_other("/"))
 }
 
+#[tracing::instrument(name = "web.session.load", skip(cx))]
 pub(crate) async fn current_session(cx: &Cx) -> Result<Option<Session>> {
     let jar = cookies(cx);
     let Some(session_token) = jar
@@ -301,7 +315,8 @@ pub(crate) async fn current_session(cx: &Cx) -> Result<Option<Session>> {
     };
     let state = app_context::<State>(cx);
     let row = sqlx::query_as::<_, SessionRow>(
-        r#"SELECT id_hash, user_id, username, global_name, discriminator, avatar, csrf_hash
+        r#"SELECT id_hash, user_id, username, global_name, discriminator, avatar, csrf_hash,
+                  guilds, guilds_fetched_at
            FROM web_sessions WHERE id_hash = $1 AND expires_at > now()"#,
     )
     .bind(hash(session_token.as_bytes()))
@@ -327,6 +342,8 @@ pub(crate) async fn current_session(cx: &Cx) -> Result<Option<Session>> {
         avatar: row.avatar,
         csrf_hash: row.csrf_hash,
         csrf_token,
+        guilds: row.guilds.0,
+        guilds_fetched_at: row.guilds_fetched_at,
     }))
 }
 
@@ -337,44 +354,93 @@ pub(crate) fn verify_csrf(session: &Session, token: &str) -> Result<()> {
     Ok(())
 }
 
-pub(crate) async fn discord_guilds(state: &State, session: &Session) -> Result<Vec<DiscordGuild>> {
-    let access_token = access_token(state, session).await?;
-    Ok(state
-        .http
-        .get("https://discord.com/api/v10/users/@me/guilds?limit=200")
-        .bearer_auth(access_token)
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?)
-}
-
-pub(crate) fn start_cleanup(pool: sqlx::PgPool) {
+pub(crate) fn start_maintenance(state: State) {
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60 * 60));
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
         loop {
             interval.tick().await;
-            if let Err(error) = sqlx::query("DELETE FROM web_sessions WHERE expires_at <= now()")
-                .execute(&pool)
-                .await
-            {
-                tracing::warn!(?error, "failed to delete expired web sessions");
-            }
-            if let Err(error) = sqlx::query("DELETE FROM oauth_states WHERE expires_at <= now()")
-                .execute(&pool)
-                .await
-            {
-                tracing::warn!(?error, "failed to delete expired OAuth states");
+            if let Err(error) = maintain_sessions(&state).await {
+                tracing::warn!(?error, "web session maintenance failed");
             }
         }
     });
 }
 
-async fn access_token(state: &State, session: &Session) -> anyhow::Result<String> {
+#[tracing::instrument(name = "web.session.maintain", skip(state))]
+async fn maintain_sessions(state: &State) -> anyhow::Result<()> {
+    sqlx::query("DELETE FROM web_sessions WHERE expires_at <= now()")
+        .execute(&state.pool)
+        .await?;
+    sqlx::query("DELETE FROM oauth_states WHERE expires_at <= now()")
+        .execute(&state.pool)
+        .await?;
+
+    let sessions = sqlx::query_as::<_, TokenRow>(
+        r#"WITH candidates AS (
+               SELECT id_hash
+               FROM web_sessions
+               WHERE guilds_fetched_at <= now() - interval '5 minutes'
+                 AND guilds_refresh_attempted_at <= now() - interval '1 minute'
+                 AND expires_at > now()
+               ORDER BY guilds_refresh_attempted_at, guilds_fetched_at
+               FOR UPDATE SKIP LOCKED
+               LIMIT 100
+           )
+           UPDATE web_sessions AS session
+           SET guilds_refresh_attempted_at = now()
+           FROM candidates
+           WHERE session.id_hash = candidates.id_hash
+           RETURNING session.id_hash, session.access_token, session.refresh_token,
+                     session.token_expires_at"#,
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let mut tasks = tokio::task::JoinSet::new();
+    for session in sessions {
+        while tasks.len() >= 8 {
+            log_refresh_result(tasks.join_next().await);
+        }
+        let state = state.clone();
+        tasks.spawn(async move { refresh_cached_guilds(&state, &session).await });
+    }
+    while !tasks.is_empty() {
+        log_refresh_result(tasks.join_next().await);
+    }
+    Ok(())
+}
+
+fn log_refresh_result(result: Option<Result<anyhow::Result<()>, tokio::task::JoinError>>) {
+    match result {
+        Some(Ok(Err(error))) => tracing::warn!(?error, "failed to refresh cached Discord guilds"),
+        Some(Err(error)) => tracing::warn!(?error, "Discord guild refresh task failed"),
+        _ => {}
+    }
+}
+
+#[tracing::instrument(name = "web.session.refresh_guilds", skip(state, session))]
+async fn refresh_cached_guilds(state: &State, session: &TokenRow) -> anyhow::Result<()> {
+    let access_token = access_token(state, session).await?;
+    let guilds = fetch_discord_guilds(state, &access_token).await?;
+    sqlx::query(
+        "UPDATE web_sessions SET guilds = $1, guilds_fetched_at = now() WHERE id_hash = $2",
+    )
+    .bind(sqlx::types::Json(guilds))
+    .bind(&session.id_hash)
+    .execute(&state.pool)
+    .await?;
+    Ok(())
+}
+
+#[tracing::instrument(name = "discord.oauth.access_token", skip(state, session))]
+async fn access_token(state: &State, session: &TokenRow) -> anyhow::Result<String> {
+    if session.token_expires_at > OffsetDateTime::now_utc() + time::Duration::minutes(1) {
+        return decrypt_string(&state.oauth.token_key, &session.access_token);
+    }
+
     let mut transaction = state.pool.begin().await?;
     let row = sqlx::query_as::<_, TokenRow>(
-        r#"SELECT access_token, refresh_token, token_expires_at
+        r#"SELECT id_hash, access_token, refresh_token, token_expires_at
            FROM web_sessions
            WHERE id_hash = $1 AND expires_at > now()
            FOR UPDATE"#,
@@ -385,7 +451,9 @@ async fn access_token(state: &State, session: &Session) -> anyhow::Result<String
     .ok_or_else(|| anyhow::anyhow!("session expired"))?;
 
     if row.token_expires_at > OffsetDateTime::now_utc() + time::Duration::minutes(1) {
-        return decrypt_string(&state.oauth.token_key, &row.access_token);
+        let access_token = decrypt_string(&state.oauth.token_key, &row.access_token)?;
+        transaction.rollback().await?;
+        return Ok(access_token);
     }
 
     let refresh = decrypt_string(&state.oauth.token_key, &row.refresh_token)?;
@@ -393,10 +461,6 @@ async fn access_token(state: &State, session: &Session) -> anyhow::Result<String
         Ok(token) => token,
         Err(error) => {
             transaction.rollback().await?;
-            sqlx::query("DELETE FROM web_sessions WHERE id_hash = $1")
-                .bind(&session.id_hash)
-                .execute(&state.pool)
-                .await?;
             return Err(error);
         }
     };
@@ -451,6 +515,22 @@ async fn token_request(state: &State, form: &[(&str, &str)]) -> anyhow::Result<T
         .post("https://discord.com/api/oauth2/token")
         .basic_auth(&state.oauth.client_id, Some(&state.oauth.client_secret))
         .form(form)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?)
+}
+
+#[tracing::instrument(name = "discord.oauth.guilds", skip(state, access_token))]
+async fn fetch_discord_guilds(
+    state: &State,
+    access_token: &str,
+) -> anyhow::Result<Vec<DiscordGuild>> {
+    Ok(state
+        .http
+        .get("https://discord.com/api/v10/users/@me/guilds?limit=200")
+        .bearer_auth(access_token)
         .send()
         .await?
         .error_for_status()?
