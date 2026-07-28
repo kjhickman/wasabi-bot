@@ -1,6 +1,7 @@
 mod alive;
 mod auth;
 mod dashboard;
+mod favicon;
 mod health;
 mod styles;
 mod voice;
@@ -30,6 +31,7 @@ async fn root_layout(slot: Result) -> Result {
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1">
                 <title>"Wasabi Bot"</title>
+                <link rel="icon" type="image/png" href=(super::FAVICON_URL)>
                 theme_script()
                 <link rel="stylesheet" href=(format!("/styles?v={}", env!("WASABI_CSS_VERSION")))>
                 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="anonymous">

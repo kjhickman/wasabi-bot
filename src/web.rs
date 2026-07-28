@@ -6,6 +6,8 @@ mod theme;
 
 pub use app::router;
 
+pub(crate) const FAVICON_URL: &str = concat!("/favicon?v=", env!("WASABI_FAVICON_VERSION"));
+
 #[derive(Clone)]
 pub struct BotState {
     pub(crate) serenity: poise::serenity_prelude::Context,

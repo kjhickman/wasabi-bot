@@ -87,12 +87,13 @@ pub async fn dashboard_header(session: Option<&Session>) -> Result {
                     class="flex shrink-0 items-center gap-3"
                     aria-label="Wasabi Bot home"
                 >
-                    <span
-                        aria-hidden="true"
-                        class="grid size-9 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-xs"
+                    <img
+                        src=(crate::web::FAVICON_URL)
+                        alt=""
+                        class="size-9 rounded-full border border-border object-cover shadow-xs"
+                        width="36"
+                        height="36"
                     >
-                        "W"
-                    </span>
                     <strong class="text-sm font-semibold tracking-tight sm:text-base">
                         "Wasabi Bot"
                     </strong>

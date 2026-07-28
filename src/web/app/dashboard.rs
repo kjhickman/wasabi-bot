@@ -269,9 +269,13 @@ async fn status_panel(
 
     view! {
         <section class="mx-auto max-w-2xl rounded-2xl border border-border bg-surface px-6 py-12 text-center shadow-sm sm:px-10 sm:py-16">
-            <div class="mx-auto mb-5 grid size-12 place-items-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-                "W"
-            </div>
+            <img
+                src=(crate::web::FAVICON_URL)
+                alt="Wasabi Bot"
+                class="mx-auto mb-5 size-12 rounded-full border border-border object-cover shadow-xs"
+                width="48"
+                height="48"
+            >
             <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">(title)</h1>
             <p class="mx-auto mt-4 max-w-lg text-base leading-7 text-muted-foreground">
                 (description)
