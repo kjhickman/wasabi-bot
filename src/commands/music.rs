@@ -37,7 +37,8 @@ pub async fn play(
     let Some(channel_id) = ensure_same_voice_channel(&ctx).await? else {
         return Ok(());
     };
-    let player = join_author_channel(&ctx, &lavalink, guild_id, channel_id).await?;
+    let player =
+        join_voice_channel(ctx.serenity_context(), &lavalink, guild_id, channel_id).await?;
     let queue = player.get_queue();
     let queued_before = queue.get_count().await?;
 
@@ -270,14 +271,7 @@ async fn clear_voice_state(ctx: &Context<'_>) {
 
 async fn guild_voice_lock(ctx: &Context<'_>) -> OwnedMutexGuard<()> {
     let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
-    let lock = {
-        let mut locks = ctx.data().voice_locks.lock().await;
-        locks
-            .entry(guild_id)
-            .or_insert_with(|| std::sync::Arc::new(tokio::sync::Mutex::new(())))
-            .clone()
-    };
-    lock.lock_owned().await
+    super::lock_guild_voice(&ctx.data().voice_locks, guild_id).await
 }
 
 async fn current_player(ctx: &Context<'_>) -> Result<Option<PlayerContext>, Error> {
@@ -293,20 +287,22 @@ async fn current_player(ctx: &Context<'_>) -> Result<Option<PlayerContext>, Erro
     Ok(Some(player))
 }
 
-async fn join_author_channel(
-    ctx: &Context<'_>,
+pub(crate) async fn join_voice_channel(
+    ctx: &serenity::Context,
     lavalink: &LavalinkClient,
     guild_id: serenity::GuildId,
     channel_id: serenity::ChannelId,
 ) -> Result<PlayerContext, Error> {
-    if let Some(player) = lavalink.get_player_context(lava_guild(guild_id)) {
-        return Ok(player);
-    }
-
-    let manager = songbird::get(ctx.serenity_context())
+    let manager = songbird::get(ctx)
         .await
         .ok_or_else(|| anyhow::anyhow!("songbird is not registered"))?
         .clone();
+    if let Some(player) = lavalink.get_player_context(lava_guild(guild_id)) {
+        if manager.get(guild_id).is_some() {
+            return Ok(player);
+        }
+        let _ = lavalink.delete_player(lava_guild(guild_id)).await;
+    }
     let (connection_info, _) = manager.join_gateway(guild_id, channel_id).await?;
 
     let player = lavalink

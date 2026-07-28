@@ -1,22 +1,14 @@
 use poise::serenity_prelude as serenity;
 use songbird::SerenityInit;
 
-use crate::commands::{self, Data, Error, VoiceState};
+use crate::commands::{self, Data, Error, VoiceLocks, VoiceStates};
 use crate::db;
-
-type VoiceLocks = std::sync::Arc<
-    tokio::sync::Mutex<
-        std::collections::HashMap<serenity::GuildId, std::sync::Arc<tokio::sync::Mutex<()>>>,
-    >,
->;
-type VoiceStates =
-    std::sync::Arc<tokio::sync::Mutex<std::collections::HashMap<serenity::GuildId, VoiceState>>>;
 
 const IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 const PAUSED_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
 const VOICE_MAINTENANCE_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
 
-pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
+pub async fn run(pool: sqlx::PgPool, bot_state: crate::web::SharedBotState) -> anyhow::Result<()> {
     let token =
         std::env::var("DISCORD_TOKEN").map_err(|_| anyhow::anyhow!("DISCORD_TOKEN is not set"))?;
     let gemini_api_key = std::env::var("GEMINI_API_KEY").ok();
@@ -49,6 +41,12 @@ pub async fn run(pool: sqlx::PgPool) -> anyhow::Result<()> {
                 };
                 let voice_locks = std::sync::Arc::new(tokio::sync::Mutex::default());
                 let voice_state = std::sync::Arc::new(tokio::sync::Mutex::default());
+                *bot_state.write().await = Some(crate::web::BotState {
+                    serenity: ctx.clone(),
+                    lavalink: lavalink.clone(),
+                    voice_locks: voice_locks.clone(),
+                    voice_state: voice_state.clone(),
+                });
                 start_voice_maintenance(
                     ctx.clone(),
                     lavalink.clone(),
@@ -196,7 +194,7 @@ async fn maintain_voice(
     };
 
     for guild_id in guild_ids {
-        let _guard = guild_voice_lock(voice_locks, guild_id).await;
+        let _guard = commands::lock_guild_voice(voice_locks, guild_id).await;
         if bot_voice_channel(&ctx.cache, guild_id).is_none() {
             clear_voice_state(voice_state, guild_id).await;
             continue;
@@ -256,7 +254,7 @@ async fn disconnect_if_alone(
     if has_human_in_voice_channel(&ctx.cache, guild_id, bot_channel_id) {
         return Ok(());
     }
-    let _guard = guild_voice_lock(&data.voice_locks, guild_id).await;
+    let _guard = commands::lock_guild_voice(&data.voice_locks, guild_id).await;
     let Some(bot_channel_id) = bot_voice_channel(&ctx.cache, guild_id) else {
         return Ok(());
     };
@@ -294,20 +292,6 @@ async fn remove_voice_connection(
         manager.remove(guild_id).await?;
     }
     Ok(())
-}
-
-async fn guild_voice_lock(
-    voice_locks: &VoiceLocks,
-    guild_id: serenity::GuildId,
-) -> tokio::sync::OwnedMutexGuard<()> {
-    let lock = {
-        let mut locks = voice_locks.lock().await;
-        locks
-            .entry(guild_id)
-            .or_insert_with(|| std::sync::Arc::new(tokio::sync::Mutex::new(())))
-            .clone()
-    };
-    lock.lock_owned().await
 }
 
 async fn clear_voice_state(voice_state: &VoiceStates, guild_id: serenity::GuildId) {

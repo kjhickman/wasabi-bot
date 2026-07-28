@@ -11,7 +11,7 @@ use crate::web::components::{
 };
 
 #[component]
-pub async fn now_playing_panel() -> Result {
+pub async fn now_playing_panel(guild_name: &str, channel_name: &str) -> Result {
     view! {
         card(
             attrs: attributes! {
@@ -28,7 +28,7 @@ pub async fn now_playing_panel() -> Result {
                         "Now playing"
                     </p>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        "Lounge · Wasabi Test Server"
+                        (format!("{channel_name} · {guild_name}"))
                     </p>
                 </div>
                 <span

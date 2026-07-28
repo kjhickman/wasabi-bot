@@ -16,6 +16,9 @@ Wasabi Bot is a Rust Discord bot built with [poise](https://github.com/serenity-
 The Aspire app prompts for these parameters on first run:
 
 - `discord-bot-token`
+- `discord-client-id`
+- `discord-client-secret`
+- `web-token-key`: generate with `openssl rand -base64 32`
 
 You can enter them into the prompt when Aspire starts, or store them with Aspire user secrets for reuse.
 
@@ -23,11 +26,15 @@ You can enter them into the prompt when Aspire starts, or store them with Aspire
 
 1. Create a Discord application and bot in the Discord developer portal.
 2. Open the `Bot` page and reset or copy the bot token.
-3. Invite the bot to a server you control so you can test commands locally.
+3. Add `http://localhost:8080/auth/discord/callback` as an OAuth2 redirect.
+4. Copy the application ID and client secret from the OAuth2 page.
+5. Invite the bot to a server you control so you can test commands locally.
 
 Use these values for:
 
 - `discord-bot-token`: bot token from the `Bot` page
+- `discord-client-id`: application ID from the OAuth2 page
+- `discord-client-secret`: client secret from the OAuth2 page
 
 The Rust app reads these runtime environment variables:
 

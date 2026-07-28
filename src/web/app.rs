@@ -1,21 +1,23 @@
 mod alive;
+mod auth;
 mod dashboard;
 mod health;
+mod styles;
+mod voice;
 
 use topcoat::{
     Result,
-    asset::{AssetBundle, RouterBuilderAssetExt},
-    font::{RouterBuilderFontExt, fontsource::fontsource_font},
+    cookie::RouterBuilderCookieExt,
     router::{Router, layout},
     view::view,
 };
 
 use super::theme::theme_script;
 
-pub fn router() -> anyhow::Result<Router> {
+pub fn router(state: super::State) -> anyhow::Result<Router> {
     Ok(topcoat::router::module_router!()
-        .assets(AssetBundle::load()?)
-        .discover_fonts()
+        .cookies()
+        .app_context(state)
         .build())
 }
 
@@ -29,14 +31,11 @@ async fn root_layout(slot: Result) -> Result {
                 <meta name="viewport" content="width=device-width,initial-scale=1">
                 <title>"Wasabi Bot"</title>
                 theme_script()
-                <link rel="stylesheet" href=(topcoat::tailwind::stylesheet!())>
-                topcoat::font::link(
-                    font: fontsource_font!(
-                        GEIST, weight : [400, 500, 600, 700], style : Normal
-                    ),
-                    preload: false
-                )
-                topcoat::dev::script()
+                <link rel="stylesheet" href="/styles">
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.2.8/400.css">
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.2.8/500.css">
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.2.8/600.css">
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist@5.2.8/700.css">
             </head>
             <body>(slot?)</body>
         </html>

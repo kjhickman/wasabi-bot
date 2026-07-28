@@ -1,27 +1,45 @@
 mod fun;
-mod music;
+pub(crate) mod music;
 mod utility;
 
 pub use fun::{caption, choose, conch, flip, mock};
 pub use music::{leave, nowplaying, pause, play, queue, resume, skip, stop};
 pub use utility::{help, stats};
 
+pub(crate) type VoiceLocks = std::sync::Arc<
+    tokio::sync::Mutex<
+        std::collections::HashMap<
+            poise::serenity_prelude::GuildId,
+            std::sync::Arc<tokio::sync::Mutex<()>>,
+        >,
+    >,
+>;
+
+pub(crate) type VoiceStates = std::sync::Arc<
+    tokio::sync::Mutex<std::collections::HashMap<poise::serenity_prelude::GuildId, VoiceState>>,
+>;
+
+pub(crate) async fn lock_guild_voice(
+    voice_locks: &VoiceLocks,
+    guild_id: poise::serenity_prelude::GuildId,
+) -> tokio::sync::OwnedMutexGuard<()> {
+    let lock = {
+        let mut locks = voice_locks.lock().await;
+        locks
+            .entry(guild_id)
+            .or_insert_with(|| std::sync::Arc::new(tokio::sync::Mutex::new(())))
+            .clone()
+    };
+    lock.lock_owned().await
+}
+
 pub struct Data {
     pub pool: sqlx::PgPool,
     pub http: reqwest::Client,
     pub gemini_api_key: Option<String>,
     pub lavalink: Option<lavalink_rs::prelude::LavalinkClient>,
-    pub voice_locks: std::sync::Arc<
-        tokio::sync::Mutex<
-            std::collections::HashMap<
-                poise::serenity_prelude::GuildId,
-                std::sync::Arc<tokio::sync::Mutex<()>>,
-            >,
-        >,
-    >,
-    pub voice_state: std::sync::Arc<
-        tokio::sync::Mutex<std::collections::HashMap<poise::serenity_prelude::GuildId, VoiceState>>,
-    >,
+    pub voice_locks: VoiceLocks,
+    pub voice_state: VoiceStates,
 }
 
 #[derive(Default)]

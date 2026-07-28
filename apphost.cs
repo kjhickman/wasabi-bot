@@ -18,6 +18,15 @@ builder.Configuration.AddInMemoryCollection(
 var discordBotToken = builder.AddParameter("discord-bot-token", secret: true)
     .WithDescription("Discord Bot Token");
 
+var discordClientId = builder.AddParameter("discord-client-id")
+    .WithDescription("Discord OAuth Client ID");
+
+var discordClientSecret = builder.AddParameter("discord-client-secret", secret: true)
+    .WithDescription("Discord OAuth Client Secret");
+
+var webTokenKey = builder.AddParameter("web-token-key", secret: true)
+    .WithDescription("Base64-encoded 32-byte web token encryption key");
+
 var googleApiKey = builder.AddParameter("google-api-key", secret: true)
     .WithDescription("Google API Key");
 
@@ -40,10 +49,14 @@ var migrations = builder.AddRustApp("migrations", ".", args: ["--bin", "migrate"
     .WithParentRelationship(postgres);
 
 builder.AddRustApp("wasabi-bot", ".")
-    .WithHttpEndpoint(env: "PORT")
+    .WithHttpEndpoint(port: 8080, env: "PORT")
     .WithHttpHealthCheck("/health")
     .WithEnvironment("DATABASE_URL", database.Resource.UriExpression)
     .WithEnvironment("DISCORD_TOKEN", discordBotToken)
+    .WithEnvironment("DISCORD_CLIENT_ID", discordClientId)
+    .WithEnvironment("DISCORD_CLIENT_SECRET", discordClientSecret)
+    .WithEnvironment("WEB_TOKEN_KEY", webTokenKey)
+    .WithEnvironment("PUBLIC_URL", "http://localhost:8080")
     .WithEnvironment("GEMINI_API_KEY", googleApiKey)
     .WithEnvironment("LAVALINK_URL", lavalink.GetEndpoint("http"))
     .WithOtlpExporter()
