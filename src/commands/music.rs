@@ -1,10 +1,10 @@
-use lavalink_rs::model::track::{TrackData, TrackInfo};
-use lavalink_rs::prelude::*;
+use lavalink_rs::{model::track::TrackInfo, prelude::PlayerContext};
 use poise::serenity_prelude as serenity;
 use serenity::utils::MessageBuilder;
 use tokio::sync::OwnedMutexGuard;
 
 use super::{Context, Error, send_ephemeral};
+use crate::{music, voice};
 
 /// Play a song.
 #[poise::command(slash_command, guild_only)]
@@ -25,7 +25,7 @@ pub async fn play(
         return Ok(());
     }
 
-    let Some(loaded) = load_tracks(&lavalink, guild_id, &input).await? else {
+    let Some(loaded) = music::load_tracks(&lavalink, guild_id, &input).await? else {
         send_ephemeral(&ctx, "No playable tracks found.").await?;
         return Ok(());
     };
@@ -34,36 +34,33 @@ pub async fn play(
     let Some(channel_id) = ensure_same_voice_channel(&ctx).await? else {
         return Ok(());
     };
-    let player =
-        join_voice_channel(ctx.serenity_context(), &lavalink, guild_id, channel_id).await?;
-    let queue = player.get_queue();
-    let queued_before = queue.get_count().await?;
-
-    let (tracks, response) = match loaded {
-        LoadedTracks::Single { source, track } => {
-            let response = format!(
-                "Queued {} at position {} from {}.",
-                track_link(&track.info),
-                queued_before + 1,
-                source
-            );
-            (vec![(*track).into()], response)
-        }
-        LoadedTracks::Playlist { name, tracks } => {
-            let response = format!(
+    let player = music::join(
+        ctx.serenity_context(),
+        &lavalink,
+        &ctx.data().voice_state,
+        guild_id,
+        channel_id,
+    )
+    .await?;
+    let response = match music::enqueue(&player, &ctx.data().voice_state, guild_id, loaded).await? {
+        music::EnqueueOutcome::Track {
+            source,
+            info,
+            position,
+        } => format!(
+            "Queued {} at position {} from {}.",
+            track_link(&info),
+            position,
+            source
+        ),
+        music::EnqueueOutcome::Playlist { name, count } => {
+            format!(
                 "Queued playlist **{}** ({} tracks).",
                 safe_text(&name),
-                tracks.len()
-            );
-            (tracks, response)
+                count
+            )
         }
     };
-
-    queue.append(tracks.into())?;
-    if player.get_player().await?.track.is_none() && queue.get_track(0).await?.is_some() {
-        player.skip()?;
-    }
-    mark_voice_active(&ctx).await;
 
     ctx.say(response).await?;
     Ok(())
@@ -81,10 +78,9 @@ pub async fn skip(ctx: Context<'_>) -> Result<(), Error> {
         return Ok(());
     }
 
-    if let Some(track) = player.get_player().await?.track {
-        player.skip()?;
-        mark_voice_active(&ctx).await;
-        ctx.say(format!("Skipped {}.", safe_text(&track.info.title)))
+    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
+    if let Some(info) = music::skip(&player, &ctx.data().voice_state, guild_id).await? {
+        ctx.say(format!("Skipped {}.", safe_text(&info.title)))
             .await?;
     } else {
         send_ephemeral(&ctx, "Nothing is playing.").await?;
@@ -104,18 +100,17 @@ pub async fn stop(ctx: Context<'_>) -> Result<(), Error> {
         return Ok(());
     }
 
-    let queue = player.get_queue();
-    let had_queue = queue.get_count().await? > 0;
-    queue.clear()?;
-    if player.get_player().await?.track.is_some() {
-        player.stop_now().await?;
-        mark_voice_idle(&ctx).await;
-        ctx.say("Stopped playback and cleared the queue.").await?;
-    } else if had_queue {
-        mark_voice_idle(&ctx).await;
-        ctx.say("Cleared the queue.").await?;
-    } else {
-        send_ephemeral(&ctx, "Nothing is playing.").await?;
+    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
+    match music::stop(&player, &ctx.data().voice_state, guild_id).await? {
+        music::StopOutcome::PlaybackStopped => {
+            ctx.say("Stopped playback and cleared the queue.").await?;
+        }
+        music::StopOutcome::QueueCleared => {
+            ctx.say("Cleared the queue.").await?;
+        }
+        music::StopOutcome::Nothing => {
+            send_ephemeral(&ctx, "Nothing is playing.").await?;
+        }
     }
     Ok(())
 }
@@ -142,15 +137,15 @@ pub async fn queue(ctx: Context<'_>) -> Result<(), Error> {
         return Ok(());
     };
 
-    let player_data = player.get_player().await?;
-    let now = match player_data.track {
+    let snapshot = music::snapshot(&player).await?;
+    let now = match snapshot.current {
         Some(track) => format!("Now playing: {}", track_link(&track.info)),
         None => "Now playing: nothing".to_string(),
     };
 
-    let tracks = player.get_queue().get_queue().await?;
-    let total = tracks.len();
-    let upcoming = tracks
+    let total = snapshot.upcoming.len();
+    let upcoming = snapshot
+        .upcoming
         .iter()
         .take(10)
         .enumerate()
@@ -172,10 +167,9 @@ pub async fn nowplaying(ctx: Context<'_>) -> Result<(), Error> {
     let Some(player) = current_player(&ctx).await? else {
         return Ok(());
     };
-    let player_data = player.get_player().await?;
-    let queue_count = player.get_queue().get_count().await?;
+    let (current, queue_count) = music::now_playing(&player).await?;
 
-    if let Some(track) = player_data.track {
+    if let Some(track) = current {
         let suffix = if queue_count == 0 {
             String::new()
         } else {
@@ -203,16 +197,14 @@ pub async fn leave(ctx: Context<'_>) -> Result<(), Error> {
         return Ok(());
     }
 
-    if let Some(lavalink) = &ctx.data().lavalink {
-        let _ = lavalink.delete_player(lava_guild(guild_id)).await;
-    }
-    clear_voice_state(&ctx).await;
-    let manager = songbird::get(ctx.serenity_context())
-        .await
-        .ok_or_else(|| anyhow::anyhow!("songbird is not registered"))?
-        .clone();
-    if manager.get(guild_id).is_some() {
-        manager.remove(guild_id).await?;
+    if music::leave(
+        ctx.serenity_context(),
+        ctx.data().lavalink.as_ref(),
+        &ctx.data().voice_state,
+        guild_id,
+    )
+    .await?
+    {
         ctx.say("Left voice channel.").await?;
     } else {
         send_ephemeral(&ctx, "Nothing to leave.").await?;
@@ -228,50 +220,18 @@ async fn set_pause(ctx: Context<'_>, paused: bool) -> Result<(), Error> {
     if ensure_same_voice_channel(&ctx).await?.is_none() {
         return Ok(());
     }
-    if player.get_player().await?.track.is_none() {
+    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
+    if !music::set_paused(&player, &ctx.data().voice_state, guild_id, paused).await? {
         send_ephemeral(&ctx, "Nothing is playing.").await?;
         return Ok(());
     }
-    player.set_pause(paused).await?;
-    mark_voice_paused(&ctx, paused).await;
     ctx.say(if paused { "Paused." } else { "Resumed." }).await?;
     Ok(())
 }
 
-async fn mark_voice_active(ctx: &Context<'_>) {
-    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
-    let mut voice_state = ctx.data().voice_state.lock().await;
-    let state = voice_state.entry(guild_id).or_default();
-    state.idle_since = None;
-    state.paused_since = None;
-    drop(voice_state);
-}
-
-async fn mark_voice_idle(ctx: &Context<'_>) {
-    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
-    let mut voice_state = ctx.data().voice_state.lock().await;
-    let state = voice_state.entry(guild_id).or_default();
-    state.idle_since = Some(std::time::Instant::now());
-    state.paused_since = None;
-    drop(voice_state);
-}
-
-async fn mark_voice_paused(ctx: &Context<'_>, paused: bool) {
-    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
-    let mut voice_state = ctx.data().voice_state.lock().await;
-    let state = voice_state.entry(guild_id).or_default();
-    state.paused_since = paused.then(std::time::Instant::now);
-    drop(voice_state);
-}
-
-async fn clear_voice_state(ctx: &Context<'_>) {
-    let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
-    ctx.data().voice_state.lock().await.remove(&guild_id);
-}
-
 async fn guild_voice_lock(ctx: &Context<'_>) -> OwnedMutexGuard<()> {
     let guild_id = ctx.guild_id().expect("guild_only command has a guild_id");
-    super::lock_guild_voice(&ctx.data().voice_locks, guild_id).await
+    voice::lock_guild(&ctx.data().voice_locks, guild_id).await
 }
 
 async fn current_player(ctx: &Context<'_>) -> Result<Option<PlayerContext>, Error> {
@@ -280,35 +240,11 @@ async fn current_player(ctx: &Context<'_>) -> Result<Option<PlayerContext>, Erro
         send_ephemeral(ctx, "Music is not configured for this bot.").await?;
         return Ok(None);
     };
-    let Some(player) = lavalink.get_player_context(lava_guild(guild_id)) else {
+    let Some(player) = music::player(lavalink, guild_id) else {
         send_ephemeral(ctx, "Nothing is playing.").await?;
         return Ok(None);
     };
     Ok(Some(player))
-}
-
-pub async fn join_voice_channel(
-    ctx: &serenity::Context,
-    lavalink: &LavalinkClient,
-    guild_id: serenity::GuildId,
-    channel_id: serenity::ChannelId,
-) -> Result<PlayerContext, Error> {
-    let manager = songbird::get(ctx)
-        .await
-        .ok_or_else(|| anyhow::anyhow!("songbird is not registered"))?
-        .clone();
-    if let Some(player) = lavalink.get_player_context(lava_guild(guild_id)) {
-        if manager.get(guild_id).is_some() {
-            return Ok(player);
-        }
-        let _ = lavalink.delete_player(lava_guild(guild_id)).await;
-    }
-    let (connection_info, _) = manager.join_gateway(guild_id, channel_id).await?;
-
-    let player = lavalink
-        .create_player_context(lava_guild(guild_id), connection_info)
-        .await?;
-    Ok(player)
 }
 
 async fn ensure_same_voice_channel(
@@ -336,86 +272,10 @@ fn author_voice_channel(ctx: &Context<'_>) -> Option<serenity::ChannelId> {
 }
 
 fn bot_voice_channel(ctx: &Context<'_>) -> Option<serenity::ChannelId> {
-    ctx.guild()?
-        .voice_states
-        .get(&ctx.serenity_context().cache.current_user().id)
-        .and_then(|state| state.channel_id)
-}
-
-async fn load_tracks(
-    lavalink: &LavalinkClient,
-    guild_id: serenity::GuildId,
-    input: &str,
-) -> Result<Option<LoadedTracks>, Error> {
-    for (source, query) in track_queries(input)? {
-        match lavalink.load_tracks(lava_guild(guild_id), &query).await {
-            Ok(loaded) => match loaded.data {
-                Some(TrackLoadData::Track(track)) => {
-                    return Ok(Some(LoadedTracks::Single {
-                        source,
-                        track: Box::new(track),
-                    }));
-                }
-                Some(TrackLoadData::Search(tracks)) => {
-                    if let Some(track) = tracks.into_iter().next() {
-                        return Ok(Some(LoadedTracks::Single {
-                            source,
-                            track: Box::new(track),
-                        }));
-                    }
-                }
-                Some(TrackLoadData::Playlist(playlist)) => {
-                    let tracks: Vec<_> = playlist.tracks.into_iter().map(Into::into).collect();
-                    if !tracks.is_empty() {
-                        return Ok(Some(LoadedTracks::Playlist {
-                            name: playlist.info.name,
-                            tracks,
-                        }));
-                    }
-                }
-                Some(TrackLoadData::Error(error)) => tracing::warn!(
-                    message = %error.message,
-                    cause = %error.cause,
-                    query = %query,
-                    "Lavalink track load error"
-                ),
-                None => {}
-            },
-            Err(error) => tracing::warn!(?error, query = %query, "failed to load tracks"),
-        }
-    }
-    Ok(None)
-}
-
-enum LoadedTracks {
-    Single {
-        source: &'static str,
-        track: Box<TrackData>,
-    },
-    Playlist {
-        name: String,
-        tracks: Vec<TrackInQueue>,
-    },
-}
-
-fn track_queries(input: &str) -> Result<Vec<(&'static str, String)>, Error> {
-    let input = input.trim();
-    if input.starts_with("http://") || input.starts_with("https://") {
-        Ok(vec![("URL", input.to_string())])
-    } else {
-        Ok(vec![
-            (
-                "YouTube Music",
-                SearchEngines::YouTubeMusic.to_query(input)?,
-            ),
-            ("YouTube", SearchEngines::YouTube.to_query(input)?),
-            ("SoundCloud", SearchEngines::SoundCloud.to_query(input)?),
-        ])
-    }
-}
-
-fn lava_guild(guild_id: serenity::GuildId) -> lavalink_rs::model::GuildId {
-    guild_id.get().into()
+    voice::bot_channel(
+        ctx.serenity_context().cache.as_ref(),
+        ctx.guild_id().expect("guild_only command has a guild_id"),
+    )
 }
 
 fn track_link(info: &TrackInfo) -> String {
@@ -432,29 +292,4 @@ fn track_link(info: &TrackInfo) -> String {
 
 fn safe_text(value: &str) -> String {
     MessageBuilder::new().push_safe(value).build()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::track_queries;
-
-    #[test]
-    fn track_queries_passes_urls_through() {
-        assert_eq!(
-            track_queries("https://example.com/song").unwrap(),
-            vec![("URL", "https://example.com/song".to_string())]
-        );
-    }
-
-    #[test]
-    fn track_queries_prefer_youtube_music_then_youtube_then_soundcloud() {
-        assert_eq!(
-            track_queries("big tune").unwrap(),
-            vec![
-                ("YouTube Music", "ytmsearch:big tune".to_string()),
-                ("YouTube", "ytsearch:big tune".to_string()),
-                ("SoundCloud", "scsearch:big tune".to_string()),
-            ]
-        );
-    }
 }

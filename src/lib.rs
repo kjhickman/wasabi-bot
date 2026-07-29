@@ -7,5 +7,8 @@ pub mod bot;
 mod commands;
 pub mod db;
 mod llm;
+mod music;
 pub mod telemetry;
+pub mod ui_events;
+pub(crate) mod voice;
 pub mod web;

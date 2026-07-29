@@ -4,6 +4,7 @@ use topcoat::{
     view::{attributes, component, view},
 };
 
+use crate::web::app::dashboard::models::SearchResultView;
 use crate::web::components::{
     button::{ButtonSize, ButtonVariant, button},
     card::{card, card_content, card_description, card_header, card_title},
@@ -11,7 +12,7 @@ use crate::web::components::{
 };
 
 #[component]
-pub async fn search_panel() -> Result {
+pub async fn search_panel(recommendations: &[SearchResultView<'_>]) -> Result {
     view! {
         card(
             attrs: attributes! {
@@ -59,21 +60,9 @@ pub async fn search_panel() -> Result {
                         "Quick picks"
                     </p>
                     <ul class="divide-y divide-border">
-                        recommendation(
-                            title: "Soft Circuit",
-                            artist: "Public Memory",
-                            duration: "3:21"
-                        )
-                        recommendation(
-                            title: "Limewire Nights",
-                            artist: "Modem Club",
-                            duration: "4:05"
-                        )
-                        recommendation(
-                            title: "Last Train Home",
-                            artist: "City Sleep",
-                            duration: "2:56"
-                        )
+                        for result in recommendations {
+                            recommendation(result: result)
+                        }
                     </ul>
                 </div>
             )
@@ -82,7 +71,7 @@ pub async fn search_panel() -> Result {
 }
 
 #[component]
-async fn recommendation(title: &str, artist: &str, duration: &str) -> Result {
+async fn recommendation(result: &SearchResultView<'_>) -> Result {
     view! {
         <li class="flex items-center gap-3 py-3 first:pt-1 last:pb-0">
             <span
@@ -97,18 +86,18 @@ async fn recommendation(title: &str, artist: &str, duration: &str) -> Result {
                 )
             </span>
             <span class="min-w-0 flex-1">
-                <strong class="block truncate text-sm font-medium">(title)</strong>
+                <strong class="block truncate text-sm font-medium">(result.title)</strong>
                 <span class="block truncate text-xs text-muted-foreground">
-                    (artist)
+                    (result.artist)
                 </span>
             </span>
-            <span class="font-mono text-xs text-muted-foreground">(duration)</span>
+            <span class="font-mono text-xs text-muted-foreground">(result.duration)</span>
             button(
                 variant: ButtonVariant::Ghost,
                 size: ButtonSize::Icon,
                 attrs: attributes! {
                     disabled=(true)
-                    aria-label=(format!("Add {title} to queue"))
+                    aria-label=(format!("Add {} to queue", result.title))
                     title="Queue controls are not connected"
                 },
                 icon(

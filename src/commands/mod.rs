@@ -2,37 +2,11 @@ mod fun;
 mod music;
 mod utility;
 
+use crate::voice::{VoiceLocks, VoiceStates};
+
 pub use fun::{caption, choose, conch, flip, mock};
-pub use music::join_voice_channel;
 pub use music::{leave, nowplaying, pause, play, queue, resume, skip, stop};
 pub use utility::{help, stats};
-
-pub type VoiceLocks = std::sync::Arc<
-    tokio::sync::Mutex<
-        std::collections::HashMap<
-            poise::serenity_prelude::GuildId,
-            std::sync::Arc<tokio::sync::Mutex<()>>,
-        >,
-    >,
->;
-
-pub type VoiceStates = std::sync::Arc<
-    tokio::sync::Mutex<std::collections::HashMap<poise::serenity_prelude::GuildId, VoiceState>>,
->;
-
-pub async fn lock_guild_voice(
-    voice_locks: &VoiceLocks,
-    guild_id: poise::serenity_prelude::GuildId,
-) -> tokio::sync::OwnedMutexGuard<()> {
-    let lock = {
-        let mut locks = voice_locks.lock().await;
-        locks
-            .entry(guild_id)
-            .or_insert_with(|| std::sync::Arc::new(tokio::sync::Mutex::new(())))
-            .clone()
-    };
-    lock.lock_owned().await
-}
 
 pub struct Data {
     pub pool: sqlx::PgPool,
@@ -41,13 +15,7 @@ pub struct Data {
     pub lavalink: Option<lavalink_rs::prelude::LavalinkClient>,
     pub voice_locks: VoiceLocks,
     pub voice_state: VoiceStates,
-    pub ui_events: crate::web::UiEvents,
-}
-
-#[derive(Default)]
-pub struct VoiceState {
-    pub idle_since: Option<std::time::Instant>,
-    pub paused_since: Option<std::time::Instant>,
+    pub ui_events: crate::ui_events::UiEvents,
 }
 
 pub type Error = anyhow::Error;

@@ -3,27 +3,20 @@ mod auth;
 mod components;
 mod theme;
 
+use crate::{
+    ui_events::UiEvents,
+    voice::{VoiceLocks, VoiceStates},
+};
 use app::router;
 
 pub(crate) const FAVICON_URL: &str = concat!("/favicon?v=", env!("WASABI_FAVICON_VERSION"));
-
-#[derive(Clone, Copy, Debug)]
-pub enum UiEvent {
-    VoiceStateChanged {
-        guild_id: poise::serenity_prelude::GuildId,
-        user_id: poise::serenity_prelude::UserId,
-        is_bot: bool,
-    },
-}
-
-pub type UiEvents = tokio::sync::broadcast::Sender<UiEvent>;
 
 #[derive(Clone)]
 pub struct BotState {
     pub(crate) serenity: poise::serenity_prelude::Context,
     pub(crate) lavalink: Option<lavalink_rs::prelude::LavalinkClient>,
-    pub(crate) voice_locks: crate::commands::VoiceLocks,
-    pub(crate) voice_state: crate::commands::VoiceStates,
+    pub(crate) voice_locks: VoiceLocks,
+    pub(crate) voice_state: VoiceStates,
 }
 
 pub type SharedBotState = std::sync::Arc<tokio::sync::RwLock<Option<BotState>>>;

@@ -4,13 +4,14 @@ use topcoat::{
     view::{attributes, component, view},
 };
 
+use crate::web::app::dashboard::models::QueueItemView;
 use crate::web::components::{
     button::{ButtonSize, ButtonVariant, button},
     card::{card, card_content, card_description, card_header, card_title},
 };
 
 #[component]
-pub async fn queue_panel() -> Result {
+pub async fn queue_panel(summary: &str, items: &[QueueItemView<'_>]) -> Result {
     view! {
         card(
             attrs: attributes! {
@@ -22,7 +23,7 @@ pub async fn queue_panel() -> Result {
                 },
                 <div>
                     card_title("Up next")
-                    card_description("4 tracks · 14 minutes")
+                    card_description((summary))
                 </div>
                 button(
                     variant: ButtonVariant::Ghost,
@@ -42,34 +43,9 @@ pub async fn queue_panel() -> Result {
             )
             card_content(
                 <ol class="space-y-1">
-                    queue_item(
-                        position: "01",
-                        title: "Chrome Garden",
-                        artist: "Signal Path",
-                        duration: "3:44",
-                        up_next: true
-                    )
-                    queue_item(
-                        position: "02",
-                        title: "Low Battery",
-                        artist: "Night Shift",
-                        duration: "2:51",
-                        up_next: false
-                    )
-                    queue_item(
-                        position: "03",
-                        title: "Window Seat",
-                        artist: "City Sleep",
-                        duration: "4:18",
-                        up_next: false
-                    )
-                    queue_item(
-                        position: "04",
-                        title: "Neon Receipt",
-                        artist: "Corner Store",
-                        duration: "3:12",
-                        up_next: false
-                    )
+                    for item in items {
+                        queue_item(item: item)
+                    }
                 </ol>
             )
         )
@@ -77,14 +53,8 @@ pub async fn queue_panel() -> Result {
 }
 
 #[component]
-async fn queue_item(
-    position: &str,
-    title: &str,
-    artist: &str,
-    duration: &str,
-    up_next: bool,
-) -> Result {
-    let row_class = if up_next {
+async fn queue_item(item: &QueueItemView<'_>) -> Result {
+    let row_class = if item.up_next {
         "border-primary/25 bg-primary/10"
     } else {
         "border-transparent"
@@ -99,12 +69,12 @@ async fn queue_item(
             <span
                 class="w-5 shrink-0 text-center font-mono text-[0.65rem] text-muted-foreground"
             >
-                (position)
+                (item.position)
             </span>
             <span class="min-w-0 flex-1">
                 <span class="flex items-center gap-2">
-                    <strong class="truncate text-sm font-medium">(title)</strong>
-                    if up_next {
+                    <strong class="truncate text-sm font-medium">(item.title)</strong>
+                    if item.up_next {
                         <span
                             class="rounded-full bg-primary px-1.5 py-0.5 text-[0.6rem] font-bold tracking-wide text-primary-foreground uppercase"
                         >
@@ -113,16 +83,16 @@ async fn queue_item(
                     }
                 </span>
                 <span class="block truncate text-xs text-muted-foreground">
-                    (artist)
+                    (item.artist)
                 </span>
             </span>
-            <span class="font-mono text-xs text-muted-foreground">(duration)</span>
+            <span class="font-mono text-xs text-muted-foreground">(item.duration)</span>
             button(
                 variant: ButtonVariant::Ghost,
                 size: ButtonSize::Icon,
                 attrs: attributes! {
                     disabled=(true)
-                    aria-label=(format!("Remove {title} from queue"))
+                    aria-label=(format!("Remove {} from queue", item.title))
                     title="Queue controls are not connected"
                     class="size-8"
                 },

@@ -4,6 +4,7 @@ use topcoat::{
     view::{attributes, component, view},
 };
 
+use crate::web::app::dashboard::models::PlaybackView;
 use crate::web::components::{
     button::{ButtonSize, ButtonVariant, button},
     card::{card, card_content, card_header},
@@ -11,7 +12,7 @@ use crate::web::components::{
 };
 
 #[component]
-pub async fn now_playing_panel(guild_name: &str, channel_name: &str) -> Result {
+pub async fn now_playing_panel(playback: &PlaybackView<'_>) -> Result {
     view! {
         card(
             attrs: attributes! {
@@ -28,7 +29,10 @@ pub async fn now_playing_panel(guild_name: &str, channel_name: &str) -> Result {
                         "Now playing"
                     </p>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        (format!("{channel_name} · {guild_name}"))
+                        (format!(
+                            "{} · {}",
+                            playback.channel_name, playback.guild_name
+                        ))
                     </p>
                 </div>
                 <span
@@ -43,23 +47,23 @@ pub async fn now_playing_panel(guild_name: &str, channel_name: &str) -> Result {
                     class =
                     "grid gap-6 md:grid-cols-[minmax(15rem,0.9fr)_minmax(0,1.1fr)] md:items-center"
                 },
-                album_art()
+                album_art(playback: playback)
                 <div class="flex min-w-0 flex-col">
                     <p
                         class="mb-2 text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase"
                     >
-                        "After Hours Radio"
+                        (playback.show)
                     </p>
                     <h2
                         class="truncate text-3xl font-semibold tracking-tight sm:text-4xl"
                     >
-                        "Green Static"
+                        (playback.title)
                     </h2>
-                    <p class="mt-2 text-lg text-muted-foreground">"Night Market"</p>
+                    <p class="mt-2 text-lg text-muted-foreground">(playback.artist)</p>
 
                     <div class="mt-8">
                         progress(
-                            value: 43.0,
+                            value: playback.progress,
                             attrs: attributes! {
                                 aria-label="Playback progress"
                                 class="h-1.5"
@@ -68,8 +72,8 @@ pub async fn now_playing_panel(guild_name: &str, channel_name: &str) -> Result {
                         <div
                             class="mt-2 flex justify-between font-mono text-xs text-muted-foreground"
                         >
-                            <span>"1:42"</span>
-                            <span>"3:58"</span>
+                            <span>(playback.elapsed)</span>
+                            <span>(playback.duration)</span>
                         </div>
                     </div>
 
@@ -129,7 +133,7 @@ pub async fn now_playing_panel(guild_name: &str, channel_name: &str) -> Result {
                         >
                             <div class="h-full w-2/3 rounded-full bg-foreground/40"></div>
                         </div>
-                        <span class="font-mono text-xs">"67%"</span>
+                        <span class="font-mono text-xs">(playback.volume)</span>
                     </div>
                 </div>
             )
@@ -138,10 +142,10 @@ pub async fn now_playing_panel(guild_name: &str, channel_name: &str) -> Result {
 }
 
 #[component]
-async fn album_art() -> Result {
+async fn album_art(playback: &PlaybackView<'_>) -> Result {
     view! {
         <div
-            aria-label="Abstract green album artwork for Green Static"
+            aria-label=(playback.artwork_label)
             role="img"
             class="relative aspect-square overflow-hidden rounded-xl border border-primary/20 bg-primary shadow-sm"
         >
@@ -157,14 +161,14 @@ async fn album_art() -> Result {
             <div
                 class="absolute top-[8%] right-[8%] text-right text-[0.65rem] font-semibold tracking-[0.2em] text-primary-foreground/70 uppercase"
             >
-                "Night Market"
+                (playback.artist)
                 <br>
-                "NM—042"
+                (playback.artwork_code)
             </div>
             <p
                 class="absolute bottom-[8%] left-[8%] max-w-[8rem] text-2xl leading-[0.9] font-bold tracking-tight text-primary-foreground uppercase sm:text-3xl"
             >
-                "Green Static"
+                (playback.title)
             </p>
         </div>
     }

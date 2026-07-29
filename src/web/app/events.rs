@@ -12,7 +12,10 @@ use topcoat::{
     },
 };
 
-use crate::web::{State, UiEvent, auth};
+use crate::{
+    ui_events::UiEvent,
+    web::{State, auth},
+};
 
 #[route(GET)]
 async fn events(cx: &Cx) -> Result<Sse<impl Stream<Item = Result<Event>> + use<>>> {
@@ -92,7 +95,7 @@ mod tests {
     use poise::serenity_prelude::{GuildId, UserId};
 
     use super::is_relevant;
-    use crate::web::UiEvent;
+    use crate::ui_events::UiEvent;
 
     #[test]
     fn filters_voice_events_to_the_user_and_shared_bot_guilds() {
