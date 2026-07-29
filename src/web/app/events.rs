@@ -17,6 +17,7 @@ use crate::web::{State, UiEvent, auth};
 #[route(GET)]
 async fn events(cx: &Cx) -> Result<Sse<impl Stream<Item = Result<Event>> + use<>>> {
     let state = app_context::<State>(cx);
+    let receiver = state.ui_events.subscribe();
     let session = auth::current_session(cx).await?.ok_or_else(forbidden)?;
     let user_id = serenity::UserId::new(session.user_id);
     let mut guilds: HashSet<_> = session
@@ -37,23 +38,36 @@ async fn events(cx: &Cx) -> Result<Sse<impl Stream<Item = Result<Event>> + use<>
             }
         }
     }
-    let updates =
-        BroadcastStream::new(state.ui_events.subscribe()).filter_map(move |result| match result {
-            Ok(event) if is_relevant(event, user_id, &mut guilds) => {
-                Some(Ok(Event::new().event("voice")))
-            }
-            Err(_) => Some(Ok(Event::new().event("voice"))),
-            _ => None,
-        });
-    let initial = tokio_stream::once(Ok(Event::new().event("voice")));
+    let mut accept_all_bot_events = false;
+    let updates = BroadcastStream::new(receiver).filter_map(move |result| match result {
+        Ok(event) if is_relevant(event, user_id, &mut guilds, accept_all_bot_events) => {
+            Some(Ok(voice_event()))
+        }
+        Err(_) => {
+            accept_all_bot_events = true;
+            Some(Ok(voice_event()))
+        }
+        _ => None,
+    });
+    let initial = tokio_stream::once(Ok(voice_event()));
+    let stream = tokio_stream::StreamExt::chain(initial, updates);
+    let stream = futures_util::StreamExt::take_until(
+        stream,
+        tokio::time::sleep(std::time::Duration::from_secs(60)),
+    );
 
-    Ok(Sse::new(initial.chain(updates)).keep_alive(KeepAlive::new()))
+    Ok(Sse::new(stream).keep_alive(KeepAlive::new()))
+}
+
+fn voice_event() -> Event {
+    Event::new().event("voice").data("refresh")
 }
 
 fn is_relevant(
     event: UiEvent,
     user_id: serenity::UserId,
     guilds: &mut HashSet<serenity::GuildId>,
+    accept_all_bot_events: bool,
 ) -> bool {
     match event {
         UiEvent::VoiceStateChanged {
@@ -65,7 +79,7 @@ fn is_relevant(
                 guilds.insert(guild_id);
                 true
             } else {
-                is_bot && guilds.contains(&guild_id)
+                is_bot && (accept_all_bot_events || guilds.contains(&guild_id))
             }
         }
     }
@@ -96,6 +110,7 @@ mod tests {
             },
             user,
             &mut guilds,
+            false,
         ));
         assert!(is_relevant(
             UiEvent::VoiceStateChanged {
@@ -105,6 +120,7 @@ mod tests {
             },
             user,
             &mut guilds,
+            false,
         ));
         assert!(!is_relevant(
             UiEvent::VoiceStateChanged {
@@ -114,6 +130,7 @@ mod tests {
             },
             user,
             &mut guilds,
+            false,
         ));
         assert!(is_relevant(
             UiEvent::VoiceStateChanged {
@@ -123,6 +140,7 @@ mod tests {
             },
             user,
             &mut guilds,
+            false,
         ));
         assert!(guilds.contains(&other_guild));
     }

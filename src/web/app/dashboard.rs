@@ -54,6 +54,10 @@ const VOICE_UPDATES_SCRIPT: &str = r"(() => {
         clearTimeout(timer);
         timer = setTimeout(refresh, 100);
     });
+    events.addEventListener('error', () => {
+        clearTimeout(timer);
+        timer = setTimeout(refresh, 100);
+    });
 })();";
 
 #[page]
