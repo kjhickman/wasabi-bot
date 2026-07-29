@@ -248,11 +248,10 @@ fn resolve_access(bot: &BotState, user_id: u64, guilds: &[DiscordGuild]) -> Acce
             .voice_states
             .get(&bot_id)
             .and_then(|voice| voice.channel_id);
-        let channel_name = guild
-            .channels
-            .get(&channel_id)
-            .map(|channel| channel.name.clone())
-            .unwrap_or_else(|| "Voice channel".to_owned());
+        let channel_name = guild.channels.get(&channel_id).map_or_else(
+            || "Voice channel".to_owned(),
+            |channel| channel.name.clone(),
+        );
         let bot_channel_name = bot_channel_id
             .and_then(|id| guild.channels.get(&id).map(|channel| channel.name.clone()));
         let channel = ChannelAccess {
@@ -274,8 +273,7 @@ fn resolve_access(bot: &BotState, user_id: u64, guilds: &[DiscordGuild]) -> Acce
         guild
             .id
             .parse::<u64>()
-            .ok()
-            .is_some_and(|guild_id| bot.serenity.cache.guild(guild_id).is_some())
+            .is_ok_and(|guild_id| bot.serenity.cache.guild(guild_id).is_some())
     });
     if shares_guild {
         Access::NotInVoice

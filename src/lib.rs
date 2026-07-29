@@ -1,6 +1,11 @@
+#![warn(clippy::pedantic)]
+#![warn(clippy::nursery)]
+#![warn(clippy::cargo)]
+#![allow(clippy::missing_errors_doc)]
+
 pub mod bot;
-pub mod commands;
+mod commands;
 pub mod db;
-pub mod llm;
+mod llm;
 pub mod telemetry;
 pub mod web;

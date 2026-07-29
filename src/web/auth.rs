@@ -20,7 +20,7 @@ const OAUTH_STATE_COOKIE: &str = "wasabi_oauth_state";
 const SESSION_DAYS: i64 = 30;
 
 #[derive(Clone)]
-pub(crate) struct OAuthConfig {
+pub(super) struct OAuthConfig {
     client_id: String,
     client_secret: String,
     public_url: String,
@@ -29,7 +29,7 @@ pub(crate) struct OAuthConfig {
 }
 
 impl OAuthConfig {
-    pub(crate) fn from_env() -> anyhow::Result<Self> {
+    pub(super) fn from_env() -> anyhow::Result<Self> {
         let public_url = required_env("PUBLIC_URL")?.trim_end_matches('/').to_owned();
         let key = BASE64_STANDARD
             .decode(required_env("WEB_TOKEN_KEY")?)
@@ -57,39 +57,41 @@ fn required_env(name: &str) -> anyhow::Result<String> {
 }
 
 #[derive(Clone)]
-pub(crate) struct Session {
-    pub(crate) id_hash: Vec<u8>,
-    pub(crate) user_id: u64,
-    pub(crate) username: String,
-    pub(crate) global_name: Option<String>,
-    pub(crate) discriminator: String,
-    pub(crate) avatar: Option<String>,
+pub(super) struct Session {
+    pub(super) id_hash: Vec<u8>,
+    pub(super) user_id: u64,
+    pub(super) username: String,
+    pub(super) global_name: Option<String>,
+    pub(super) discriminator: String,
+    pub(super) avatar: Option<String>,
     csrf_hash: Vec<u8>,
-    pub(crate) csrf_token: String,
-    pub(crate) guilds: Vec<DiscordGuild>,
-    pub(crate) guilds_fetched_at: OffsetDateTime,
+    pub(super) csrf_token: String,
+    pub(super) guilds: Vec<DiscordGuild>,
+    pub(super) guilds_fetched_at: OffsetDateTime,
 }
 
 impl Session {
-    pub(crate) fn display_name(&self) -> &str {
+    pub(super) fn display_name(&self) -> &str {
         self.global_name.as_deref().unwrap_or(&self.username)
     }
 
-    pub(crate) fn avatar_url(&self) -> String {
-        match &self.avatar {
-            Some(hash) => format!(
-                "https://cdn.discordapp.com/avatars/{}/{hash}.png?size=64",
-                self.user_id
-            ),
-            None => {
+    pub(super) fn avatar_url(&self) -> String {
+        self.avatar.as_ref().map_or_else(
+            || {
                 let index = if self.discriminator == "0" {
                     (self.user_id >> 22) % 6
                 } else {
                     self.discriminator.parse::<u64>().unwrap_or_default() % 5
                 };
                 format!("https://cdn.discordapp.com/embed/avatars/{index}.png")
-            }
-        }
+            },
+            |hash| {
+                format!(
+                    "https://cdn.discordapp.com/avatars/{}/{hash}.png?size=64",
+                    self.user_id
+                )
+            },
+        )
     }
 }
 
@@ -115,14 +117,14 @@ struct TokenRow {
 }
 
 #[derive(Deserialize)]
-pub(crate) struct CallbackQuery {
+pub(super) struct CallbackQuery {
     code: Option<String>,
     state: Option<String>,
     error: Option<String>,
 }
 
 #[derive(Deserialize)]
-pub(crate) struct LogoutForm {
+pub(super) struct LogoutForm {
     csrf: String,
 }
 
@@ -143,12 +145,12 @@ struct DiscordUser {
 }
 
 #[derive(Clone, Deserialize, serde::Serialize)]
-pub(crate) struct DiscordGuild {
-    pub(crate) id: String,
-    pub(crate) name: String,
+pub(super) struct DiscordGuild {
+    pub(super) id: String,
+    pub(super) name: String,
 }
 
-pub(crate) async fn login(cx: &Cx) -> Result<SeeOther> {
+pub(super) async fn login(cx: &Cx) -> Result<SeeOther> {
     let state = app_context::<State>(cx);
     let oauth_state = random_token()?;
     sqlx::query("DELETE FROM oauth_states WHERE expires_at <= now()")
@@ -179,7 +181,7 @@ pub(crate) async fn login(cx: &Cx) -> Result<SeeOther> {
     Ok(see_other(url.as_str()))
 }
 
-pub(crate) async fn callback(cx: &Cx, Form(query): Form<CallbackQuery>) -> Result<SeeOther> {
+pub(super) async fn callback(cx: &Cx, Form(query): Form<CallbackQuery>) -> Result<SeeOther> {
     let state = app_context::<State>(cx);
     let jar = cookies(cx);
     let expected_state = jar
@@ -226,11 +228,11 @@ pub(crate) async fn callback(cx: &Cx, Form(query): Form<CallbackQuery>) -> Resul
     let now = OffsetDateTime::now_utc();
 
     sqlx::query(
-        r#"INSERT INTO web_sessions
+        r"INSERT INTO web_sessions
            (id_hash, user_id, username, global_name, discriminator, avatar,
              access_token, refresh_token, token_expires_at, csrf_hash, expires_at,
              guilds, guilds_fetched_at, guilds_refresh_attempted_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)"#,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)",
     )
     .bind(hash(session_token.as_bytes()))
     .bind(database_user_id)
@@ -271,7 +273,7 @@ pub(crate) async fn callback(cx: &Cx, Form(query): Form<CallbackQuery>) -> Resul
     Ok(see_other("/"))
 }
 
-pub(crate) async fn logout(cx: &Cx, Form(form): Form<LogoutForm>) -> Result<SeeOther> {
+pub(super) async fn logout(cx: &Cx, Form(form): Form<LogoutForm>) -> Result<SeeOther> {
     let state = app_context::<State>(cx);
     let Some(session) = current_session(cx).await? else {
         clear_session_cookies(cx);
@@ -286,7 +288,7 @@ pub(crate) async fn logout(cx: &Cx, Form(form): Form<LogoutForm>) -> Result<SeeO
             .fetch_optional(&mut *transaction)
             .await?;
     sqlx::query("DELETE FROM web_sessions WHERE user_id = $1")
-        .bind(session.user_id as i64)
+        .bind(session.user_id.cast_signed())
         .execute(&mut *transaction)
         .await?;
     transaction.commit().await?;
@@ -302,7 +304,7 @@ pub(crate) async fn logout(cx: &Cx, Form(form): Form<LogoutForm>) -> Result<SeeO
 }
 
 #[tracing::instrument(name = "web.session.load", skip(cx))]
-pub(crate) async fn current_session(cx: &Cx) -> Result<Option<Session>> {
+pub(super) async fn current_session(cx: &Cx) -> Result<Option<Session>> {
     let jar = cookies(cx);
     let Some(session_token) = jar
         .get(SESSION_COOKIE)
@@ -315,9 +317,9 @@ pub(crate) async fn current_session(cx: &Cx) -> Result<Option<Session>> {
     };
     let state = app_context::<State>(cx);
     let row = sqlx::query_as::<_, SessionRow>(
-        r#"SELECT id_hash, user_id, username, global_name, discriminator, avatar, csrf_hash,
-                  guilds, guilds_fetched_at
-           FROM web_sessions WHERE id_hash = $1 AND expires_at > now()"#,
+        r"SELECT id_hash, user_id, username, global_name, discriminator, avatar, csrf_hash,
+                   guilds, guilds_fetched_at
+           FROM web_sessions WHERE id_hash = $1 AND expires_at > now()",
     )
     .bind(hash(session_token.as_bytes()))
     .fetch_optional(&state.pool)
@@ -347,14 +349,14 @@ pub(crate) async fn current_session(cx: &Cx) -> Result<Option<Session>> {
     }))
 }
 
-pub(crate) fn verify_csrf(session: &Session, token: &str) -> Result<()> {
+pub(super) fn verify_csrf(session: &Session, token: &str) -> Result<()> {
     if session.csrf_hash != hash(token.as_bytes()) {
         return Err(forbidden().into());
     }
     Ok(())
 }
 
-pub(crate) fn start_maintenance(state: State) {
+pub(super) fn start_maintenance(state: State) {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
         loop {
@@ -376,7 +378,7 @@ async fn maintain_sessions(state: &State) -> anyhow::Result<()> {
         .await?;
 
     let sessions = sqlx::query_as::<_, TokenRow>(
-        r#"WITH candidates AS (
+        r"WITH candidates AS (
                SELECT id_hash
                FROM web_sessions
                WHERE guilds_fetched_at <= now() - interval '5 minutes'
@@ -391,7 +393,7 @@ async fn maintain_sessions(state: &State) -> anyhow::Result<()> {
            FROM candidates
            WHERE session.id_hash = candidates.id_hash
            RETURNING session.id_hash, session.access_token, session.refresh_token,
-                     session.token_expires_at"#,
+                      session.token_expires_at",
     )
     .fetch_all(&state.pool)
     .await?;
@@ -440,10 +442,10 @@ async fn access_token(state: &State, session: &TokenRow) -> anyhow::Result<Strin
 
     let mut transaction = state.pool.begin().await?;
     let row = sqlx::query_as::<_, TokenRow>(
-        r#"SELECT id_hash, access_token, refresh_token, token_expires_at
+        r"SELECT id_hash, access_token, refresh_token, token_expires_at
            FROM web_sessions
            WHERE id_hash = $1 AND expires_at > now()
-           FOR UPDATE"#,
+           FOR UPDATE",
     )
     .bind(&session.id_hash)
     .fetch_optional(&mut *transaction)
@@ -466,9 +468,9 @@ async fn access_token(state: &State, session: &TokenRow) -> anyhow::Result<Strin
     };
     let access_token = token.access_token.clone();
     sqlx::query(
-        r#"UPDATE web_sessions
+        r"UPDATE web_sessions
            SET access_token = $1, refresh_token = $2, token_expires_at = $3, updated_at = now()
-           WHERE id_hash = $4"#,
+           WHERE id_hash = $4",
     )
     .bind(encrypt(
         &state.oauth.token_key,

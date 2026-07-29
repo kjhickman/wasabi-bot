@@ -21,10 +21,10 @@ pub struct InteractionRecord {
 #[tracing::instrument(name = "db.insert_interaction", skip(pool, r), fields(interaction_id = r.id, channel_id = r.channel_id, guild_id = ?r.guild_id, user_id = r.user_id))]
 pub async fn insert_interaction(pool: &PgPool, r: &InteractionRecord) -> sqlx::Result<()> {
     sqlx::query(
-        r#"INSERT INTO interactions
+        r"INSERT INTO interactions
            (id, channel_id, application_id, user_id, guild_id, username, global_name, nickname, data, created_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-           ON CONFLICT (id) DO NOTHING"#,
+           ON CONFLICT (id) DO NOTHING",
     )
     .bind(r.id)
     .bind(r.channel_id)
@@ -56,8 +56,8 @@ pub async fn get_stats(
     exclude_interaction_id: i64,
 ) -> sqlx::Result<Stats> {
     let (total, channel): (i64, i64) = sqlx::query_as(
-        r#"SELECT COUNT(*), COUNT(*) FILTER (WHERE channel_id = $1)
-           FROM interactions WHERE id <> $2"#,
+        r"SELECT COUNT(*), COUNT(*) FILTER (WHERE channel_id = $1)
+           FROM interactions WHERE id <> $2",
     )
     .bind(channel_id)
     .bind(exclude_interaction_id)
@@ -65,20 +65,20 @@ pub async fn get_stats(
     .await?;
 
     let most_used_command: Option<(String, i64)> = sqlx::query_as(
-        r#"SELECT data->>'name', COUNT(*)
+        r"SELECT data->>'name', COUNT(*)
            FROM interactions
            WHERE id <> $1 AND data->>'name' IS NOT NULL
-           GROUP BY 1 ORDER BY 2 DESC LIMIT 1"#,
+           GROUP BY 1 ORDER BY 2 DESC LIMIT 1",
     )
     .bind(exclude_interaction_id)
     .fetch_optional(pool)
     .await?;
 
     let top_user: Option<(String, i64)> = sqlx::query_as(
-        r#"SELECT MAX(COALESCE(global_name, username)), COUNT(*)
+        r"SELECT MAX(COALESCE(global_name, username)), COUNT(*)
            FROM interactions
            WHERE id <> $1
-           GROUP BY user_id ORDER BY 2 DESC LIMIT 1"#,
+           GROUP BY user_id ORDER BY 2 DESC LIMIT 1",
     )
     .bind(exclude_interaction_id)
     .fetch_optional(pool)

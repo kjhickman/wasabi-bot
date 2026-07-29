@@ -1,10 +1,9 @@
 mod app;
 mod auth;
-#[allow(dead_code)]
 mod components;
 mod theme;
 
-pub use app::router;
+use app::router;
 
 pub(crate) const FAVICON_URL: &str = concat!("/favicon?v=", env!("WASABI_FAVICON_VERSION"));
 
@@ -31,11 +30,11 @@ pub type SharedBotState = std::sync::Arc<tokio::sync::RwLock<Option<BotState>>>;
 
 #[derive(Clone)]
 pub struct State {
-    pub(crate) pool: sqlx::PgPool,
-    pub(crate) http: reqwest::Client,
-    pub(crate) bot: SharedBotState,
-    pub(crate) oauth: auth::OAuthConfig,
-    pub(crate) ui_events: UiEvents,
+    pool: sqlx::PgPool,
+    http: reqwest::Client,
+    bot: SharedBotState,
+    oauth: auth::OAuthConfig,
+    ui_events: UiEvents,
 }
 
 pub async fn serve(
@@ -60,6 +59,6 @@ pub async fn serve(
         ui_events,
     };
     auth::start_maintenance(state.clone());
-    topcoat::serve_until(listener, router(state)?, std::future::pending::<()>()).await?;
+    topcoat::serve_until(listener, router(state), std::future::pending::<()>()).await?;
     Ok(())
 }

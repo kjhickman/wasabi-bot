@@ -17,11 +17,11 @@ use topcoat::{
 
 use super::theme::theme_script;
 
-pub fn router(state: super::State) -> anyhow::Result<Router> {
-    Ok(topcoat::router::module_router!()
+pub(super) fn router(state: super::State) -> Router {
+    topcoat::router::module_router!()
         .cookies()
         .app_context(state)
-        .build())
+        .build()
 }
 
 #[layout]

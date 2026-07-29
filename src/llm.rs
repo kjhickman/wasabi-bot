@@ -98,6 +98,7 @@ pub async fn caption_answer(
         .ok_or_else(|| anyhow::anyhow!("Gemini returned an empty caption"))
 }
 
+#[must_use]
 pub fn interpret_conch_answer(text: &str) -> Option<String> {
     let answer = text.trim();
     if answer.is_empty() || answer.eq_ignore_ascii_case(USE_MAGIC_CONCH_TOOL) {

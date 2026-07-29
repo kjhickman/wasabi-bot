@@ -25,12 +25,9 @@ pub async fn play(
         return Ok(());
     }
 
-    let loaded = match load_tracks(&lavalink, guild_id, &input).await? {
-        Some(result) => result,
-        None => {
-            send_ephemeral(&ctx, "No playable tracks found.").await?;
-            return Ok(());
-        }
+    let Some(loaded) = load_tracks(&lavalink, guild_id, &input).await? else {
+        send_ephemeral(&ctx, "No playable tracks found.").await?;
+        return Ok(());
     };
 
     let _guard = guild_voice_lock(&ctx).await;
@@ -50,7 +47,7 @@ pub async fn play(
                 queued_before + 1,
                 source
             );
-            (vec![track.into()], response)
+            (vec![(*track).into()], response)
         }
         LoadedTracks::Playlist { name, tracks } => {
             let response = format!(
@@ -182,7 +179,7 @@ pub async fn nowplaying(ctx: Context<'_>) -> Result<(), Error> {
         let suffix = if queue_count == 0 {
             String::new()
         } else {
-            format!(" ({} queued)", queue_count)
+            format!(" ({queue_count} queued)")
         };
         ctx.say(format!(
             "Now playing: {}{}",
@@ -247,6 +244,7 @@ async fn mark_voice_active(ctx: &Context<'_>) {
     let state = voice_state.entry(guild_id).or_default();
     state.idle_since = None;
     state.paused_since = None;
+    drop(voice_state);
 }
 
 async fn mark_voice_idle(ctx: &Context<'_>) {
@@ -255,6 +253,7 @@ async fn mark_voice_idle(ctx: &Context<'_>) {
     let state = voice_state.entry(guild_id).or_default();
     state.idle_since = Some(std::time::Instant::now());
     state.paused_since = None;
+    drop(voice_state);
 }
 
 async fn mark_voice_paused(ctx: &Context<'_>, paused: bool) {
@@ -262,6 +261,7 @@ async fn mark_voice_paused(ctx: &Context<'_>, paused: bool) {
     let mut voice_state = ctx.data().voice_state.lock().await;
     let state = voice_state.entry(guild_id).or_default();
     state.paused_since = paused.then(std::time::Instant::now);
+    drop(voice_state);
 }
 
 async fn clear_voice_state(ctx: &Context<'_>) {
@@ -287,7 +287,7 @@ async fn current_player(ctx: &Context<'_>) -> Result<Option<PlayerContext>, Erro
     Ok(Some(player))
 }
 
-pub(crate) async fn join_voice_channel(
+pub async fn join_voice_channel(
     ctx: &serenity::Context,
     lavalink: &LavalinkClient,
     guild_id: serenity::GuildId,
@@ -351,11 +351,17 @@ async fn load_tracks(
         match lavalink.load_tracks(lava_guild(guild_id), &query).await {
             Ok(loaded) => match loaded.data {
                 Some(TrackLoadData::Track(track)) => {
-                    return Ok(Some(LoadedTracks::Single { source, track }));
+                    return Ok(Some(LoadedTracks::Single {
+                        source,
+                        track: Box::new(track),
+                    }));
                 }
                 Some(TrackLoadData::Search(tracks)) => {
                     if let Some(track) = tracks.into_iter().next() {
-                        return Ok(Some(LoadedTracks::Single { source, track }));
+                        return Ok(Some(LoadedTracks::Single {
+                            source,
+                            track: Box::new(track),
+                        }));
                     }
                 }
                 Some(TrackLoadData::Playlist(playlist)) => {
@@ -384,7 +390,7 @@ async fn load_tracks(
 enum LoadedTracks {
     Single {
         source: &'static str,
-        track: TrackData,
+        track: Box<TrackData>,
     },
     Playlist {
         name: String,

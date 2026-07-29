@@ -2,8 +2,10 @@ use opentelemetry::trace::TracerProvider as _;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
-/// Initializes tracing: always logs to stdout; additionally exports traces and
-/// logs over OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (injected by Aspire).
+/// Initializes tracing.
+///
+/// Always logs to stdout and additionally exports traces and logs over OTLP
+/// when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (injected by Aspire).
 /// Endpoint/headers/protocol are read from standard OTEL_* env vars by the exporter.
 /// OTLP setup failures are non-fatal: stdout logging is always installed.
 pub fn init() {

@@ -91,10 +91,10 @@ async fn build_lavalink_client(
         ..Default::default()
     };
     let password = std::env::var("LAVALINK_PASSWORD").unwrap_or_else(|_| "youshallnotpass".into());
-    let (is_ssl, rest) = match url.strip_prefix("https://") {
-        Some(rest) => (true, rest),
-        None => (false, url.strip_prefix("http://").unwrap_or(url)),
-    };
+    let (is_ssl, rest) = url.strip_prefix("https://").map_or_else(
+        || (false, url.strip_prefix("http://").unwrap_or(url)),
+        |rest| (true, rest),
+    );
     let hostname = rest.trim_end_matches('/').to_string();
 
     let node = NodeBuilder {
@@ -182,7 +182,9 @@ fn start_voice_maintenance(
         let mut interval = tokio::time::interval(VOICE_MAINTENANCE_INTERVAL);
         loop {
             interval.tick().await;
-            if let Err(error) = maintain_voice(&ctx, &lavalink, &voice_locks, &voice_state).await {
+            if let Err(error) =
+                maintain_voice(&ctx, lavalink.as_ref(), &voice_locks, &voice_state).await
+            {
                 tracing::warn!(?error, "voice maintenance failed");
             }
         }
@@ -191,7 +193,7 @@ fn start_voice_maintenance(
 
 async fn maintain_voice(
     ctx: &serenity::Context,
-    lavalink: &Option<lavalink_rs::prelude::LavalinkClient>,
+    lavalink: Option<&lavalink_rs::prelude::LavalinkClient>,
     voice_locks: &VoiceLocks,
     voice_state: &VoiceStates,
 ) -> Result<(), Error> {
@@ -244,7 +246,9 @@ async fn maintain_voice(
             let paused_expired = state
                 .paused_since
                 .is_some_and(|since| now.duration_since(since) >= PAUSED_TIMEOUT);
-            idle_expired || paused_expired
+            let expired = idle_expired || paused_expired;
+            drop(voice_state);
+            expired
         };
         if should_disconnect {
             disconnect_voice(ctx, lavalink, voice_state, guild_id).await?;
@@ -346,11 +350,11 @@ fn lava_guild(guild_id: serenity::GuildId) -> lavalink_rs::model::GuildId {
 
 fn to_record(command: &serenity::CommandInteraction) -> db::InteractionRecord {
     db::InteractionRecord {
-        id: command.id.get() as i64,
-        channel_id: command.channel_id.get() as i64,
-        application_id: command.application_id.get() as i64,
-        user_id: command.user.id.get() as i64,
-        guild_id: command.guild_id.map(|id| id.get() as i64),
+        id: command.id.get().cast_signed(),
+        channel_id: command.channel_id.get().cast_signed(),
+        application_id: command.application_id.get().cast_signed(),
+        user_id: command.user.id.get().cast_signed(),
+        guild_id: command.guild_id.map(|id| id.get().cast_signed()),
         username: command.user.name.clone(),
         global_name: command.user.global_name.clone(),
         nickname: command.member.as_ref().and_then(|m| m.nick.clone()),
@@ -361,7 +365,7 @@ fn to_record(command: &serenity::CommandInteraction) -> db::InteractionRecord {
 
 fn snowflake_timestamp(id: u64) -> time::OffsetDateTime {
     const DISCORD_EPOCH_MS: i128 = 1_420_070_400_000;
-    let ms = (id >> 22) as i128 + DISCORD_EPOCH_MS;
+    let ms = i128::from(id >> 22) + DISCORD_EPOCH_MS;
     time::OffsetDateTime::from_unix_timestamp_nanos(ms * 1_000_000)
         .unwrap_or(time::OffsetDateTime::UNIX_EPOCH)
 }

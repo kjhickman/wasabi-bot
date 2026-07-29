@@ -71,9 +71,10 @@ pub async fn dashboard_header(session: Option<&Session>) -> Result {
         }?,
     };
 
-    let account_label = session
-        .map(|session| format!("Open account menu for {}", session.display_name()))
-        .unwrap_or_else(|| "Open settings menu".to_owned());
+    let account_label = session.map_or_else(
+        || "Open settings menu".to_owned(),
+        |session| format!("Open account menu for {}", session.display_name()),
+    );
 
     view! {
         <header

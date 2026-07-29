@@ -21,7 +21,6 @@ pub fn flip_coin(rng: &mut impl Rng) -> &'static str {
 
 /// Choose randomly from 2-7 options.
 #[poise::command(slash_command)]
-#[allow(clippy::too_many_arguments)]
 #[tracing::instrument(name = "discord.command", skip(ctx, option1, option2, option3, option4, option5, option6, option7), fields(command = %ctx.command().qualified_name, user_id = %ctx.author().id.get(), channel_id = %ctx.channel_id().get()))]
 pub async fn choose(
     ctx: Context<'_>,
@@ -33,7 +32,7 @@ pub async fn choose(
     #[description = "Sixth option"] option6: Option<String>,
     #[description = "Seventh option"] option7: Option<String>,
 ) -> Result<(), Error> {
-    let options = distinct_options(&[
+    let choices = distinct_options(&[
         Some(option1),
         Some(option2),
         option3,
@@ -43,14 +42,14 @@ pub async fn choose(
         option7,
     ]);
 
-    if options.len() < 2 {
+    if choices.len() < 2 {
         return send_ephemeral(&ctx, "Please provide at least 2 distinct options.").await;
     }
 
-    let chosen = options.choose(&mut rand::rng()).unwrap();
+    let chosen = choices.choose(&mut rand::rng()).unwrap();
     let response = format!(
         "Options: {}\nAnd the choice is... **{chosen}**",
-        options.join(", ")
+        choices.join(", ")
     );
     ctx.say(response).await?;
     Ok(())

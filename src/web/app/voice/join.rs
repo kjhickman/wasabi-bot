@@ -36,17 +36,13 @@ async fn join(cx: &Cx, Form(form): Form<JoinForm>) -> Result<SeeOther> {
         .filter(|current| current == &target)
         .ok_or_else(forbidden)?;
     let lavalink = bot.lavalink.as_ref().ok_or_else(forbidden)?;
-    commands::music::join_voice_channel(
-        &bot.serenity,
-        lavalink,
-        target.guild_id,
-        target.channel_id,
-    )
-    .await?;
+    commands::join_voice_channel(&bot.serenity, lavalink, target.guild_id, target.channel_id)
+        .await?;
     let mut voice_state = bot.voice_state.lock().await;
-    let voice_state = voice_state.entry(target.guild_id).or_default();
-    voice_state.idle_since = Some(std::time::Instant::now());
-    voice_state.paused_since = None;
+    let guild_voice_state = voice_state.entry(target.guild_id).or_default();
+    guild_voice_state.idle_since = Some(std::time::Instant::now());
+    guild_voice_state.paused_since = None;
+    drop(voice_state);
 
     Ok(see_other("/"))
 }

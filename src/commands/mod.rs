@@ -1,12 +1,13 @@
 mod fun;
-pub(crate) mod music;
+mod music;
 mod utility;
 
 pub use fun::{caption, choose, conch, flip, mock};
+pub use music::join_voice_channel;
 pub use music::{leave, nowplaying, pause, play, queue, resume, skip, stop};
 pub use utility::{help, stats};
 
-pub(crate) type VoiceLocks = std::sync::Arc<
+pub type VoiceLocks = std::sync::Arc<
     tokio::sync::Mutex<
         std::collections::HashMap<
             poise::serenity_prelude::GuildId,
@@ -15,11 +16,11 @@ pub(crate) type VoiceLocks = std::sync::Arc<
     >,
 >;
 
-pub(crate) type VoiceStates = std::sync::Arc<
+pub type VoiceStates = std::sync::Arc<
     tokio::sync::Mutex<std::collections::HashMap<poise::serenity_prelude::GuildId, VoiceState>>,
 >;
 
-pub(crate) async fn lock_guild_voice(
+pub async fn lock_guild_voice(
     voice_locks: &VoiceLocks,
     guild_id: poise::serenity_prelude::GuildId,
 ) -> tokio::sync::OwnedMutexGuard<()> {
@@ -52,6 +53,7 @@ pub struct VoiceState {
 pub type Error = anyhow::Error;
 pub type Context<'a> = poise::Context<'a, Data, Error>;
 
+#[must_use]
 pub fn all() -> Vec<poise::Command<Data, Error>> {
     vec![
         flip(),

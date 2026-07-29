@@ -3,6 +3,12 @@ name = "wasabi-bot"
 version = "0.1.0"
 edition = "2024"
 default-run = "wasabi-bot"
+description = "A Discord bot with music playback and a web dashboard"
+license = "MIT"
+repository = "https://github.com/kjhickman/wasabi-bot"
+readme = "README.md"
+keywords = ["discord", "bot", "music"]
+categories = ["multimedia::audio"]
 
 [dependencies]
 anyhow = "1"

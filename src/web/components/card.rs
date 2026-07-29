@@ -15,8 +15,8 @@ const CARD: &str = "flex flex-col gap-5 rounded-xl border border-border bg-backg
 
 /// A card component: a bordered, raised surface grouping related content.
 ///
-/// A card stacks sections vertically: typically a [`card_header`], then a
-/// [`card_content`], closed by a [`card_footer`]. Any section can be omitted.
+/// A card stacks sections vertically, typically a [`card_header`] followed by
+/// [`card_content`]. Either section can be omitted.
 /// The `attrs` (such as `class` or event handlers) are forwarded to the
 /// underlying `<div>`; a `class` among them is appended to the computed
 /// classes. Child nodes become the card's sections.
@@ -25,14 +25,8 @@ const CARD: &str = "flex flex-col gap-5 rounded-xl border border-border bg-backg
 /// view! {
 ///     card(
 ///         attrs: attributes! { class="max-w-sm" },
-///         card_header(
-///             card_title("Delete workspace")
-///             card_description("This cannot be undone.")
-///         )
-///         card_footer(
-///             attrs: attributes! { class="justify-end" },
-///             button(variant: ButtonVariant::Destructive, "Delete")
-///         )
+///         card_header(card_title("Workspace"))
+///         card_content("Workspace details")
 ///     )
 /// }
 /// ```
@@ -82,17 +76,4 @@ pub async fn card_description(#[default] mut attrs: Attributes, #[default] child
 #[component]
 pub async fn card_content(#[default] mut attrs: Attributes, #[default] child: View) -> Result {
     view! { <div class=(class!("px-6", attrs.remove("class"))) (attrs)>(child)</div> }
-}
-
-/// The closing section of a [`card`], a horizontal row for actions.
-#[component]
-pub async fn card_footer(#[default] mut attrs: Attributes, #[default] child: View) -> Result {
-    view! {
-        <div
-            class=(class!("flex items-center gap-2 px-6", attrs.remove("class")))
-            (attrs)
-        >
-            (child)
-        </div>
-    }
 }

@@ -7,7 +7,6 @@ use topcoat::{
 ///
 /// [`Default`] is `ButtonVariant::Primary`, used when no variant is given.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum ButtonVariant {
     /// The primary-filled button for the main action.
     #[default]
@@ -18,8 +17,6 @@ pub enum ButtonVariant {
     Outline,
     /// No fill until hovered, for toolbars and inline actions.
     Ghost,
-    /// A destructive-filled button for actions such as deleting data.
-    Destructive,
 }
 
 impl ButtonVariant {
@@ -35,7 +32,7 @@ impl ButtonVariant {
     /// transparent one from [`BASE`]: with two border-color classes on the
     /// same element, stylesheet order (not class order) would decide the
     /// winner.
-    fn classes(self) -> &'static str {
+    const fn classes(self) -> &'static str {
         match self {
             Self::Primary => {
                 "border-transparent bg-primary text-primary-foreground shadow-xs \
@@ -52,10 +49,6 @@ impl ButtonVariant {
             Self::Ghost => {
                 "border-transparent text-foreground hover:bg-foreground/5 active:bg-foreground/10"
             }
-            Self::Destructive => {
-                "border-transparent bg-destructive text-destructive-foreground shadow-xs \
-                 hover:bg-destructive/90 active:bg-destructive/80"
-            }
         }
     }
 }
@@ -64,15 +57,10 @@ impl ButtonVariant {
 ///
 /// [`Default`] is `ButtonSize::Md`, used when no size is given.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum ButtonSize {
-    /// A compact button.
-    Sm,
     /// The standard button size.
     #[default]
     Md,
-    /// A prominent button.
-    Lg,
     /// A square button sized for a single icon.
     Icon,
 }
@@ -82,11 +70,9 @@ impl ButtonSize {
     ///
     /// Each size sets a text size, which also scales any icons inside: the
     /// `icon` component is `1em` square by default.
-    fn classes(self) -> &'static str {
+    const fn classes(self) -> &'static str {
         match self {
-            Self::Sm => "h-8 gap-1.5 rounded-md px-3 text-xs",
             Self::Md => "h-9 gap-2 rounded-lg px-4 text-sm",
-            Self::Lg => "h-10 gap-2 rounded-lg px-5 text-base",
             Self::Icon => "size-9 rounded-lg text-base",
         }
     }
@@ -101,23 +87,6 @@ const BASE: &str = "inline-flex shrink-0 items-center justify-center border \
     focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 \
     focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50";
 
-/// Builds the full class string for a button of the given `variant` and `size`.
-///
-/// Use it to give button styling to an element that is not a `<button>`, such
-/// as a link styled as a button:
-///
-/// ```ignore
-/// view! {
-///     <a href="/login" class=(button_variants(ButtonVariant::Outline, ButtonSize::Md))>
-///         "Sign in"
-///     </a>
-/// }
-/// ```
-#[must_use]
-pub fn button_variants(variant: ButtonVariant, size: ButtonSize) -> String {
-    format!("{BASE} {} {}", variant.classes(), size.classes())
-}
-
 /// A button component.
 ///
 /// The `variant` and `size` parameters select the styling, defaulting to
@@ -127,17 +96,8 @@ pub fn button_variants(variant: ButtonVariant, size: ButtonSize) -> String {
 /// content.
 ///
 /// ```ignore
-/// view! {
-///     button(
-///         variant: ButtonVariant::Destructive,
-///         attrs: attributes! { type="submit" },
-///         "Delete"
-///     )
-/// }
+/// view! { button(attrs: attributes! { type="submit" }, "Save") }
 /// ```
-///
-/// To style a non-`<button>` element like a button, use [`button_variants`]
-/// directly.
 #[component]
 pub async fn button(
     #[default] variant: ButtonVariant,

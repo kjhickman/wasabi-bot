@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use super::{Context, Error, send_ephemeral};
 
 /// Shows all available commands and helpful links.
@@ -44,8 +46,8 @@ const HELP_MESSAGE: &str = "\
 pub async fn stats(ctx: Context<'_>) -> Result<(), Error> {
     let stats = crate::db::get_stats(
         &ctx.data().pool,
-        ctx.channel_id().get() as i64,
-        ctx.id() as i64,
+        ctx.channel_id().get().cast_signed(),
+        ctx.id().cast_signed(),
     )
     .await?;
     send_ephemeral(&ctx, build_stats_message(&stats)).await
@@ -57,12 +59,15 @@ pub fn build_stats_message(stats: &crate::db::Stats) -> String {
         stats.total, stats.channel
     );
     if let Some((command, count)) = &stats.most_used_command {
-        message.push_str(&format!(
-            "## Most Used Command\n• **`/{command}`** - {count} uses\n"
-        ));
+        writeln!(
+            message,
+            "## Most Used Command\n• **`/{command}`** - {count} uses"
+        )
+        .expect("writing to a String cannot fail");
     }
     if let Some((user, count)) = &stats.top_user {
-        message.push_str(&format!("## Top User\n• **{user}** - {count} commands\n"));
+        writeln!(message, "## Top User\n• **{user}** - {count} commands")
+            .expect("writing to a String cannot fail");
     }
     message
 }
