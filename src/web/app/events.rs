@@ -135,6 +135,26 @@ mod tests {
             &mut guilds,
             false,
         ));
+        assert!(!is_relevant(
+            UiEvent::VoiceStateChanged {
+                guild_id: other_guild,
+                user_id: other_user,
+                is_bot: true,
+            },
+            user,
+            &mut guilds,
+            false,
+        ));
+        assert!(is_relevant(
+            UiEvent::VoiceStateChanged {
+                guild_id: other_guild,
+                user_id: other_user,
+                is_bot: true,
+            },
+            user,
+            &mut guilds,
+            true,
+        ));
         assert!(is_relevant(
             UiEvent::VoiceStateChanged {
                 guild_id: other_guild,

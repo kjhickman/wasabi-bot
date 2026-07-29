@@ -226,3 +226,43 @@ pub(super) async fn update_tokens(
     .await?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use testcontainers_modules::{postgres::Postgres, testcontainers::runners::AsyncRunner};
+
+    use super::{consume_oauth_state, delete_expired_oauth_states, insert_oauth_state};
+
+    #[tokio::test]
+    async fn oauth_state_is_single_use_and_expired_states_are_rejected() -> anyhow::Result<()> {
+        let container = Postgres::default().start().await?;
+        let url = format!(
+            "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+            container.get_host_port_ipv4(5432).await?
+        );
+        let pool = sqlx::PgPool::connect(&url).await?;
+        sqlx::migrate!().run(&pool).await?;
+
+        let active = vec![1];
+        insert_oauth_state(&pool, active.clone()).await?;
+        assert!(consume_oauth_state(&pool, active.clone()).await?);
+        assert!(!consume_oauth_state(&pool, active).await?);
+
+        let expired = vec![2];
+        sqlx::query("INSERT INTO oauth_states (id_hash, expires_at) VALUES ($1, now() - interval '1 minute')")
+            .bind(&expired)
+            .execute(&pool)
+            .await?;
+        assert!(!consume_oauth_state(&pool, expired).await?);
+
+        let survivor = vec![3];
+        insert_oauth_state(&pool, survivor.clone()).await?;
+        delete_expired_oauth_states(&pool).await?;
+        let remaining: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM oauth_states")
+            .fetch_one(&pool)
+            .await?;
+        assert_eq!(remaining, 1);
+        assert!(consume_oauth_state(&pool, survivor).await?);
+        Ok(())
+    }
+}

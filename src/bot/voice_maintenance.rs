@@ -3,7 +3,7 @@ use poise::serenity_prelude as serenity;
 use crate::{
     commands::{Data, Error},
     music,
-    voice::{self, VoiceLocks, VoiceStates},
+    voice::{self, VoiceLocks, VoiceState, VoiceStates},
 };
 
 const IDLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
@@ -76,18 +76,7 @@ async fn maintain(
         let should_disconnect = {
             let mut voice_state = voice_state.lock().await;
             let state = voice_state.entry(guild_id).or_default();
-            if idle {
-                state.idle_since.get_or_insert(now);
-            } else {
-                state.idle_since = None;
-            }
-            let idle_expired = state
-                .idle_since
-                .is_some_and(|since| now.duration_since(since) >= IDLE_TIMEOUT);
-            let paused_expired = state
-                .paused_since
-                .is_some_and(|since| now.duration_since(since) >= PAUSED_TIMEOUT);
-            let expired = idle_expired || paused_expired;
+            let expired = update_timeout_state(state, idle, now);
             drop(voice_state);
             expired
         };
@@ -98,6 +87,21 @@ async fn maintain(
         }
     }
     Ok(())
+}
+
+fn update_timeout_state(state: &mut VoiceState, idle: bool, now: std::time::Instant) -> bool {
+    if idle {
+        state.idle_since.get_or_insert(now);
+    } else {
+        state.idle_since = None;
+    }
+    let idle_expired = state
+        .idle_since
+        .is_some_and(|since| now.duration_since(since) >= IDLE_TIMEOUT);
+    let paused_expired = state
+        .paused_since
+        .is_some_and(|since| now.duration_since(since) >= PAUSED_TIMEOUT);
+    idle_expired || paused_expired
 }
 
 pub(super) async fn disconnect_if_alone(
@@ -143,4 +147,49 @@ fn has_human_in_channel(
                     .is_some_and(|member| member.user.bot)
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, Instant};
+
+    use crate::voice::VoiceState;
+
+    use super::{IDLE_TIMEOUT, PAUSED_TIMEOUT, update_timeout_state};
+
+    #[test]
+    fn timeout_state_tracks_idle_and_paused_expiration() {
+        let now = Instant::now();
+        let mut state = VoiceState::default();
+        let before_idle_timeout = IDLE_TIMEOUT
+            .checked_sub(Duration::from_millis(1))
+            .expect("idle timeout exceeds one millisecond");
+        let before_paused_timeout = PAUSED_TIMEOUT
+            .checked_sub(Duration::from_millis(1))
+            .expect("paused timeout exceeds one millisecond");
+
+        assert!(!update_timeout_state(&mut state, true, now));
+        assert_eq!(state.idle_since, Some(now));
+        assert!(!update_timeout_state(
+            &mut state,
+            true,
+            now + before_idle_timeout
+        ));
+        assert!(update_timeout_state(&mut state, true, now + IDLE_TIMEOUT));
+
+        assert!(!update_timeout_state(&mut state, false, now + IDLE_TIMEOUT));
+        assert_eq!(state.idle_since, None);
+
+        state.paused_since = Some(now);
+        assert!(!update_timeout_state(
+            &mut state,
+            false,
+            now + before_paused_timeout
+        ));
+        assert!(update_timeout_state(
+            &mut state,
+            false,
+            now + PAUSED_TIMEOUT
+        ));
+    }
 }
