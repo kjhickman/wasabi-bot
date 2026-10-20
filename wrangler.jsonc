@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "discord-bot",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-19",
+  "env": {
+    "dev": {
+      "name": "discord-bot-dev",
+      "workers_dev": true,
+    },
+  },
+}
