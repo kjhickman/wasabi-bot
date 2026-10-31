@@ -7,6 +7,7 @@ import {
 } from 'discord-api-types/payloads/v10';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
+import { conch } from '../commands/conch.ts';
 import { ping } from '../commands/ping.ts';
 import { verifyDiscordRequest } from '../discord.ts';
 import type { AppEnv } from '../env.ts';
@@ -43,6 +44,10 @@ interactions.post('/', bodyLimit({ maxSize: 1024 * 1024 }), async (c) => {
 
   if (interaction.data.name === ping.definition.name) {
     return c.json(ping.execute());
+  }
+
+  if (interaction.data.name === conch.definition.name) {
+    return c.json(await conch.execute(interaction.data.options, c.env.OPENAI_API_KEY));
   }
 
   return c.json({

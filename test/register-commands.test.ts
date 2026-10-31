@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { conch } from '../src/commands/conch.ts';
 import { ping } from '../src/commands/ping.ts';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -34,7 +35,7 @@ describe('command registration', () => {
           Authorization: 'Bot test-token',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify([ping.definition]),
+        body: JSON.stringify([ping.definition, conch.definition]),
       },
     );
     expect(console.log).toHaveBeenCalledWith('Synced global commands.');

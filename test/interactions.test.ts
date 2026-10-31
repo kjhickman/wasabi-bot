@@ -1,11 +1,12 @@
 import { webcrypto } from 'node:crypto';
 import {
+  ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
   InteractionType,
   MessageFlags,
 } from 'discord-api-types/v10';
-import { beforeAll, describe, expect, it } from 'vite-plus/test';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test';
 import worker from '../src/index.ts';
 
 let keyPair: webcrypto.CryptoKeyPair;
@@ -19,6 +20,10 @@ beforeAll(async () => {
   publicKey = Buffer.from(await webcrypto.subtle.exportKey('raw', keyPair.publicKey)).toString(
     'hex',
   );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 async function signedRequest(
@@ -70,6 +75,56 @@ describe('interactions endpoint', () => {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: { content: 'Pong!' },
     });
+  });
+
+  it('responds directly to /conch using the Decisions API', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json({ answers: [{ type: 'choice', choice: 'yes' }] }));
+    vi.stubGlobal('fetch', fetchMock);
+    const request = await signedRequest(
+      JSON.stringify({
+        type: InteractionType.ApplicationCommand,
+        data: {
+          type: ApplicationCommandType.ChatInput,
+          name: 'conch',
+          options: [
+            {
+              type: ApplicationCommandOptionType.String,
+              name: 'question',
+              value: 'Is the sky blue?',
+            },
+          ],
+        },
+      }),
+    );
+
+    const response = await worker.fetch(request, {
+      DISCORD_PUBLIC_KEY: publicKey,
+      OPENAI_API_KEY: 'test-key',
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: { content: 'Yes' },
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not call OpenAI for an unverified /conch interaction', async () => {
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', fetchMock);
+    const request = await signedRequest(
+      JSON.stringify({
+        type: InteractionType.ApplicationCommand,
+        data: { type: ApplicationCommandType.ChatInput, name: 'conch' },
+      }),
+    );
+    request.headers.delete('X-Signature-Ed25519');
+
+    expect((await handle(request)).status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it.each([false, true])(

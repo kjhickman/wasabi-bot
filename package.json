@@ -18,7 +18,8 @@
     "commands:register": "node --env-file=.env scripts/register-commands.ts"
   },
   "dependencies": {
-    "hono": "4.13.13"
+    "hono": "4.13.13",
+    "openai": "7.41.0"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.64.0",

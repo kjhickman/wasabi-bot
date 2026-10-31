@@ -1,4 +1,5 @@
 import { Routes } from 'discord-api-types/v10';
+import { conch } from '../src/commands/conch.ts';
 import { ping } from '../src/commands/ping.ts';
 
 const { DISCORD_APPLICATION_ID, DISCORD_BOT_TOKEN } = process.env;
@@ -15,7 +16,7 @@ const response = await fetch(
       Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify([ping.definition]),
+    body: JSON.stringify([ping.definition, conch.definition]),
   },
 );
 
