@@ -7,9 +7,8 @@ import {
 import type { Env } from '../env.ts';
 import { choose } from './choose.ts';
 import { conch } from './conch.ts';
-import { ping } from './ping.ts';
 
-export const commands = [ping, conch, choose];
+export const commands = [conch, choose];
 
 export async function runCommand(
   data: APIChatInputApplicationCommandInteractionData,

@@ -16,15 +16,6 @@ afterEach(() => {
 });
 
 describe('runCommand', () => {
-  it('replies to /ping', async () => {
-    const data = { id: '1', type: ApplicationCommandType.ChatInput, name: 'ping' } as const;
-
-    expect(await runCommand(data, env, signal)).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: 'Pong!' },
-    });
-  });
-
   it('passes the interaction data, env, and deadline to the matching command', async () => {
     const data = { id: '1', type: ApplicationCommandType.ChatInput, name: 'conch' } as const;
     const response = {
