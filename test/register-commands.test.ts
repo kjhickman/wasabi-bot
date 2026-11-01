@@ -9,7 +9,6 @@ beforeEach(() => {
   fetchMock.mockReset();
   vi.stubEnv('DISCORD_APPLICATION_ID', '123456789012345678');
   vi.stubEnv('DISCORD_BOT_TOKEN', 'test-token');
-  vi.stubEnv('DISCORD_GUILD_ID', undefined);
   vi.stubGlobal('fetch', fetchMock);
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });

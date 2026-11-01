@@ -8,6 +8,7 @@
     "build": "vp build",
     "preview": "vp preview",
     "deploy": "CLOUDFLARE_ENV=dev npm run build && wrangler deploy --secrets-file .dev.vars",
+    "deploy:prod": "CLOUDFLARE_ENV=prod npm run build && wrangler deploy --secrets-file .dev.vars.prod",
     "types": "wrangler types --include-env false",
     "postinstall": "npm run types",
     "check": "vp check && npm run typecheck",
@@ -15,7 +16,10 @@
     "format": "vp fmt",
     "lint": "vp lint",
     "test": "vp test run",
-    "commands:register": "node --env-file=.env scripts/register-commands.ts"
+    "commands:register": "node --env-file=.env scripts/register-commands.ts",
+    "commands:register:prod": "node --env-file=.env.prod scripts/register-commands.ts",
+    "gateway": "node --env-file=.env scripts/gateway.ts",
+    "gateway:prod": "node --env-file=.env.prod scripts/gateway.ts"
   },
   "dependencies": {
     "hono": "4.13.13",
@@ -25,6 +29,7 @@
     "@cloudflare/vite-plugin": "1.64.0",
     "@types/node": "24.19.2",
     "discord-api-types": "0.38.57",
+    "miniflare": "5.20261012.0-beta",
     "tsrs": "0.18.0-ts7.1.0-dev.20260929",
     "vite-plus": "1.3.0",
     "wrangler": "4.151.0"

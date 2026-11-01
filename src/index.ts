@@ -1,10 +1,11 @@
-import { Hono } from 'hono';
-import type { AppEnv } from './env.ts';
-import { interactions } from './routes/interactions.ts';
+import app from './app.ts';
+import type { Env } from './env.ts';
 
-const app = new Hono<AppEnv>();
+export { DiscordGateway } from './gateway/durable-object.ts';
 
-app.route('/interactions', interactions);
-app.notFound((c) => c.text('Not found', 404));
-
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(_controller: ScheduledController, env: Env) {
+    await env.DISCORD_GATEWAY.getByName('gateway').ensureConnected();
+  },
+} satisfies ExportedHandler<Env>;
