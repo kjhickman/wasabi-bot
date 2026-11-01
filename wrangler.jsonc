@@ -22,6 +22,7 @@
       "workers_dev": true,
       "durable_objects": {
         "bindings": [{ "name": "DISCORD_GATEWAY", "class_name": "DiscordGateway" }],
+        "code_update_strategy": { "mode": "immediate" },
       },
       "vars": {
         "GATEWAY_MODE": "dev",
@@ -35,6 +36,7 @@
       "workers_dev": true,
       "durable_objects": {
         "bindings": [{ "name": "DISCORD_GATEWAY", "class_name": "DiscordGateway" }],
+        "code_update_strategy": { "mode": "immediate" },
       },
       "vars": {
         "GATEWAY_MODE": "prod",
