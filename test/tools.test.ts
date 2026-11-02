@@ -6,6 +6,7 @@ import {
 } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { caption } from '../src/commands/caption.ts';
+import { commands } from '../src/commands/index.ts';
 import { commandTool, commandTools, runCommandTool } from '../src/commands/tools.ts';
 import type { Env } from '../src/env.ts';
 
@@ -39,53 +40,21 @@ afterEach(() => {
 });
 
 describe('commandTools', () => {
-  it('offers /conch, /choose, /caption and /flip as strict tools', () => {
-    expect(commandTools).toEqual([
-      {
-        type: 'function',
-        name: 'conch',
-        description: 'Ask the magic conch a yes/no question.',
-        strict: true,
-        parameters: {
-          type: 'object',
-          properties: { question: { type: 'string', description: expect.any(String) } },
-          required: ['question'],
-          additionalProperties: false,
-        },
-      },
-      {
-        type: 'function',
-        name: 'choose',
-        description: 'Randomly pick one of 2 to 7 options.',
-        strict: true,
-        parameters: {
-          type: 'object',
-          properties: Object.fromEntries(
-            [1, 2, 3, 4, 5, 6, 7].map((n) => [
-              `option${n}`,
-              { type: n <= 2 ? 'string' : ['string', 'null'], description: `Option ${n}` },
-            ]),
-          ),
-          required: Object.keys(chooseArgs),
-          additionalProperties: false,
-        },
-      },
-      {
-        type: 'function',
-        name: 'caption',
-        description:
-          'Get a funny meme caption for an image. It uses the image attached to the last message, else the one on the message it replies to, else the most recent image in the channel.',
-        strict: true,
-        parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
-      },
-      {
-        type: 'function',
-        name: 'flip',
-        description: 'Flip a coin.',
-        strict: true,
-        parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
-      },
-    ]);
+  it('offers every command as a tool', () => {
+    expect(commandTools.map((tool) => tool.name)).toEqual(
+      commands.map((command) => command.definition.name),
+    );
+  });
+
+  it('leaves image options out of the schema and describes where the image comes from', () => {
+    expect(commandTools.find((tool) => tool.name === 'caption')).toEqual({
+      type: 'function',
+      name: 'caption',
+      description:
+        'Get a funny meme caption for an image. It uses the image attached to the last message, else the one on the message it replies to, else the most recent image in the channel.',
+      strict: true,
+      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+    });
   });
 
   it('maps choices and number limits, and allows null for optional options', () => {

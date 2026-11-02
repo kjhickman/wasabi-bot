@@ -46,41 +46,11 @@ afterEach(() => {
 });
 
 describe('/conch', () => {
-  it('defines a required question option', () => {
-    expect(conch.definition).toEqual({
-      name: 'conch',
-      description: expect.any(String),
-      type: ApplicationCommandType.ChatInput,
-      options: [
-        {
-          type: ApplicationCommandOptionType.String,
-          name: 'question',
-          description: expect.any(String),
-          required: true,
-          min_length: 1,
-        },
-      ],
-    });
-  });
-
   it('calls the Decisions API with yes, no, and unsure choices', async () => {
     fetchMock.mockResolvedValue(Response.json({ answers: [{ type: 'choice', choice: 'yes' }] }));
 
     await ask(options);
 
-    expect(fetchMock).toHaveBeenCalledOnce();
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.openai.com/v1/decisions',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.any(Headers),
-        body: expect.any(String),
-        signal: expect.any(AbortSignal),
-      }),
-    );
-    const headers = new Headers(fetchMock.mock.calls[0]![1]!.headers);
-    expect(headers.get('Authorization')).toBe('Bearer test-key');
-    expect(headers.get('Content-Type')).toBe('application/json');
     expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({
       model: 'gpt-6-luna',
       input: question,

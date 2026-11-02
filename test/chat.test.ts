@@ -1,6 +1,7 @@
 import { MessageFlags, type GatewayMessageCreateDispatchData } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { mentionsBot, replyToMention } from '../src/chat.ts';
+import { commandTools } from '../src/commands/tools.ts';
 import type { Env } from '../src/env.ts';
 
 const BOT_ID = '100';
@@ -136,10 +137,7 @@ describe('replyToMention', () => {
       ],
     });
     expect(request!.tools.map((tool) => tool.name ?? tool.type)).toEqual([
-      'conch',
-      'choose',
-      'caption',
-      'flip',
+      ...commandTools.map((tool) => tool.name),
       'web_search',
       'code_interpreter',
     ]);

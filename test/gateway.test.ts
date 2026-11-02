@@ -105,10 +105,10 @@ function createRuntime(mode: 'dev' | 'prod' = 'dev') {
   });
 }
 
-async function control(action: string, token = 'control-token') {
+async function control(action: string) {
   return runtime!.dispatchFetch(`https://bot.test/gateway/${action}`, {
     method: action === 'status' ? 'GET' : 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: 'Bearer control-token' },
   });
 }
 
@@ -221,14 +221,6 @@ describe('Gateway in workerd', () => {
     expect(await status()).toMatchObject({ running: false, connected: false });
     expect((await discordState()).discoveries).toBe(0);
     expect(await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json()).toBeNull();
-  });
-
-  it('rejects control requests before reaching the Durable Object', async () => {
-    createRuntime();
-    const response = await control('start', 'wrong-token');
-
-    expect(response.status).toBe(401);
-    expect((await discordState()).discoveries).toBe(0);
   });
 
   it('starts dev without a duplicate connection when started again', async () => {

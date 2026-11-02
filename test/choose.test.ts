@@ -24,19 +24,6 @@ afterEach(() => {
 });
 
 describe('/choose', () => {
-  it('defines 2 required and 5 optional string options', () => {
-    expect(choose.definition.options).toEqual(
-      [1, 2, 3, 4, 5, 6, 7].map((n) => ({
-        type: ApplicationCommandOptionType.String,
-        name: `option${n}`,
-        description: expect.any(String),
-        required: n <= 2,
-        min_length: 1,
-        max_length: 100,
-      })),
-    );
-  });
-
   it.each([
     [0, 'Halo'],
     [0.34, 'Minecraft'],

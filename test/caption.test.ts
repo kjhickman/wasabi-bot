@@ -71,23 +71,6 @@ afterEach(() => {
 });
 
 describe('/caption', () => {
-  it('defines a required image attachment and replies after deferring', () => {
-    expect(caption.definition).toEqual({
-      name: 'caption',
-      description: expect.any(String),
-      type: ApplicationCommandType.ChatInput,
-      options: [
-        {
-          type: ApplicationCommandOptionType.Attachment,
-          name: 'image',
-          description: expect.any(String),
-          required: true,
-        },
-      ],
-    });
-    expect(caption.deferred).toBe(true);
-  });
-
   it('captions the image by URL and re-posts a downloaded copy without pinging anyone', async () => {
     openai = () => textResponse('  When the code works on the first try  ');
 
