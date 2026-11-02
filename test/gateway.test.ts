@@ -26,7 +26,6 @@ interface DiscordState {
 interface Status {
   running: boolean;
   connected: boolean;
-  leaseExpiresAt: string | null;
   retryAt: string | null;
   error: string | null;
   lastEvent: string | null;
@@ -219,11 +218,7 @@ describe('Gateway in workerd', () => {
     createRuntime();
     await reconcile();
 
-    expect(await status()).toMatchObject({
-      running: false,
-      connected: false,
-      leaseExpiresAt: null,
-    });
+    expect(await status()).toMatchObject({ running: false, connected: false });
     expect((await discordState()).discoveries).toBe(0);
     expect(await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json()).toBeNull();
   });
@@ -236,14 +231,10 @@ describe('Gateway in workerd', () => {
     expect((await discordState()).discoveries).toBe(0);
   });
 
-  it('starts and renews a one-hour dev session without a duplicate connection', async () => {
+  it('starts dev without a duplicate connection when started again', async () => {
     createRuntime();
-    const before = Date.now();
     expect((await control('start')).status).toBe(200);
     await connected();
-    const first = await status();
-    expect(Date.parse(first.leaseExpiresAt!)).toBeGreaterThanOrEqual(before + 3_600_000);
-    expect(Date.parse(first.leaseExpiresAt!)).toBeLessThan(Date.now() + 3_601_000);
     await (await control('start')).text();
     await reconcile();
 
@@ -271,28 +262,10 @@ describe('Gateway in workerd', () => {
     expect((await discordState()).packets.filter((packet) => packet.op === 2)).toHaveLength(1);
   }, 15_000);
 
-  it('expires a dev lease durably without reconnecting after restart', async () => {
-    createRuntime();
-    await (await control('start')).text();
-    await connected();
-    await (await runtime!.dispatchFetch('https://bot.test/_test/expire')).text();
-    await reconcile();
-    await reconcile();
-
-    expect(await status()).toMatchObject({
-      running: false,
-      connected: false,
-      leaseExpiresAt: null,
-    });
-    expect((await discordState()).discoveries).toBe(1);
-    expect(await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json()).toBeNull();
-  }, 15_000);
-
   it('starts production automatically, but respects an explicit stop', async () => {
     createRuntime('prod');
     await reconcile();
     await connected();
-    expect((await status()).leaseExpiresAt).toBeNull();
     await (await control('stop')).text();
     await reconcile();
 

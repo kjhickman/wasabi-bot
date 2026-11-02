@@ -11,13 +11,11 @@ import {
 } from './interactions.ts';
 
 const WATCHDOG_MS = 30_000;
-const DEV_LEASE_MS = 60 * 60 * 1_000;
 const IDENTIFY_COOLDOWN_MS = 6_000;
 const MAX_BACKOFF_MS = 5 * 60 * 1_000;
 
 interface Lifecycle {
   enabled: boolean;
-  expiresAt: number | null;
   session: Session | null;
   retryAt: number;
   failures: number;
@@ -38,7 +36,6 @@ export class DiscordGateway extends DurableObject<Env> {
     super(ctx, env);
     this.lifecycle = ctx.storage.kv.get<Lifecycle>('lifecycle') ?? {
       enabled: env.GATEWAY_MODE === 'prod',
-      expiresAt: null,
       session: null,
       retryAt: 0,
       failures: 0,
@@ -49,12 +46,11 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   status() {
-    const { expiresAt, retryAt, error } = this.lifecycle;
+    const { retryAt, error } = this.lifecycle;
     return {
       mode: this.env.GATEWAY_MODE,
       running: this.shouldRun(),
       connected: this.connection?.connected ?? false,
-      leaseExpiresAt: expiresAt === null ? null : new Date(expiresAt).toISOString(),
       retryAt: retryAt > Date.now() ? new Date(retryAt).toISOString() : null,
       lastHeartbeatAck: this.connection?.lastAck ?? null,
       lastEvent: this.lastEvent,
@@ -63,13 +59,7 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   async start() {
-    Object.assign(this.lifecycle, {
-      enabled: true,
-      expiresAt: this.env.GATEWAY_MODE === 'prod' ? null : Date.now() + DEV_LEASE_MS,
-      retryAt: 0,
-      failures: 0,
-      error: null,
-    });
+    Object.assign(this.lifecycle, { enabled: true, retryAt: 0, failures: 0, error: null });
     this.save();
     return this.ensureConnected();
   }
@@ -80,8 +70,6 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   async ensureConnected() {
-    const { expiresAt } = this.lifecycle;
-    if (expiresAt !== null && expiresAt <= Date.now()) return this.stop();
     if (!this.shouldRun()) return this.status();
     const token = this.env.DISCORD_BOT_TOKEN;
     if (!token || !this.env.GATEWAY_CONTROL_TOKEN) {
@@ -110,8 +98,7 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   private shouldRun() {
-    const { enabled, expiresAt } = this.lifecycle;
-    return enabled && (expiresAt === null || expiresAt > Date.now());
+    return this.lifecycle.enabled;
   }
 
   private save() {
@@ -121,7 +108,6 @@ export class DiscordGateway extends DurableObject<Env> {
   private async halt(error: string | null) {
     Object.assign(this.lifecycle, {
       enabled: false,
-      expiresAt: null,
       session: null,
       retryAt: 0,
       error,
@@ -151,10 +137,9 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   private async armAlarm() {
-    const { retryAt, expiresAt } = this.lifecycle;
+    const { retryAt } = this.lifecycle;
     let next = Date.now() + WATCHDOG_MS;
     if (retryAt > Date.now()) next = Math.min(next, retryAt);
-    if (expiresAt !== null) next = Math.min(next, expiresAt);
     await this.ctx.storage.setAlarm(next);
   }
 

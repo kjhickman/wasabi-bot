@@ -4,22 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp dev",
-    "build": "vp build",
-    "preview": "vp preview",
-    "deploy": "CLOUDFLARE_ENV=dev npm run build && wrangler deploy --secrets-file .dev.vars",
-    "deploy:prod": "CLOUDFLARE_ENV=prod npm run build && wrangler deploy --secrets-file .dev.vars.prod",
-    "types": "wrangler types --include-env false",
-    "postinstall": "npm run types",
-    "check": "vp check && npm run typecheck",
-    "typecheck": "tsrs --noEmit",
-    "format": "vp fmt",
-    "lint": "vp lint",
+    "dev": "node --env-file=.env scripts/register-commands.ts && vp dev",
+    "check": "vp check && tsrs --noEmit",
     "test": "vp test run",
-    "commands:register": "node --env-file=.env scripts/register-commands.ts",
-    "commands:register:prod": "node --env-file=.env.prod scripts/register-commands.ts",
-    "gateway": "node --env-file=.env scripts/gateway.ts",
-    "gateway:prod": "node --env-file=.env.prod scripts/gateway.ts"
+    "deploy": "CLOUDFLARE_ENV=prod vp build && wrangler deploy --secrets-file .dev.vars.prod && node --env-file=.env.prod scripts/register-commands.ts",
+    "gateway": "node --env-file=.env.prod scripts/gateway.ts",
+    "postinstall": "wrangler types --include-env false"
   },
   "dependencies": {
     "hono": "4.13.13",

@@ -12,13 +12,6 @@ export class TestGateway extends DiscordGateway {
     (this as unknown as { connection: GatewayConnection }).connection.close(3010);
   }
 
-  async expireLease(): Promise<void> {
-    const lifecycle = this.ctx.storage.kv.get<Record<string, unknown>>('lifecycle')!;
-    this.ctx.storage.kv.put('lifecycle', { ...lifecycle, expiresAt: Date.now() - 1 });
-    await this.ctx.storage.sync();
-    this.ctx.abort('Test lease expiry and restart');
-  }
-
   alarmTime() {
     return this.ctx.storage.getAlarm();
   }
@@ -39,10 +32,9 @@ export default {
       await gateway.zombie();
       return new Response(null, { status: 204 });
     }
-    if (path === '/_test/crash' || path === '/_test/expire') {
+    if (path === '/_test/crash') {
       try {
-        if (path === '/_test/crash') await gateway.crash();
-        else await gateway.expireLease();
+        await gateway.crash();
       } catch {
         return new Response(null, { status: 204 });
       }

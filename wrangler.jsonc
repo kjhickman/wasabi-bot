@@ -17,20 +17,6 @@
     "GATEWAY_MODE": "dev",
   },
   "env": {
-    "dev": {
-      "name": "discord-bot-dev",
-      "workers_dev": true,
-      "durable_objects": {
-        "bindings": [{ "name": "DISCORD_GATEWAY", "class_name": "DiscordGateway" }],
-        "code_update_strategy": { "mode": "immediate" },
-      },
-      "vars": {
-        "GATEWAY_MODE": "dev",
-      },
-      "triggers": {
-        "crons": ["* * * * *"],
-      },
-    },
     "prod": {
       "name": "discord-bot-prod",
       "workers_dev": true,

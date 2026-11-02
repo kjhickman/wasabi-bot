@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 const fetchMock = vi.fn<typeof fetch>();
 const originalArgv = process.argv;
-const status = { running: true, leaseExpiresAt: '2026-10-31T13:00:00.000Z' };
+const status = { running: true, connected: true };
 
 beforeEach(() => {
   vi.resetModules();
