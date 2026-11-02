@@ -43,6 +43,7 @@ describe('isDeferred', () => {
     ['caption', true],
     ['conch', false],
     ['choose', false],
+    ['flip', false],
     ['unknown', false],
   ])('%s → %s', (name, deferred) => {
     expect(isDeferred(name)).toBe(deferred);

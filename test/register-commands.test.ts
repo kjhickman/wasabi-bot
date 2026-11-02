@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { caption } from '../src/commands/caption.ts';
 import { choose } from '../src/commands/choose.ts';
 import { conch } from '../src/commands/conch.ts';
+import { flip } from '../src/commands/flip.ts';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -35,7 +36,12 @@ describe('command registration', () => {
           Authorization: 'Bot test-token',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify([conch.definition, choose.definition, caption.definition]),
+        body: JSON.stringify([
+          conch.definition,
+          choose.definition,
+          caption.definition,
+          flip.definition,
+        ]),
       },
     );
     expect(console.log).toHaveBeenCalledWith('Synced global commands.');

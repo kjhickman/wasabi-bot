@@ -8,8 +8,9 @@ import type { Env } from '../env.ts';
 import { caption } from './caption.ts';
 import { choose } from './choose.ts';
 import { conch } from './conch.ts';
+import { flip } from './flip.ts';
 
-export const commands = [conch, choose, caption];
+export const commands = [conch, choose, caption, flip];
 
 // Files are only uploaded for deferred commands, whose replies are sent as edits.
 export type CommandResponse = APIInteractionResponseChannelMessageWithSource & { files?: File[] };

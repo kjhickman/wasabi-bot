@@ -39,7 +39,7 @@ afterEach(() => {
 });
 
 describe('commandTools', () => {
-  it('offers /conch, /choose and /caption as strict tools', () => {
+  it('offers /conch, /choose, /caption and /flip as strict tools', () => {
     expect(commandTools).toEqual([
       {
         type: 'function',
@@ -75,6 +75,13 @@ describe('commandTools', () => {
         name: 'caption',
         description:
           'Get a funny meme caption for an image. It uses the image attached to the last message, else the one on the message it replies to, else the most recent image in the channel.',
+        strict: true,
+        parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+      },
+      {
+        type: 'function',
+        name: 'flip',
+        description: 'Flip a coin.',
         strict: true,
         parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
       },

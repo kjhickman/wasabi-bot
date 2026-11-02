@@ -139,6 +139,7 @@ describe('replyToMention', () => {
       'conch',
       'choose',
       'caption',
+      'flip',
       'web_search',
       'code_interpreter',
     ]);
