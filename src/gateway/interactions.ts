@@ -7,13 +7,13 @@ import {
   type APIInteraction,
   type APIInteractionResponse,
 } from 'discord-api-types/v10';
-import { isDeferred, runCommand } from '../commands/index.ts';
+import { isDeferred, runCommand, withFiles } from '../commands/index.ts';
 import type { Env } from '../env.ts';
 
 const DISCORD_EPOCH_MS = 1_420_070_400_000;
 const RESPONSE_WINDOW_MS = 3_000;
 const CALLBACK_BUDGET_MS = 750;
-const DEFERRED_BUDGET_MS = 30_000;
+const DEFERRED_BUDGET_MS = 120_000;
 const SEEN_TTL_MS = 15 * 60 * 1_000;
 
 export function createInteractionsTable(sql: SqlStorage) {
@@ -71,18 +71,9 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
         files = [],
         data: { flags: _, ...message },
       } = response;
-      const body = new FormData();
-      body.set(
-        'payload_json',
-        JSON.stringify({
-          ...message,
-          attachments: files.map((file, id) => ({ id, filename: file.name })),
-        }),
-      );
-      files.forEach((file, i) => body.set(`files[${i}]`, file));
       const edited = await fetch(
         `${RouteBases.api}${Routes.webhookMessage(interaction.application_id, interaction.token, '@original')}`,
-        { method: 'PATCH', body, redirect: 'manual' },
+        { method: 'PATCH', body: withFiles(message, files), redirect: 'manual' },
       );
       if (!edited.ok) console.error('Discord interaction edit failed', edited.status);
       return;

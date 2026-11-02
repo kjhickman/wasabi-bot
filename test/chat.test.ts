@@ -7,7 +7,7 @@ import type { Env } from '../src/env.ts';
 const BOT_ID = '100';
 const token = `${btoa(BOT_ID)}.fake.token`;
 const env = { OPENAI_API_KEY: 'test-key' } as Env;
-const bot = { id: BOT_ID, username: 'devbot', global_name: 'DevBot' };
+const bot = { id: BOT_ID, username: 'wasabibot', global_name: 'WasabiBot' };
 const kyle = { id: '200', username: 'kyle', global_name: 'Kyle' };
 const sam = { id: '300', username: 'sam', global_name: null };
 
@@ -69,9 +69,13 @@ function openaiRequests(): OpenAIRequest[] {
   return calls('/v1/responses').map(([, init]) => JSON.parse(init!.body as string));
 }
 
-function sentReply() {
+function sentForm() {
   const [post] = calls('/channels/42/messages').filter(([, init]) => init?.method === 'POST');
-  return JSON.parse(post![1]!.body as string);
+  return post![1]!.body as FormData;
+}
+
+function sentReply() {
+  return JSON.parse(sentForm().get('payload_json') as string);
 }
 
 beforeEach(() => {
@@ -87,6 +91,9 @@ beforeEach(() => {
     }
     if (path.includes('/messages?')) return historyResponse;
     if (path.endsWith('/v1/responses')) return openai(JSON.parse(init!.body as string));
+    if (path.endsWith('/v1/images/generations')) {
+      return Response.json({ created: 0, data: [{ b64_json: btoa('png') }] });
+    }
     if (path.endsWith('/v1/decisions')) {
       return Response.json({ answers: [{ type: 'choice', choice: 'yes' }] });
     }
@@ -135,9 +142,9 @@ describe('replyToMention', () => {
       reasoning: { effort: 'none' },
       tool_choice: 'auto',
       input: [
-        { role: 'user', content: 'sam: hey @DevBot and @Kyle' },
+        { role: 'user', content: 'sam: hey @WasabiBot and @Kyle' },
         { role: 'assistant', content: 'Hi Sam!' },
-        { role: 'user', content: 'Kyle: @DevBot what should we play?' },
+        { role: 'user', content: 'Kyle: @WasabiBot what should we play?' },
       ],
     });
     expect(request!.tools.map((tool) => tool.name ?? tool.type)).toEqual([
@@ -146,13 +153,14 @@ describe('replyToMention', () => {
       'code_interpreter',
     ]);
     expect((request as unknown as { instructions: string }).instructions).toContain(
-      'You are DevBot, a bot chatting in a Discord channel',
+      'You are WasabiBot, a bot chatting in a Discord channel',
     );
     expect(sentReply()).toEqual({
       content: 'Halo!',
       message_reference: { message_id: '9', fail_if_not_exists: false },
       allowed_mentions: { parse: [], replied_user: true },
       flags: MessageFlags.SuppressEmbeds,
+      attachments: [],
     });
   });
 
@@ -164,12 +172,13 @@ describe('replyToMention', () => {
     const [request] = openaiRequests();
     expect(request!.input).toEqual([{ role: 'user', content: 'Kyle: what should we play?' }]);
     const { instructions } = request as unknown as { instructions: string };
-    expect(instructions).toContain('You are DevBot, a bot chatting in a Discord DM');
+    expect(instructions).toContain('You are WasabiBot, a bot chatting in a Discord DM');
     expect(instructions).not.toContain('server');
     expect(sentReply()).toEqual({
       content: 'Halo!',
       allowed_mentions: { parse: [], replied_user: true },
       flags: MessageFlags.SuppressEmbeds,
+      attachments: [],
     });
   });
 
@@ -179,7 +188,7 @@ describe('replyToMention', () => {
     await replyToMention(mention, token, env);
 
     expect(openaiRequests()[0]!.input).toEqual([
-      { role: 'user', content: 'Kyle: @DevBot what should we play?' },
+      { role: 'user', content: 'Kyle: @WasabiBot what should we play?' },
     ]);
     expect(sentReply().content).toBe('Halo!');
   });
@@ -216,6 +225,66 @@ describe('replyToMention', () => {
     expect(calls('/channels/42/typing')).toHaveLength(2);
     expect(sentReply().content).toBe(
       'Go with Overwatch, and the conch agrees!\n-# used /choose, /conch',
+    );
+  });
+
+  it('attaches images that commands make to the reply', async () => {
+    openai = (request) =>
+      request.input.some((item) => item.type === 'function_call_output')
+        ? openaiText('Here you go!')
+        : openaiCalls(['imagine', { prompt: 'a frog in a hat' }]);
+
+    await replyToMention(mention, token, env);
+
+    const [first, second] = openaiRequests();
+    expect((first as unknown as { instructions: string }).instructions).toContain(
+      'images your commands make are attached to your reply automatically',
+    );
+    expect(second!.input.at(-1)).toEqual({
+      type: 'function_call_output',
+      call_id: 'call_0',
+      output: '> a frog in a hat\nThe image is attached to your reply.',
+    });
+    expect(sentReply()).toMatchObject({
+      content: 'Here you go!\n-# used /imagine',
+      attachments: [{ id: 0, filename: 'image.png' }],
+    });
+    const file = sentForm().get('files[0]') as File;
+    expect(file.type).toBe('image/png');
+    expect(await file.text()).toBe('png');
+  });
+
+  it('still sends images when the model adds no text', async () => {
+    openai = (request) =>
+      request.input.some((item) => item.type === 'function_call_output')
+        ? openaiText('  ')
+        : openaiCalls(['imagine', { prompt: 'a frog in a hat' }]);
+
+    await replyToMention(mention, token, env);
+
+    expect(sentReply()).toMatchObject({
+      content: '-# used /imagine',
+      attachments: [{ id: 0, filename: 'image.png' }],
+    });
+  });
+
+  it('logs what OpenAI returned when there is nothing to send', async () => {
+    openai = () =>
+      Response.json({
+        object: 'response',
+        status: 'incomplete',
+        incomplete_details: { reason: 'max_output_tokens' },
+        output: [{ type: 'code_interpreter_call', id: 'ci_0', code: 'import PIL', outputs: null }],
+      });
+
+    await replyToMention(mention, token, env);
+
+    expect(console.error).toHaveBeenCalledWith(
+      'Chat reply failed',
+      'OpenAI returned no text (status incomplete: max_output_tokens; output: code_interpreter_call)',
+    );
+    expect(sentReply().content).toBe(
+      "Sorry, I couldn't come up with a reply. Try again in a moment.",
     );
   });
 
@@ -370,7 +439,11 @@ describe('replyToMention', () => {
         type: 'function_call_output',
         output: 'Me when the build passes',
       });
-      expect(sentReply().content).toBe('Me when the build passes\n-# used /caption');
+      expect(sentReply()).toMatchObject({
+        content: 'Me when the build passes\n-# used /caption',
+        attachments: [],
+      });
+      expect(sentForm().has('files[0]')).toBe(false);
     });
 
     it('tells the model when there is no image to caption', async () => {

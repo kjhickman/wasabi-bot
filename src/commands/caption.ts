@@ -31,6 +31,8 @@ export const caption = {
     ],
   } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
   deferred: true,
+  // In chat the image is already in the conversation, so only the caption is sent.
+  textOnlyInChat: true,
 
   async execute(
     data: APIChatInputApplicationCommandInteractionData,
@@ -72,7 +74,7 @@ export const caption = {
 };
 
 // Slash command uploads are temporary, so keep a copy to re-post with the caption.
-async function download(url: string, filename: string, type: string, signal: AbortSignal) {
+export async function download(url: string, filename: string, type: string, signal: AbortSignal) {
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`Image download failed: ${response.status}`);
   return new File([await response.arrayBuffer()], filename, { type });

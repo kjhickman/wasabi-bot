@@ -10,14 +10,17 @@ import {
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import type { ResponseInputItem, Tool } from 'openai/resources/responses/responses';
+import { withFiles } from './commands/index.ts';
 import { commandTools, runCommandTool } from './commands/tools.ts';
 import type { Env } from './env.ts';
 
 const HISTORY_LIMIT = 50;
 const MAX_MESSAGE_LENGTH = 2_000;
 const MAX_TOOL_ROUNDS = 3;
-const COMMAND_TIMEOUT_MS = 15_000;
-const REPLY_TIMEOUT_MS = 60_000;
+const COMMAND_TIMEOUT_MS = 120_000;
+const REPLY_TIMEOUT_MS = 180_000;
+// Discord shows "typing…" for about 10 seconds.
+const TYPING_INTERVAL_MS = 8_000;
 const FAILURE_REPLY = "Sorry, I couldn't come up with a reply. Try again in a moment.";
 const TOOLS: Tool[] = [
   ...commandTools,
@@ -44,13 +47,14 @@ export async function replyToMention(
   const discord = (route: string, init?: RequestInit) =>
     fetch(`${RouteBases.api}${route}`, {
       ...init,
-      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bot ${token}` },
       redirect: 'manual',
     });
   const typing = () =>
     discord(Routes.channelTyping(message.channel_id), { method: 'POST' }).catch(() => undefined);
 
   let content = FAILURE_REPLY;
+  let files: File[] = [];
   try {
     const [, response, me] = await Promise.all([
       typing(),
@@ -63,7 +67,15 @@ export async function replyToMention(
     const image = [message, message.referenced_message, ...history.toReversed()]
       .flatMap((source) => source?.attachments ?? [])
       .find((attachment) => attachment.content_type?.startsWith('image/'));
-    content = await generate([...history, message], bot, dm, env, typing, image, signal);
+    ({ content, files } = await generate(
+      [...history, message],
+      bot,
+      dm,
+      env,
+      typing,
+      image,
+      signal,
+    ));
   } catch (error) {
     console.error('Chat reply failed', error instanceof Error ? error.message : error);
   }
@@ -74,7 +86,7 @@ export async function replyToMention(
     allowed_mentions: { parse: [], replied_user: true },
     flags: MessageFlags.SuppressEmbeds,
   } satisfies RESTPostAPIChannelMessageJSONBody;
-  const sent = await discord(messages, { method: 'POST', body: JSON.stringify(body) });
+  const sent = await discord(messages, { method: 'POST', body: withFiles(body, files) });
   if (!sent.ok) console.error('Discord chat reply failed', sent.status);
 }
 
@@ -100,12 +112,13 @@ async function generate(
       : [{ role: 'user', content: `${displayName(message.author)}: ${text}` }];
   });
   const used = new Set<string>();
+  const files: File[] = [];
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const response = await client.responses.create(
       {
         model: 'gpt-6.1-terra',
-        instructions: `You are ${displayName(bot)}, a bot chatting in ${place}. Be casual, friendly and concise, like ${like}: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Search the web when the last message needs current or recent information, and use the python tool for math or data you'd otherwise work out in your head. You can't share files or charts, so answer in text. Your other tools are ${commands} slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
+        instructions: `You are ${displayName(bot)}, a bot chatting in ${place}. Be casual, friendly and concise, like ${like}: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Search the web when the last message needs current or recent information, and use the python tool for math or data you'd otherwise work out in your head. You can't share files or charts, but images your commands make are attached to your reply automatically. Your other tools are ${commands} slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
         input,
         tools: TOOLS,
         tool_choice: round < MAX_TOOL_ROUNDS ? 'auto' : 'none',
@@ -115,17 +128,29 @@ async function generate(
       { signal },
     );
     const calls = response.output.filter((item) => item.type === 'function_call');
-    if (!calls.length) return withNote(response.output_text.trim(), used);
+    if (!calls.length) {
+      const text = response.output_text.trim();
+      if (!text && !files.length) {
+        const reason = response.incomplete_details?.reason;
+        const output = response.output.map((item) => item.type).join(', ') || 'nothing';
+        throw new Error(
+          `OpenAI returned no text (status ${response.status}${reason ? `: ${reason}` : ''}; output: ${output})`,
+        );
+      }
+      return { content: withNote(text, used), files };
+    }
 
     void typing();
+    const keepTyping = setInterval(() => void typing(), TYPING_INTERVAL_MS);
     const outputs = await Promise.all(
       calls.map(async (call): Promise<ResponseInputItem> => {
         used.add(call.name);
         const deadline = AbortSignal.any([signal, AbortSignal.timeout(COMMAND_TIMEOUT_MS)]);
-        const output = await runCommandTool(call.name, call.arguments, env, deadline, image);
-        return { type: 'function_call_output', call_id: call.call_id, output };
+        const result = await runCommandTool(call.name, call.arguments, env, deadline, image);
+        files.push(...result.files);
+        return { type: 'function_call_output', call_id: call.call_id, output: result.output };
       }),
-    );
+    ).finally(() => clearInterval(keepTyping));
     const toolCalls = response.output.filter(
       (item) =>
         item.type === 'function_call' ||
@@ -138,10 +163,9 @@ async function generate(
 }
 
 function withNote(text: string, used: Set<string>) {
-  if (!text) throw new Error('OpenAI returned no text');
   const note = used.size ? `\n-# used ${[...used].map((name) => `/${name}`).join(', ')}` : '';
   const limit = MAX_MESSAGE_LENGTH - note.length;
-  return (text.length > limit ? `${text.slice(0, limit - 1)}…` : text) + note;
+  return ((text.length > limit ? `${text.slice(0, limit - 1)}…` : text) + note).trim();
 }
 
 function readable(message: Message) {

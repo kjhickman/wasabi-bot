@@ -201,7 +201,7 @@ function captionInteraction() {
 function message(
   id: string,
   s: number,
-  mentions = [{ id: '100', username: 'devbot' }],
+  mentions = [{ id: '100', username: 'wasabibot' }],
   dm = false,
 ) {
   return {

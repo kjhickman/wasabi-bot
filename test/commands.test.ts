@@ -56,6 +56,8 @@ describe('/help', () => {
 describe('isDeferred', () => {
   it.each([
     ['caption', true],
+    ['imagine', true],
+    ['edit', true],
     ['conch', false],
     ['unknown', false],
   ])('%s → %s', (name, deferred) => {

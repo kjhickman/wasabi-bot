@@ -12,6 +12,7 @@ import { caption } from './caption.ts';
 import { choose } from './choose.ts';
 import { conch } from './conch.ts';
 import { flip } from './flip.ts';
+import { edit, imagine } from './image.ts';
 import { mock } from './mock.ts';
 
 // Lives here rather than in its own file, since it needs the command list.
@@ -37,12 +38,25 @@ const help = {
   },
 };
 
-export const commands = [conch, choose, caption, flip, help];
+export const commands = [conch, choose, caption, imagine, edit, flip, help];
 // Message commands are run from a message's Apps menu.
 export const messageCommands = [mock];
 
-// Files are only uploaded for deferred commands, whose replies are sent as edits.
+// Slash commands only upload files when deferred, since their replies are sent as edits.
 export type CommandResponse = APIInteractionResponseChannelMessageWithSource & { files?: File[] };
+
+export function withFiles(message: object, files: File[]) {
+  const body = new FormData();
+  body.set(
+    'payload_json',
+    JSON.stringify({
+      ...message,
+      attachments: files.map((file, id) => ({ id, filename: file.name })),
+    }),
+  );
+  files.forEach((file, i) => body.set(`files[${i}]`, file));
+  return body;
+}
 
 // Deferred commands may take longer than Discord's 3-second window, so they acknowledge
 // the interaction first and edit in their reply later.

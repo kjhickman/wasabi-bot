@@ -54,11 +54,11 @@ export async function runCommandTool(
   env: Env,
   signal: AbortSignal,
   image?: APIAttachment,
-): Promise<string> {
-  const definition: Definition | undefined = commands.find(
-    (command) => command.definition.name === name,
-  )?.definition;
-  if (!definition || !commandTool(definition)) return 'Error: unknown command.';
+): Promise<{ output: string; files: File[] }> {
+  const failure = (message: string) => ({ output: `Error: ${message}`, files: [] });
+  const command = commands.find((command) => command.definition.name === name);
+  if (!command || !commandTool(command.definition)) return failure('unknown command.');
+  const definition: Definition = command.definition;
 
   try {
     const args = JSON.parse(json) as Record<string, Value>;
@@ -80,7 +80,7 @@ export async function runCommandTool(
       if (option.type === ApplicationCommandOptionType.String && typeof value === 'string') {
         const { min_length: min = 0, max_length: max = DISCORD_MAX_LENGTH } = option;
         if (value.length < min || value.length > max) {
-          return `Error: ${option.name} must be ${min} to ${max} characters long.`;
+          return failure(`${option.name} must be ${min} to ${max} characters long.`);
         }
       }
       options.push({
@@ -101,10 +101,13 @@ export async function runCommandTool(
       signal,
     );
     const content = response.data.content ?? '';
-    return (response.data.flags ?? 0) & MessageFlags.Ephemeral ? `Error: ${content}` : content;
+    if ((response.data.flags ?? 0) & MessageFlags.Ephemeral) return failure(content);
+    const files = 'textOnlyInChat' in command ? [] : (response.files ?? []);
+    const note = files.length ? '\nThe image is attached to your reply.' : '';
+    return { output: content + note, files };
   } catch (error) {
     console.error('Chat command failed', name, error instanceof Error ? error.message : error);
-    return 'Error: the command failed.';
+    return failure('the command failed.');
   }
 }
 

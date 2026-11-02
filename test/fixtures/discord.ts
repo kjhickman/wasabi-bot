@@ -123,12 +123,12 @@ export class FakeDiscord extends DurableObject {
     }
     if (url.pathname.endsWith('/typing')) return new Response(null, { status: 204 });
     if (decodeURIComponent(url.pathname) === '/api/v10/users/@me') {
-      return Response.json({ id: '100', username: 'devbot', global_name: null });
+      return Response.json({ id: '100', username: 'wasabibot', global_name: null });
     }
     if (url.pathname.endsWith('/messages')) {
       if (request.method === 'GET') return Response.json([]);
       const replies = this.ctx.storage.kv.get<unknown[]>('replies') ?? [];
-      replies.push(await request.json());
+      replies.push(JSON.parse((await request.formData()).get('payload_json') as string));
       this.ctx.storage.kv.put('replies', replies);
       return Response.json({ id: 'reply' });
     }
