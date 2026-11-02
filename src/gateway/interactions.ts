@@ -1,14 +1,17 @@
 import {
   ApplicationCommandType,
+  InteractionResponseType,
   InteractionType,
   type APIInteraction,
+  type APIInteractionResponse,
 } from 'discord-api-types/v10';
-import { runCommand } from '../commands/index.ts';
+import { isDeferred, runCommand } from '../commands/index.ts';
 import type { Env } from '../env.ts';
 
 const DISCORD_EPOCH_MS = 1_420_070_400_000;
 const RESPONSE_WINDOW_MS = 3_000;
 const CALLBACK_BUDGET_MS = 750;
+const DEFERRED_BUDGET_MS = 30_000;
 const SEEN_TTL_MS = 15 * 60 * 1_000;
 
 export function createInteractionsTable(sql: SqlStorage) {
@@ -33,12 +36,9 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
   const deadline = Number(BigInt(interaction.id) >> 22n) + DISCORD_EPOCH_MS + RESPONSE_WINDOW_MS;
   if (deadline <= Date.now() || !claim(sql, interaction.id)) return;
 
-  try {
-    const commandBudget = deadline - Date.now() - CALLBACK_BUDGET_MS;
-    const signal = commandBudget > 0 ? AbortSignal.timeout(commandBudget) : AbortSignal.abort();
-    const response = await runCommand(interaction.data, env, signal);
+  const callback = async (response: APIInteractionResponse) => {
     const callbackBudget = Math.min(CALLBACK_BUDGET_MS, deadline - Date.now() - 50);
-    if (callbackBudget <= 0) return;
+    if (callbackBudget <= 0) return false;
     const sent = await fetch(
       `https://discord.com/api/v10/interactions/${interaction.id}/${interaction.token}/callback`,
       {
@@ -50,6 +50,44 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
       },
     );
     if (!sent.ok) console.error('Discord interaction callback failed', sent.status);
+    return sent.ok;
+  };
+
+  try {
+    if (isDeferred(interaction.data.name)) {
+      if (!(await callback({ type: InteractionResponseType.DeferredChannelMessageWithSource }))) {
+        return;
+      }
+      const response = await runCommand(
+        interaction.data,
+        env,
+        AbortSignal.timeout(DEFERRED_BUDGET_MS),
+      );
+      // A deferred reply's visibility is fixed when it is acknowledged, so flags can't change.
+      const {
+        files = [],
+        data: { flags: _, ...message },
+      } = response;
+      const body = new FormData();
+      body.set(
+        'payload_json',
+        JSON.stringify({
+          ...message,
+          attachments: files.map((file, id) => ({ id, filename: file.name })),
+        }),
+      );
+      files.forEach((file, i) => body.set(`files[${i}]`, file));
+      const edited = await fetch(
+        `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`,
+        { method: 'PATCH', body, redirect: 'manual' },
+      );
+      if (!edited.ok) console.error('Discord interaction edit failed', edited.status);
+      return;
+    }
+
+    const commandBudget = deadline - Date.now() - CALLBACK_BUDGET_MS;
+    const signal = commandBudget > 0 ? AbortSignal.timeout(commandBudget) : AbortSignal.abort();
+    await callback(await runCommand(interaction.data, env, signal));
   } catch {
     console.error('Gateway command failed');
   }

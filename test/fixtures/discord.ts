@@ -7,6 +7,7 @@ interface Options {
   holdDiscovery: boolean;
   openDelay: number;
   decisionDelay: number;
+  responseDelay: number;
   resumeStatus: number;
 }
 
@@ -23,6 +24,7 @@ export class FakeDiscord extends DurableObject {
       holdDiscovery: false,
       openDelay: 0,
       decisionDelay: 0,
+      responseDelay: 0,
       resumeStatus: 101,
     };
     if (url.pathname === '/configure') {
@@ -38,6 +40,7 @@ export class FakeDiscord extends DurableObject {
         urls: this.ctx.storage.kv.get('urls') ?? [],
         callbacks: this.ctx.storage.kv.get('callbacks') ?? [],
         replies: this.ctx.storage.kv.get('replies') ?? [],
+        edits: this.ctx.storage.kv.get('edits') ?? [],
         decisions: this.ctx.storage.kv.get('decisions') ?? 0,
         discoveries: this.ctx.storage.kv.get('discoveries') ?? 0,
         callbackTimes: this.ctx.storage.kv.get('callbackTimes') ?? [],
@@ -90,6 +93,34 @@ export class FakeDiscord extends DurableObject {
       this.ctx.storage.kv.put('callbackTimes', times);
       return new Response(null, { status: 204 });
     }
+    if (url.hostname === 'cdn.discordapp.com') {
+      return new Response(new Uint8Array([137, 80, 78, 71]), {
+        headers: { 'Content-Type': 'image/png' },
+      });
+    }
+    if (url.pathname.endsWith('/messages/@original')) {
+      const form = await request.formData();
+      const files = await Promise.all(
+        [...form.entries()]
+          .filter(([name]) => name.startsWith('files['))
+          .map(async ([name, file]) => ({
+            name,
+            filename: (file as File).name,
+            type: (file as File).type,
+            bytes: [...new Uint8Array(await (file as File).arrayBuffer())],
+          })),
+      );
+      const edits = this.ctx.storage.kv.get<unknown[]>('edits') ?? [];
+      edits.push({
+        method: request.method,
+        path: url.pathname,
+        body: JSON.parse(form.get('payload_json') as string),
+        files,
+        at: Date.now(),
+      });
+      this.ctx.storage.kv.put('edits', edits);
+      return Response.json({ id: 'original' });
+    }
     if (url.pathname.endsWith('/typing')) return new Response(null, { status: 204 });
     if (url.pathname.endsWith('/messages')) {
       if (request.method === 'GET') return Response.json([]);
@@ -99,6 +130,8 @@ export class FakeDiscord extends DurableObject {
       return Response.json({ id: 'reply' });
     }
     if (url.pathname === '/v1/responses') {
+      if (options.responseDelay)
+        await new Promise((resolve) => setTimeout(resolve, options.responseDelay));
       return Response.json({
         object: 'response',
         output: [{ type: 'message', content: [{ type: 'output_text', text: 'Hey!' }] }],

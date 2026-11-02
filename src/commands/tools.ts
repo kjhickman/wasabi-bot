@@ -4,6 +4,7 @@ import {
   MessageFlags,
   type APIApplicationCommandInteractionDataBasicOption,
   type APIApplicationCommandOption,
+  type APIAttachment,
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import type { FunctionTool } from 'openai/resources/responses/responses';
@@ -17,20 +18,24 @@ const JSON_TYPES: Partial<Record<ApplicationCommandOptionType, string>> = {
   [ApplicationCommandOptionType.Boolean]: 'boolean',
 };
 const DISCORD_MAX_LENGTH = 6_000;
+const IMAGE_NOTE =
+  'It uses the image attached to the last message, else the one on the message it replies to, else the most recent image in the channel.';
 
 type Definition = RESTPostAPIChatInputApplicationCommandsJSONBody;
 type Value = string | number | boolean | null;
 
 // Chat can't offer commands limited to some members, or options that only Discord can
-// fill in (users, channels, roles, attachments, subcommands).
+// fill in (users, channels, roles, subcommands). Chat fills attachment options itself
+// with the image the conversation is about.
 export function commandTool(definition: Definition): FunctionTool | undefined {
-  const options = definition.options ?? [];
+  const options = (definition.options ?? []).filter((option) => !isAttachment(option));
   if (definition.default_member_permissions != null) return undefined;
   if (!options.every((option) => JSON_TYPES[option.type])) return undefined;
+  const usesImage = options.length < (definition.options?.length ?? 0);
   return {
     type: 'function',
     name: definition.name,
-    description: definition.description,
+    description: usesImage ? `${definition.description} ${IMAGE_NOTE}` : definition.description,
     strict: true,
     parameters: {
       type: 'object',
@@ -48,6 +53,7 @@ export async function runCommandTool(
   json: string,
   env: Env,
   signal: AbortSignal,
+  image?: APIAttachment,
 ): Promise<string> {
   const definition: Definition | undefined = commands.find(
     (command) => command.definition.name === name,
@@ -58,6 +64,16 @@ export async function runCommandTool(
     const args = JSON.parse(json) as Record<string, Value>;
     const options: APIApplicationCommandInteractionDataBasicOption[] = [];
     for (const option of definition.options ?? []) {
+      if (isAttachment(option)) {
+        if (image) {
+          options.push({
+            name: option.name,
+            type: ApplicationCommandOptionType.Attachment,
+            value: image.id,
+          });
+        }
+        continue;
+      }
       const value = args[option.name];
       if (value == null) continue;
       // Strict mode can't enforce string lengths, so check them the way Discord would.
@@ -74,7 +90,13 @@ export async function runCommandTool(
       } as APIApplicationCommandInteractionDataBasicOption);
     }
     const response = await runCommand(
-      { id: '0', type: ApplicationCommandType.ChatInput, name, options },
+      {
+        id: '0',
+        type: ApplicationCommandType.ChatInput,
+        name,
+        options,
+        ...(image && { resolved: { attachments: { [image.id]: image } } }),
+      },
       env,
       signal,
     );
@@ -84,6 +106,10 @@ export async function runCommandTool(
     console.error('Chat command failed', name, error instanceof Error ? error.message : error);
     return 'Error: the command failed.';
   }
+}
+
+function isAttachment(option: APIApplicationCommandOption) {
+  return option.type === ApplicationCommandOptionType.Attachment;
 }
 
 function parameter(option: APIApplicationCommandOption) {

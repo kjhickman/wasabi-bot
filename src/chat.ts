@@ -1,4 +1,5 @@
 import type {
+  APIAttachment,
   APIMessage,
   APIUser,
   GatewayMessageCreateDispatchData,
@@ -42,7 +43,10 @@ export async function replyToMention(
       discord(`/messages?before=${message.id}&limit=${HISTORY_LIMIT - 1}`),
     ]);
     const history = response.ok ? (await response.json<APIMessage[]>()).reverse() : [];
-    content = await generate([...history, message], botUserId(token), env, typing);
+    const image = [message, message.referenced_message, ...history.toReversed()]
+      .flatMap((source) => source?.attachments ?? [])
+      .find((attachment) => attachment.content_type?.startsWith('image/'));
+    content = await generate([...history, message], botUserId(token), env, typing, image);
   } catch (error) {
     console.error('Chat reply failed', error instanceof Error ? error.message : error);
   }
@@ -61,6 +65,7 @@ async function generate(
   botId: string,
   env: Env,
   typing: () => Promise<unknown>,
+  image: APIAttachment | undefined,
 ) {
   if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not set');
   const bot = messages.at(-1)!.mentions.find((user) => user.id === botId)!;
@@ -92,7 +97,7 @@ async function generate(
       calls.map(async (call): Promise<ResponseInputItem> => {
         used.add(call.name);
         const signal = AbortSignal.timeout(COMMAND_TIMEOUT_MS);
-        const output = await runCommandTool(call.name, call.arguments, env, signal);
+        const output = await runCommandTool(call.name, call.arguments, env, signal, image);
         return { type: 'function_call_output', call_id: call.call_id, output };
       }),
     );

@@ -1,9 +1,11 @@
 import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
+  InteractionResponseType,
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { caption } from '../src/commands/caption.ts';
 import { commandTool, commandTools, runCommandTool } from '../src/commands/tools.ts';
 import type { Env } from '../src/env.ts';
 
@@ -37,7 +39,7 @@ afterEach(() => {
 });
 
 describe('commandTools', () => {
-  it('offers /conch and /choose as strict tools', () => {
+  it('offers /conch, /choose and /caption as strict tools', () => {
     expect(commandTools).toEqual([
       {
         type: 'function',
@@ -67,6 +69,14 @@ describe('commandTools', () => {
           required: Object.keys(chooseArgs),
           additionalProperties: false,
         },
+      },
+      {
+        type: 'function',
+        name: 'caption',
+        description:
+          'Get a funny meme caption for an image. It uses the image attached to the last message, else the one on the message it replies to, else the most recent image in the channel.',
+        strict: true,
+        parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
       },
     ]);
   });
@@ -152,7 +162,43 @@ describe('runCommandTool', () => {
       'Error: option1 must be 1 to 100 characters long.',
     ],
     ['invalid JSON', 'choose', '{', 'Error: the command failed.'],
+    [
+      'an image command without an image',
+      'caption',
+      '{}',
+      'Error: Upload a PNG, JPEG, WebP, or GIF image to caption.',
+    ],
   ])('returns an error for %s', async (_, name, args, expected) => {
     expect(await runCommandTool(name, args, env, signal)).toBe(expected);
+  });
+
+  it('fills attachment options with the conversation’s image', async () => {
+    const image = {
+      id: '700',
+      filename: 'cat.png',
+      content_type: 'image/png',
+      size: 4,
+      url: 'https://cdn.discordapp.com/attachments/42/700/cat.png',
+      proxy_url: 'https://media.discordapp.net/attachments/42/700/cat.png',
+    };
+    const execute = vi.spyOn(caption, 'execute').mockResolvedValue({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: { content: 'Me when the build passes' },
+    });
+
+    expect(await runCommandTool('caption', '{}', env, signal, image)).toBe(
+      'Me when the build passes',
+    );
+    expect(execute).toHaveBeenCalledExactlyOnceWith(
+      {
+        id: '0',
+        type: ApplicationCommandType.ChatInput,
+        name: 'caption',
+        options: [{ name: 'image', type: ApplicationCommandOptionType.Attachment, value: '700' }],
+        resolved: { attachments: { '700': image } },
+      },
+      env,
+      signal,
+    );
   });
 });

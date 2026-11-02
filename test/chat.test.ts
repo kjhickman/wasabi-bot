@@ -79,6 +79,9 @@ beforeEach(() => {
   fetchMock.mockImplementation(async (url, init) => {
     const path = String(url);
     if (path.endsWith('/typing')) return new Response(null, { status: 204 });
+    if (path.startsWith('https://cdn.discordapp.com/')) {
+      return new Response(new Uint8Array([137, 80, 78, 71]));
+    }
     if (path.includes('/messages?')) return historyResponse;
     if (path.endsWith('/v1/responses')) return openai(JSON.parse(init!.body as string));
     if (path.endsWith('/v1/decisions')) {
@@ -132,7 +135,7 @@ describe('replyToMention', () => {
         { role: 'user', content: 'Kyle: @DevBot what should we play?' },
       ],
     });
-    expect(request!.tools.map((tool) => tool.name)).toEqual(['conch', 'choose']);
+    expect(request!.tools.map((tool) => tool.name)).toEqual(['conch', 'choose', 'caption']);
     expect((request as unknown as { instructions: string }).instructions).toContain(
       'You are DevBot',
     );
@@ -217,6 +220,81 @@ describe('replyToMention', () => {
     const { content } = sentReply();
     expect(content).toHaveLength(2_000);
     expect(content.endsWith('a…\n-# used /choose')).toBe(true);
+  });
+
+  describe('caption this', () => {
+    const attachment = (id: string, contentType = 'image/png') => ({
+      id,
+      filename: `${id}.png`,
+      content_type: contentType,
+      size: 4,
+      url: `https://cdn.discordapp.com/attachments/42/${id}/${id}.png`,
+    });
+    const captionThis = (extra: object = {}) =>
+      ({
+        ...mention,
+        content: `<@${BOT_ID}> caption this`,
+        ...extra,
+      }) as unknown as GatewayMessageCreateDispatchData;
+    const downloads = () => calls('https://cdn.discordapp.com/').map(([url]) => String(url));
+
+    beforeEach(() => {
+      openai = (request) => {
+        if (JSON.stringify(request.input).includes('input_image')) {
+          return openaiText('Me when the build passes');
+        }
+        return request.input.some((item) => item.type === 'function_call_output')
+          ? openaiText('Me when the build passes')
+          : openaiCalls(['caption', {}]);
+      };
+    });
+
+    it.each([
+      [
+        'attached to the mention',
+        {
+          attachments: [attachment('own')],
+          referenced_message: { attachments: [attachment('re')] },
+        },
+        'own',
+      ],
+      [
+        'on the message it replies to',
+        { attachments: [], referenced_message: { attachments: [attachment('re')] } },
+        're',
+      ],
+      ['most recent in the channel', {}, 'new'],
+    ])('captions the image %s', async (_, extra, id) => {
+      historyResponse = Response.json([
+        {
+          author: sam,
+          content: 'notes',
+          mentions: [],
+          attachments: [attachment('doc', 'text/plain')],
+        },
+        { author: sam, content: '', mentions: [], attachments: [attachment('new')] },
+        { author: kyle, content: '', mentions: [], attachments: [attachment('old')] },
+      ]);
+
+      await replyToMention(captionThis(extra), token, env);
+
+      expect(downloads()).toEqual([`https://cdn.discordapp.com/attachments/42/${id}/${id}.png`]);
+      expect(openaiRequests()[2]!.input.at(-1)).toMatchObject({
+        type: 'function_call_output',
+        output: 'Me when the build passes',
+      });
+      expect(sentReply().content).toBe('Me when the build passes\n-# used /caption');
+    });
+
+    it('tells the model when there is no image to caption', async () => {
+      await replyToMention(captionThis(), token, env);
+
+      expect(downloads()).toEqual([]);
+      expect(openaiRequests()[1]!.input.at(-1)).toMatchObject({
+        type: 'function_call_output',
+        output: 'Error: Upload a PNG, JPEG, WebP, or GIF image to caption.',
+      });
+    });
   });
 
   it.each([

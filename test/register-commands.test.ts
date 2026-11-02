@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { caption } from '../src/commands/caption.ts';
 import { choose } from '../src/commands/choose.ts';
 import { conch } from '../src/commands/conch.ts';
 
@@ -34,7 +35,7 @@ describe('command registration', () => {
           Authorization: 'Bot test-token',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify([conch.definition, choose.definition]),
+        body: JSON.stringify([conch.definition, choose.definition, caption.definition]),
       },
     );
     expect(console.log).toHaveBeenCalledWith('Synced global commands.');

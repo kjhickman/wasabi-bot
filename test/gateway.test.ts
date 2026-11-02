@@ -15,6 +15,7 @@ interface DiscordState {
   urls: string[];
   callbacks: { type: number; data: { content: string } }[];
   replies: { content: string; message_reference: { message_id: string } }[];
+  edits: { method: string; path: string; body: unknown; files: unknown[]; at: number }[];
   decisions: number;
   discoveries: number;
   connections: number;
@@ -167,6 +168,37 @@ function conchInteraction(age = 0) {
   };
 }
 
+function captionInteraction() {
+  const id = ((BigInt(Date.now()) - 1_420_070_400_000n) << 22n).toString();
+  return {
+    op: 0,
+    t: 'INTERACTION_CREATE',
+    s: 2,
+    d: {
+      type: 2,
+      id,
+      application_id: '900',
+      token: 'interaction-token',
+      data: {
+        type: 1,
+        name: 'caption',
+        options: [{ type: 11, name: 'image', value: '700' }],
+        resolved: {
+          attachments: {
+            '700': {
+              id: '700',
+              filename: 'cat.png',
+              content_type: 'image/png',
+              size: 4,
+              url: 'https://cdn.discordapp.com/ephemeral-attachments/1/700/cat.png',
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
 function message(id: string, s: number, mentions = [{ id: '100', username: 'devbot' }]) {
   return {
     op: 0,
@@ -312,6 +344,39 @@ describe('Gateway in workerd', () => {
     const state = await discordState();
     expect(state.decisions).toBe(1);
     expect(state.callbacks).toEqual([{ type: 4, data: { content: 'Yes' } }]);
+  }, 15_000);
+
+  it('defers /caption within the response window and edits in the image with a caption that takes longer', async () => {
+    createRuntime();
+    await (await fake('configure', { responseDelay: 3_500 })).text();
+    await (await control('start')).text();
+    await connected();
+    const interaction = captionInteraction();
+    const deadline = Number(BigInt(interaction.d.id) >> 22n) + 1_420_070_400_000 + 3_000;
+    await (await fake('emit', interaction)).text();
+    await vi.waitFor(async () => expect((await discordState()).edits).toHaveLength(1), {
+      timeout: 8_000,
+    });
+
+    const state = await discordState();
+    expect(state.callbacks).toEqual([{ type: 5 }]);
+    expect(state.callbackTimes[0]).toBeLessThan(deadline);
+    expect(state.edits).toEqual([
+      {
+        method: 'PATCH',
+        path: '/api/v10/webhooks/900/interaction-token/messages/@original',
+        body: {
+          content: 'Hey!',
+          allowed_mentions: { parse: [] },
+          attachments: [{ id: 0, filename: 'cat.png' }],
+        },
+        files: [
+          { name: 'files[0]', filename: 'cat.png', type: 'image/png', bytes: [137, 80, 78, 71] },
+        ],
+        at: expect.any(Number),
+      },
+    ]);
+    expect(state.edits[0]!.at).toBeGreaterThan(deadline);
   }, 15_000);
 
   it('replies once to each mention and ignores other messages and replayed duplicates', async () => {

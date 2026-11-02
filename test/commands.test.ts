@@ -5,7 +5,7 @@ import {
 } from 'discord-api-types/v10';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { conch } from '../src/commands/conch.ts';
-import { runCommand } from '../src/commands/index.ts';
+import { isDeferred, runCommand } from '../src/commands/index.ts';
 import type { Env } from '../src/env.ts';
 
 const env = {} as Env;
@@ -35,5 +35,16 @@ describe('runCommand', () => {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: { content: 'Unknown command.', flags: MessageFlags.Ephemeral },
     });
+  });
+});
+
+describe('isDeferred', () => {
+  it.each([
+    ['caption', true],
+    ['conch', false],
+    ['choose', false],
+    ['unknown', false],
+  ])('%s → %s', (name, deferred) => {
+    expect(isDeferred(name)).toBe(deferred);
   });
 });
