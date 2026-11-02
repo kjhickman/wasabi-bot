@@ -37,6 +37,7 @@ export class FakeDiscord extends DurableObject {
         packets: this.ctx.storage.kv.get('packets') ?? [],
         urls: this.ctx.storage.kv.get('urls') ?? [],
         callbacks: this.ctx.storage.kv.get('callbacks') ?? [],
+        replies: this.ctx.storage.kv.get('replies') ?? [],
         decisions: this.ctx.storage.kv.get('decisions') ?? 0,
         discoveries: this.ctx.storage.kv.get('discoveries') ?? 0,
         callbackTimes: this.ctx.storage.kv.get('callbackTimes') ?? [],
@@ -88,6 +89,20 @@ export class FakeDiscord extends DurableObject {
       times.push(Date.now());
       this.ctx.storage.kv.put('callbackTimes', times);
       return new Response(null, { status: 204 });
+    }
+    if (url.pathname.endsWith('/typing')) return new Response(null, { status: 204 });
+    if (url.pathname.endsWith('/messages')) {
+      if (request.method === 'GET') return Response.json([]);
+      const replies = this.ctx.storage.kv.get<unknown[]>('replies') ?? [];
+      replies.push(await request.json());
+      this.ctx.storage.kv.put('replies', replies);
+      return Response.json({ id: 'reply' });
+    }
+    if (url.pathname === '/v1/responses') {
+      return Response.json({
+        object: 'response',
+        output: [{ type: 'message', content: [{ type: 'output_text', text: 'Hey!' }] }],
+      });
     }
     if (url.pathname === '/v1/decisions') {
       this.ctx.storage.kv.put('decisions', (this.ctx.storage.kv.get<number>('decisions') ?? 0) + 1);

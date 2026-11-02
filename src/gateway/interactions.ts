@@ -55,7 +55,7 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
   }
 }
 
-function claim(sql: SqlStorage, id: string) {
+export function claim(sql: SqlStorage, id: string) {
   const inserted = sql
     .exec(
       'INSERT OR IGNORE INTO interactions (id, expires_at) VALUES (?, ?) RETURNING id',

@@ -1,8 +1,14 @@
 import { DurableObject } from 'cloudflare:workers';
 import { GatewayDispatchEvents, type RESTGetAPIGatewayBotResult } from 'discord-api-types/v10';
+import { mentionsBot, replyToMention } from '../chat.ts';
 import type { Env } from '../env.ts';
 import { FATAL_CLOSE_CODES, GatewayConnection, type Session } from './connection.ts';
-import { createInteractionsTable, handleInteraction, pruneInteractions } from './interactions.ts';
+import {
+  claim,
+  createInteractionsTable,
+  handleInteraction,
+  pruneInteractions,
+} from './interactions.ts';
 
 const WATCHDOG_MS = 30_000;
 const DEV_LEASE_MS = 60 * 60 * 1_000;
@@ -219,6 +225,13 @@ export class DiscordGateway extends DurableObject<Env> {
         this.save();
         if (packet.t === GatewayDispatchEvents.InteractionCreate) {
           this.ctx.waitUntil(handleInteraction(packet.d, this.env, this.ctx.storage.sql));
+        }
+        if (
+          packet.t === GatewayDispatchEvents.MessageCreate &&
+          mentionsBot(packet.d, token) &&
+          claim(this.ctx.storage.sql, packet.d.id)
+        ) {
+          this.ctx.waitUntil(replyToMention(packet.d, token, this.env.OPENAI_API_KEY));
         }
       },
       onClose: (code, resumable) => {

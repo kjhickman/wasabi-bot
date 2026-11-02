@@ -14,6 +14,7 @@ interface DiscordState {
   }[];
   urls: string[];
   callbacks: { type: number; data: { content: string } }[];
+  replies: { content: string; message_reference: { message_id: string } }[];
   decisions: number;
   discoveries: number;
   connections: number;
@@ -79,7 +80,7 @@ function createRuntime(mode: 'dev' | 'prod' = 'dev') {
             DISCORD_GATEWAY: { type: 'durable-object', worker: 'bot', exportName: 'TestGateway' },
             GATEWAY_MODE: { type: 'json', value: mode },
             GATEWAY_CONTROL_TOKEN: { type: 'json', value: 'control-token' },
-            DISCORD_BOT_TOKEN: { type: 'json', value: 'bot-token' },
+            DISCORD_BOT_TOKEN: { type: 'json', value: 'MTAw.bot-token' },
             OPENAI_API_KEY: { type: 'json', value: 'openai-token' },
           },
           exports: { TestGateway: { type: 'durable-object', storage: 'sqlite' } },
@@ -162,6 +163,21 @@ function conchInteraction(age = 0) {
         name: 'conch',
         options: [{ type: 3, name: 'question', value: 'Is the sky blue?' }],
       },
+    },
+  };
+}
+
+function message(id: string, s: number, mentions = [{ id: '100', username: 'devbot' }]) {
+  return {
+    op: 0,
+    t: 'MESSAGE_CREATE',
+    s,
+    d: {
+      id,
+      channel_id: '300',
+      content: '<@100> hi',
+      author: { id: '400', username: 'kyle' },
+      mentions,
     },
   };
 }
@@ -257,7 +273,12 @@ describe('Gateway in workerd', () => {
     await (await control('start')).text();
     await connected();
     await (
-      await fake('emit', { op: 0, t: 'MESSAGE_CREATE', s: 5, d: { author: { bot: false } } })
+      await fake('emit', {
+        op: 0,
+        t: 'MESSAGE_CREATE',
+        s: 5,
+        d: { author: { bot: false }, mentions: [] },
+      })
     ).text();
     await vi.waitFor(async () => expect((await status()).lastEvent).toBe('MESSAGE_CREATE'));
     await (await runtime!.dispatchFetch('https://bot.test/_test/crash')).text();
@@ -291,6 +312,24 @@ describe('Gateway in workerd', () => {
     const state = await discordState();
     expect(state.decisions).toBe(1);
     expect(state.callbacks).toEqual([{ type: 4, data: { content: 'Yes' } }]);
+  }, 15_000);
+
+  it('replies once to each mention and ignores other messages and replayed duplicates', async () => {
+    createRuntime();
+    await (await control('start')).text();
+    await connected();
+    await (await fake('emit', message('499', 2, []))).text();
+    await (await fake('emit', message('500', 3))).text();
+    await (await fake('emit', message('500', 4))).text();
+    await (await fake('emit', message('501', 5))).text();
+    await vi.waitFor(async () => expect((await discordState()).replies).toHaveLength(2));
+
+    const state = await discordState();
+    expect(state.replies.map((reply) => reply.content)).toEqual(['Hey!', 'Hey!']);
+    expect(state.replies.map((reply) => reply.message_reference.message_id).sort()).toEqual([
+      '500',
+      '501',
+    ]);
   }, 15_000);
 
   it('pauses fatal intent failures instead of reconnecting on every cron tick', async () => {
