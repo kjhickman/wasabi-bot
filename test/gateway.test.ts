@@ -158,6 +158,7 @@ function conchInteraction(age = 0) {
       type: 2,
       id,
       token: 'interaction-token',
+      user: { id: '400' },
       data: {
         type: 1,
         name: 'conch',
@@ -178,6 +179,7 @@ function captionInteraction() {
       id,
       application_id: '900',
       token: 'interaction-token',
+      user: { id: '400' },
       data: {
         type: 1,
         name: 'caption',

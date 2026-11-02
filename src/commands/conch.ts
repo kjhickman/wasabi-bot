@@ -27,6 +27,7 @@ export const conch = {
       },
     ],
   } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
+  limit: 'text' as const,
 
   async execute(
     data: APIChatInputApplicationCommandInteractionData,

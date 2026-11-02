@@ -2,6 +2,7 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
+  MessageFlags,
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
@@ -10,9 +11,12 @@ import { imagine } from '../src/commands/image.ts';
 import { commands } from '../src/commands/index.ts';
 import { commandTool, commandTools, runCommandTool } from '../src/commands/tools.ts';
 import type { Env } from '../src/env.ts';
+import { takeUsage } from '../src/usage.ts';
+import { sqlStorage } from './fixtures/sql.ts';
 
 const env = {} as Env;
 const signal = new AbortController().signal;
+let user: { id: string; sql: SqlStorage };
 const chooseArgs = {
   option1: 'WoW',
   option2: 'Overwatch',
@@ -33,8 +37,13 @@ function definition(extra: object) {
 }
 
 beforeEach(() => {
+  user = { id: '200', sql: sqlStorage() };
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
+
+function imageUses() {
+  return user.sql.exec("SELECT * FROM usage WHERE kind = 'image'").toArray().length;
+}
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -135,7 +144,7 @@ describe('runCommandTool', () => {
   it('runs the command with the arguments that are not null', async () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.9);
 
-    expect(await runCommandTool('choose', JSON.stringify(chooseArgs), env, signal)).toEqual({
+    expect(await runCommandTool('choose', JSON.stringify(chooseArgs), env, signal, user)).toEqual({
       output: 'Choosing between: WoW, Overwatch\nI choose **Overwatch**!',
       files: [],
     });
@@ -150,8 +159,36 @@ describe('runCommandTool', () => {
     });
 
     expect(
-      await runCommandTool('imagine', JSON.stringify({ prompt: 'a frog' }), env, signal),
+      await runCommandTool('imagine', JSON.stringify({ prompt: 'a frog' }), env, signal, user),
     ).toEqual({ output: '> a frog\nThe image is attached to your reply.', files: [file] });
+    expect(imageUses()).toBe(1);
+  });
+
+  it('does not count an image the command failed to make', async () => {
+    vi.spyOn(imagine, 'execute').mockResolvedValue({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: { content: "I couldn't make that image. Try again.", flags: MessageFlags.Ephemeral },
+    });
+
+    await runCommandTool('imagine', JSON.stringify({ prompt: 'a frog' }), env, signal, user);
+
+    expect(imageUses()).toBe(0);
+  });
+
+  it('refuses an image over the daily limit without running the command', async () => {
+    for (let i = 0; i < 50; i++) takeUsage(user.sql, 'image', user.id);
+    const execute = vi.spyOn(imagine, 'execute');
+
+    const { output } = await runCommandTool(
+      'imagine',
+      JSON.stringify({ prompt: 'a frog' }),
+      env,
+      signal,
+      user,
+    );
+
+    expect(output).toMatch(/^Error: You've used all 50 of your images for today\. Try again in /);
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -176,7 +213,10 @@ describe('runCommandTool', () => {
       'Error: Upload a PNG, JPEG, WebP, or GIF image to caption.',
     ],
   ])('returns an error for %s', async (_, name, args, expected) => {
-    expect(await runCommandTool(name, args, env, signal)).toEqual({ output: expected, files: [] });
+    expect(await runCommandTool(name, args, env, signal, user)).toEqual({
+      output: expected,
+      files: [],
+    });
   });
 
   it('fills attachment options with the conversation’s image, and keeps captions text-only', async () => {
@@ -194,10 +234,12 @@ describe('runCommandTool', () => {
       files: [new File(['png'], 'cat.png', { type: 'image/png' })],
     });
 
-    expect(await runCommandTool('caption', '{}', env, signal, image)).toEqual({
+    expect(await runCommandTool('caption', '{}', env, signal, user, image)).toEqual({
       output: 'Me when the build passes',
       files: [],
     });
+    // The chat reply already counted as the request.
+    expect(user.sql.exec('SELECT * FROM usage').toArray()).toEqual([]);
     expect(execute).toHaveBeenCalledExactlyOnceWith(
       {
         id: '0',

@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { addressesBot, replyToMention } from '../src/chat.ts';
 import { commandTools } from '../src/commands/tools.ts';
 import type { Env } from '../src/env.ts';
+import { takeUsage } from '../src/usage.ts';
+import { sqlStorage } from './fixtures/sql.ts';
 
 const BOT_ID = '100';
 const token = `${btoa(BOT_ID)}.fake.token`;
@@ -37,6 +39,7 @@ interface OpenAIRequest {
 }
 
 const fetchMock = vi.fn<typeof fetch>();
+let sql: SqlStorage;
 let historyResponse: Response;
 let openai: (request: OpenAIRequest) => Response;
 
@@ -80,6 +83,7 @@ function sentReply() {
 
 beforeEach(() => {
   fetchMock.mockReset();
+  sql = sqlStorage();
   historyResponse = Response.json([]);
   openai = () => openaiText('Halo!');
   fetchMock.mockImplementation(async (url, init) => {
@@ -130,7 +134,7 @@ describe('replyToMention', () => {
       { author: kyle, content: '', mentions: [] },
     ]);
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     expect(String(calls('/messages?')[0]![0])).toBe(
       'https://discord.com/api/v10/channels/42/messages?before=9&limit=49',
@@ -167,7 +171,7 @@ describe('replyToMention', () => {
   it('answers a DM that does not mention the bot with a plain message', async () => {
     const dm = { ...mention, guild_id: undefined, content: 'what should we play?', mentions: [] };
 
-    await replyToMention(dm as unknown as GatewayMessageCreateDispatchData, token, env);
+    await replyToMention(dm as unknown as GatewayMessageCreateDispatchData, token, env, sql);
 
     const [request] = openaiRequests();
     expect(request!.input).toEqual([{ role: 'user', content: 'Kyle: what should we play?' }]);
@@ -182,10 +186,30 @@ describe('replyToMention', () => {
     });
   });
 
+  it('counts each reply toward the daily limit, except ones that fail', async () => {
+    const requests = () => sql.exec("SELECT user_id FROM usage WHERE kind = 'text'").toArray();
+
+    await replyToMention(mention, token, env, sql);
+    await replyToMention(mention, token, {} as Env, sql);
+
+    expect(requests()).toEqual([{ user_id: kyle.id }]);
+  });
+
+  it('refuses to reply over the daily limit without calling OpenAI', async () => {
+    for (let i = 0; i < 100; i++) takeUsage(sql, 'text', kyle.id);
+
+    await replyToMention(mention, token, env, sql);
+
+    expect(openaiRequests()).toHaveLength(0);
+    expect(sentReply().content).toMatch(
+      /^You've used all 100 of your requests for today\. Try again in /,
+    );
+  });
+
   it('still replies from the mention alone when history cannot be read', async () => {
     historyResponse = new Response('Missing Access', { status: 403 });
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     expect(openaiRequests()[0]!.input).toEqual([
       { role: 'user', content: 'Kyle: @WasabiBot what should we play?' },
@@ -196,7 +220,7 @@ describe('replyToMention', () => {
   it('cuts replies down to Discord’s 2,000-character limit', async () => {
     openai = () => openaiText('a'.repeat(2_500));
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     expect(sentReply().content).toBe(`${'a'.repeat(1_999)}…`);
   });
@@ -208,7 +232,7 @@ describe('replyToMention', () => {
         ? openaiText('Go with Overwatch, and the conch agrees!')
         : openaiCalls(['choose', chooseArgs], ['conch', { question: 'Is Overwatch good?' }]);
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     const requests = openaiRequests();
     expect(requests).toHaveLength(2);
@@ -234,7 +258,7 @@ describe('replyToMention', () => {
         ? openaiText('Here you go!')
         : openaiCalls(['imagine', { prompt: 'a frog in a hat' }]);
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     const [first, second] = openaiRequests();
     expect((first as unknown as { instructions: string }).instructions).toContain(
@@ -260,7 +284,7 @@ describe('replyToMention', () => {
         ? openaiText('  ')
         : openaiCalls(['imagine', { prompt: 'a frog in a hat' }]);
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     expect(sentReply()).toMatchObject({
       content: '-# used /imagine',
@@ -277,7 +301,7 @@ describe('replyToMention', () => {
         output: [{ type: 'code_interpreter_call', id: 'ci_0', code: 'import PIL', outputs: null }],
       });
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     expect(console.error).toHaveBeenCalledWith(
       'Chat reply failed',
@@ -305,7 +329,7 @@ describe('replyToMention', () => {
         ],
       });
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     expect(openaiRequests()).toHaveLength(1);
     expect(sentReply().content).toBe(answer);
@@ -338,7 +362,7 @@ describe('replyToMention', () => {
       });
     };
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     expect(openaiRequests()[1]!.input.slice(-3)).toMatchObject([
       search,
@@ -354,7 +378,7 @@ describe('replyToMention', () => {
         ? openaiText('Out of ideas')
         : openaiCalls(['choose', chooseArgs]);
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     expect(openaiRequests().map((request) => request.tool_choice)).toEqual([
       'auto',
@@ -371,7 +395,7 @@ describe('replyToMention', () => {
         ? openaiText('a'.repeat(2_500))
         : openaiCalls(['choose', chooseArgs]);
 
-    await replyToMention(mention, token, env);
+    await replyToMention(mention, token, env, sql);
 
     const { content } = sentReply();
     expect(content).toHaveLength(2_000);
@@ -432,7 +456,7 @@ describe('replyToMention', () => {
         { author: kyle, content: '', mentions: [], attachments: [attachment('old')] },
       ]);
 
-      await replyToMention(captionThis(extra), token, env);
+      await replyToMention(captionThis(extra), token, env, sql);
 
       expect(downloads()).toEqual([`https://cdn.discordapp.com/attachments/42/${id}/${id}.png`]);
       expect(openaiRequests()[2]!.input.at(-1)).toMatchObject({
@@ -447,7 +471,7 @@ describe('replyToMention', () => {
     });
 
     it('tells the model when there is no image to caption', async () => {
-      await replyToMention(captionThis(), token, env);
+      await replyToMention(captionThis(), token, env, sql);
 
       expect(downloads()).toEqual([]);
       expect(openaiRequests()[1]!.input.at(-1)).toMatchObject({
@@ -469,7 +493,7 @@ describe('replyToMention', () => {
       });
     });
 
-    const reply = replyToMention(mention, token, env, deadline.signal);
+    const reply = replyToMention(mention, token, env, sql, deadline.signal);
     await vi.waitFor(() => expect(openaiRequests()).toHaveLength(1));
     deadline.abort();
     await reply;
@@ -486,7 +510,7 @@ describe('replyToMention', () => {
   ])('apologizes when %s', async (_, chatEnv, response) => {
     openai = response;
 
-    await replyToMention(mention, token, chatEnv);
+    await replyToMention(mention, token, chatEnv, sql);
 
     expect(sentReply().content).toBe(
       "Sorry, I couldn't come up with a reply. Try again in a moment.",

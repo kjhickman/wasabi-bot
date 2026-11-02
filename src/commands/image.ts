@@ -40,6 +40,7 @@ export const imagine = {
     ],
   } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
   deferred: true,
+  limit: 'image' as const,
 
   async execute(
     data: APIChatInputApplicationCommandInteractionData,
@@ -78,6 +79,7 @@ export const edit = {
     ],
   } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
   deferred: true,
+  limit: 'image' as const,
 
   async execute(
     data: APIChatInputApplicationCommandInteractionData,

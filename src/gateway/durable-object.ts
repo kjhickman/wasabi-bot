@@ -8,6 +8,7 @@ import {
 import { GATEWAY_NAME } from '../app.ts';
 import { addressesBot, replyToMention } from '../chat.ts';
 import type { Env } from '../env.ts';
+import { createUsageTable, pruneUsage } from '../usage.ts';
 import { FATAL_CLOSE_CODES, GatewayConnection, type Session } from './connection.ts';
 import {
   claim,
@@ -50,6 +51,7 @@ export class DiscordGateway extends DurableObject<Env> {
       error: null,
     };
     createInteractionsTable(ctx.storage.sql);
+    createUsageTable(ctx.storage.sql);
   }
 
   status() {
@@ -108,6 +110,7 @@ export class DiscordGateway extends DurableObject<Env> {
 
   override async alarm() {
     pruneInteractions(this.ctx.storage.sql);
+    pruneUsage(this.ctx.storage.sql);
     await this.ensureConnected();
   }
 
@@ -230,7 +233,7 @@ export class DiscordGateway extends DurableObject<Env> {
           addressesBot(packet.d, token) &&
           claim(this.ctx.storage.sql, packet.d.id)
         ) {
-          this.ctx.waitUntil(replyToMention(packet.d, token, this.env));
+          this.ctx.waitUntil(replyToMention(packet.d, token, this.env, this.ctx.storage.sql));
         }
       },
       onClose: (code, resumable) => {

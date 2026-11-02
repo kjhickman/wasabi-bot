@@ -9,6 +9,7 @@ import {
 } from 'discord-api-types/v10';
 import type { FunctionTool } from 'openai/resources/responses/responses';
 import type { Env } from '../env.ts';
+import { takeUsage, type Usage } from '../usage.ts';
 import { commands, runCommand } from './index.ts';
 
 const JSON_TYPES: Partial<Record<ApplicationCommandOptionType, string>> = {
@@ -53,6 +54,7 @@ export async function runCommandTool(
   json: string,
   env: Env,
   signal: AbortSignal,
+  user: { id: string; sql: SqlStorage },
   image?: APIAttachment,
 ): Promise<{ output: string; files: File[] }> {
   const failure = (message: string) => ({ output: `Error: ${message}`, files: [] });
@@ -60,6 +62,8 @@ export async function runCommandTool(
   if (!command || !commandTool(command.definition)) return failure('unknown command.');
   const definition: Definition = command.definition;
 
+  let use: Usage | undefined;
+  let succeeded = false;
   try {
     const args = JSON.parse(json) as Record<string, Value>;
     const options: APIApplicationCommandInteractionDataBasicOption[] = [];
@@ -89,6 +93,11 @@ export async function runCommandTool(
         value,
       } as APIApplicationCommandInteractionDataBasicOption);
     }
+    // The chat reply already counts as a request, so only images count again here.
+    if ('limit' in command && command.limit === 'image') {
+      use = takeUsage(user.sql, 'image', user.id);
+      if ('refused' in use) return failure(use.refused);
+    }
     const response = await runCommand(
       {
         id: '0',
@@ -102,12 +111,15 @@ export async function runCommandTool(
     );
     const content = response.data.content ?? '';
     if ((response.data.flags ?? 0) & MessageFlags.Ephemeral) return failure(content);
+    succeeded = true;
     const files = 'textOnlyInChat' in command ? [] : (response.files ?? []);
     const note = files.length ? '\nThe image is attached to your reply.' : '';
     return { output: content + note, files };
   } catch (error) {
     console.error('Chat command failed', name, error instanceof Error ? error.message : error);
     return failure('the command failed.');
+  } finally {
+    if (!succeeded && use && 'refund' in use) use.refund();
   }
 }
 

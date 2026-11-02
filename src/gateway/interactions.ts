@@ -2,13 +2,15 @@ import {
   ApplicationCommandType,
   InteractionResponseType,
   InteractionType,
+  MessageFlags,
   RouteBases,
   Routes,
   type APIInteraction,
   type APIInteractionResponse,
 } from 'discord-api-types/v10';
-import { isDeferred, runCommand, withFiles } from '../commands/index.ts';
+import { isDeferred, limitOf, runCommand, withFiles } from '../commands/index.ts';
 import type { Env } from '../env.ts';
+import { takeUsage } from '../usage.ts';
 
 const DISCORD_EPOCH_MS = 1_420_070_400_000;
 const RESPONSE_WINDOW_MS = 3_000;
@@ -56,6 +58,19 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
     return sent.ok;
   };
 
+  const kind = limitOf(interaction.data.name);
+  const user = interaction.member?.user ?? interaction.user;
+  const use = kind && user ? takeUsage(sql, kind, user.id) : undefined;
+  if (use && 'refused' in use) {
+    await callback({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: { content: use.refused, flags: MessageFlags.Ephemeral },
+    });
+    return;
+  }
+
+  // Only uses that reach the user without an error count toward the limit.
+  let succeeded = false;
   try {
     if (isDeferred(interaction.data.name)) {
       if (!(await callback({ type: InteractionResponseType.DeferredChannelMessageWithSource }))) {
@@ -69,22 +84,31 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
       // A deferred reply's visibility is fixed when it is acknowledged, so flags can't change.
       const {
         files = [],
-        data: { flags: _, ...message },
+        data: { flags, ...message },
       } = response;
       const edited = await fetch(
         `${RouteBases.api}${Routes.webhookMessage(interaction.application_id, interaction.token, '@original')}`,
         { method: 'PATCH', body: withFiles(message, files), redirect: 'manual' },
       );
       if (!edited.ok) console.error('Discord interaction edit failed', edited.status);
+      succeeded = edited.ok && !isError(flags);
       return;
     }
 
     const commandBudget = deadline - Date.now() - CALLBACK_BUDGET_MS;
     const signal = commandBudget > 0 ? AbortSignal.timeout(commandBudget) : AbortSignal.abort();
-    await callback(await runCommand(interaction.data, env, signal));
+    const response = await runCommand(interaction.data, env, signal);
+    succeeded = (await callback(response)) && !isError(response.data.flags);
   } catch {
     console.error('Gateway command failed');
+  } finally {
+    if (!succeeded) use?.refund();
   }
+}
+
+// Commands report errors privately (ephemerally).
+function isError(flags = 0) {
+  return (flags & MessageFlags.Ephemeral) !== 0;
 }
 
 export function claim(sql: SqlStorage, id: string) {

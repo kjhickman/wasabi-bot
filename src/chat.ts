@@ -13,6 +13,7 @@ import type { ResponseInputItem, Tool } from 'openai/resources/responses/respons
 import { withFiles } from './commands/index.ts';
 import { commandTools, runCommandTool } from './commands/tools.ts';
 import type { Env } from './env.ts';
+import { takeUsage } from './usage.ts';
 
 const HISTORY_LIMIT = 50;
 const MAX_MESSAGE_LENGTH = 2_000;
@@ -40,6 +41,7 @@ export async function replyToMention(
   message: GatewayMessageCreateDispatchData,
   token: string,
   env: Env,
+  sql: SqlStorage,
   signal = AbortSignal.timeout(REPLY_TIMEOUT_MS),
 ) {
   const dm = !message.guild_id;
@@ -52,6 +54,20 @@ export async function replyToMention(
     });
   const typing = () =>
     discord(Routes.channelTyping(message.channel_id), { method: 'POST' }).catch(() => undefined);
+  const send = async (content: string, files: File[] = []) => {
+    const body = {
+      content,
+      ...(!dm && { message_reference: { message_id: message.id, fail_if_not_exists: false } }),
+      allowed_mentions: { parse: [], replied_user: true },
+      flags: MessageFlags.SuppressEmbeds,
+    } satisfies RESTPostAPIChannelMessageJSONBody;
+    const sent = await discord(messages, { method: 'POST', body: withFiles(body, files) });
+    if (!sent.ok) console.error('Discord chat reply failed', sent.status);
+  };
+
+  const user = { id: message.author.id, sql };
+  const use = takeUsage(sql, 'text', user.id);
+  if ('refused' in use) return send(use.refused);
 
   let content = FAILURE_REPLY;
   let files: File[] = [];
@@ -73,21 +89,15 @@ export async function replyToMention(
       dm,
       env,
       typing,
+      user,
       image,
       signal,
     ));
   } catch (error) {
+    use.refund();
     console.error('Chat reply failed', error instanceof Error ? error.message : error);
   }
-
-  const body = {
-    content,
-    ...(!dm && { message_reference: { message_id: message.id, fail_if_not_exists: false } }),
-    allowed_mentions: { parse: [], replied_user: true },
-    flags: MessageFlags.SuppressEmbeds,
-  } satisfies RESTPostAPIChannelMessageJSONBody;
-  const sent = await discord(messages, { method: 'POST', body: withFiles(body, files) });
-  if (!sent.ok) console.error('Discord chat reply failed', sent.status);
+  await send(content, files);
 }
 
 async function generate(
@@ -96,6 +106,7 @@ async function generate(
   dm: boolean,
   env: Env,
   typing: () => Promise<unknown>,
+  user: { id: string; sql: SqlStorage },
   image: APIAttachment | undefined,
   signal: AbortSignal,
 ) {
@@ -146,7 +157,7 @@ async function generate(
       calls.map(async (call): Promise<ResponseInputItem> => {
         used.add(call.name);
         const deadline = AbortSignal.any([signal, AbortSignal.timeout(COMMAND_TIMEOUT_MS)]);
-        const result = await runCommandTool(call.name, call.arguments, env, deadline, image);
+        const result = await runCommandTool(call.name, call.arguments, env, deadline, user, image);
         files.push(...result.files);
         return { type: 'function_call_output', call_id: call.call_id, output: result.output };
       }),

@@ -31,6 +31,7 @@ export const caption = {
     ],
   } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
   deferred: true,
+  limit: 'text' as const,
   // In chat the image is already in the conversation, so only the caption is sent.
   textOnlyInChat: true,
 

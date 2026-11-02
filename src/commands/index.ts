@@ -8,6 +8,7 @@ import {
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import type { Env } from '../env.ts';
+import type { Kind } from '../usage.ts';
 import { caption } from './caption.ts';
 import { choose } from './choose.ts';
 import { conch } from './conch.ts';
@@ -62,6 +63,12 @@ export function withFiles(message: object, files: File[]) {
 // the interaction first and edit in their reply later.
 export function isDeferred(name: string) {
   return commands.some((command) => command.definition.name === name && 'deferred' in command);
+}
+
+// Commands that call OpenAI count toward a daily limit (see usage.ts).
+export function limitOf(name: string): Kind | undefined {
+  const command = commands.find((command) => command.definition.name === name);
+  return command && 'limit' in command ? command.limit : undefined;
 }
 
 export async function runCommand(
