@@ -1,6 +1,6 @@
 import { MessageFlags, type GatewayMessageCreateDispatchData } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
-import { mentionsBot, replyToMention } from '../src/chat.ts';
+import { addressesBot, replyToMention } from '../src/chat.ts';
 import { commandTools } from '../src/commands/tools.ts';
 import type { Env } from '../src/env.ts';
 
@@ -13,6 +13,7 @@ const sam = { id: '300', username: 'sam', global_name: null };
 
 const mention = {
   id: '9',
+  guild_id: '1',
   channel_id: '42',
   author: kyle,
   content: `<@${BOT_ID}> what should we play?`,
@@ -80,6 +81,7 @@ beforeEach(() => {
   fetchMock.mockImplementation(async (url, init) => {
     const path = String(url);
     if (path.endsWith('/typing')) return new Response(null, { status: 204 });
+    if (path.endsWith('/users/@me')) return Response.json(bot);
     if (path.startsWith('https://cdn.discordapp.com/')) {
       return new Response(new Uint8Array([137, 80, 78, 71]));
     }
@@ -99,15 +101,17 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('mentionsBot', () => {
+describe('addressesBot', () => {
   it.each([
-    ['a person mentions the bot', kyle, [bot], true],
-    ['a person mentions someone else', kyle, [sam], false],
-    ['nobody is mentioned', kyle, [], false],
-    ['another bot mentions the bot', { ...sam, bot: true }, [bot], false],
-  ])('%s → %s', (_, author, mentions, expected) => {
-    const message = { author, mentions } as unknown as GatewayMessageCreateDispatchData;
-    expect(mentionsBot(message, token)).toBe(expected);
+    ['a person mentions the bot', '1', kyle, [bot], true],
+    ['a person mentions someone else', '1', kyle, [sam], false],
+    ['nobody is mentioned', '1', kyle, [], false],
+    ['another bot mentions the bot', '1', { ...sam, bot: true }, [bot], false],
+    ['a person DMs the bot', undefined, kyle, [], true],
+    ['a bot DMs the bot', undefined, { ...sam, bot: true }, [], false],
+  ])('%s → %s', (_, guild_id, author, mentions, expected) => {
+    const message = { guild_id, author, mentions } as unknown as GatewayMessageCreateDispatchData;
+    expect(addressesBot(message, token)).toBe(expected);
   });
 });
 
@@ -142,11 +146,28 @@ describe('replyToMention', () => {
       'code_interpreter',
     ]);
     expect((request as unknown as { instructions: string }).instructions).toContain(
-      'You are DevBot',
+      'You are DevBot, a bot chatting in a Discord channel',
     );
     expect(sentReply()).toEqual({
       content: 'Halo!',
       message_reference: { message_id: '9', fail_if_not_exists: false },
+      allowed_mentions: { parse: [], replied_user: true },
+      flags: MessageFlags.SuppressEmbeds,
+    });
+  });
+
+  it('answers a DM that does not mention the bot with a plain message', async () => {
+    const dm = { ...mention, guild_id: undefined, content: 'what should we play?', mentions: [] };
+
+    await replyToMention(dm as unknown as GatewayMessageCreateDispatchData, token, env);
+
+    const [request] = openaiRequests();
+    expect(request!.input).toEqual([{ role: 'user', content: 'Kyle: what should we play?' }]);
+    const { instructions } = request as unknown as { instructions: string };
+    expect(instructions).toContain('You are DevBot, a bot chatting in a Discord DM');
+    expect(instructions).not.toContain('server');
+    expect(sentReply()).toEqual({
+      content: 'Halo!',
       allowed_mentions: { parse: [], replied_user: true },
       flags: MessageFlags.SuppressEmbeds,
     });

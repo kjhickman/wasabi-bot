@@ -198,13 +198,19 @@ function captionInteraction() {
   };
 }
 
-function message(id: string, s: number, mentions = [{ id: '100', username: 'devbot' }]) {
+function message(
+  id: string,
+  s: number,
+  mentions = [{ id: '100', username: 'devbot' }],
+  dm = false,
+) {
   return {
     op: 0,
     t: 'MESSAGE_CREATE',
     s,
     d: {
       id,
+      guild_id: dm ? undefined : '1',
       channel_id: '300',
       content: '<@100> hi',
       author: { id: '400', username: 'kyle' },
@@ -274,7 +280,7 @@ describe('Gateway in workerd', () => {
         op: 0,
         t: 'MESSAGE_CREATE',
         s: 5,
-        d: { author: { bot: false }, mentions: [] },
+        d: { guild_id: '1', author: { bot: false }, mentions: [] },
       })
     ).text();
     await vi.waitFor(async () => expect((await status()).lastEvent).toBe('MESSAGE_CREATE'));
@@ -376,7 +382,7 @@ describe('Gateway in workerd', () => {
     expect(state.edits[0]!.at).toBeGreaterThan(deadline);
   }, 15_000);
 
-  it('replies once to each mention and ignores other messages and replayed duplicates', async () => {
+  it('replies once to each mention or DM and ignores other messages and replayed duplicates', async () => {
     createRuntime();
     await (await control('start')).text();
     await connected();
@@ -384,13 +390,15 @@ describe('Gateway in workerd', () => {
     await (await fake('emit', message('500', 3))).text();
     await (await fake('emit', message('500', 4))).text();
     await (await fake('emit', message('501', 5))).text();
-    await vi.waitFor(async () => expect((await discordState()).replies).toHaveLength(2));
+    await (await fake('emit', message('502', 6, [], true))).text();
+    await vi.waitFor(async () => expect((await discordState()).replies).toHaveLength(3));
 
     const state = await discordState();
-    expect(state.replies.map((reply) => reply.content)).toEqual(['Hey!', 'Hey!']);
-    expect(state.replies.map((reply) => reply.message_reference.message_id).sort()).toEqual([
+    expect(state.replies.map((reply) => reply.content)).toEqual(['Hey!', 'Hey!', 'Hey!']);
+    expect(state.replies.map((reply) => reply.message_reference?.message_id).sort()).toEqual([
       '500',
       '501',
+      undefined,
     ]);
   }, 15_000);
 

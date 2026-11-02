@@ -122,6 +122,9 @@ export class FakeDiscord extends DurableObject {
       return Response.json({ id: 'original' });
     }
     if (url.pathname.endsWith('/typing')) return new Response(null, { status: 204 });
+    if (decodeURIComponent(url.pathname) === '/api/v10/users/@me') {
+      return Response.json({ id: '100', username: 'devbot', global_name: null });
+    }
     if (url.pathname.endsWith('/messages')) {
       if (request.method === 'GET') return Response.json([]);
       const replies = this.ctx.storage.kv.get<unknown[]>('replies') ?? [];

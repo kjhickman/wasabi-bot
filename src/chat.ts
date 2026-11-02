@@ -27,9 +27,10 @@ const TOOLS: Tool[] = [
 
 type Message = Pick<APIMessage, 'author' | 'content' | 'mentions'>;
 
-export function mentionsBot(message: GatewayMessageCreateDispatchData, token: string) {
+export function addressesBot(message: GatewayMessageCreateDispatchData, token: string) {
   const botId = botUserId(token);
-  return !message.author.bot && message.mentions.some((user) => user.id === botId);
+  const isDM = !message.guild_id;
+  return !message.author.bot && (isDM || message.mentions.some((user) => user.id === botId));
 }
 
 export async function replyToMention(
@@ -38,6 +39,7 @@ export async function replyToMention(
   env: Env,
   signal = AbortSignal.timeout(REPLY_TIMEOUT_MS),
 ) {
+  const dm = !message.guild_id;
   const messages = Routes.channelMessages(message.channel_id);
   const discord = (route: string, init?: RequestInit) =>
     fetch(`${RouteBases.api}${route}`, {
@@ -50,22 +52,25 @@ export async function replyToMention(
 
   let content = FAILURE_REPLY;
   try {
-    const [, response] = await Promise.all([
+    const [, response, me] = await Promise.all([
       typing(),
       discord(`${messages}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`, { signal }),
+      discord(Routes.user(), { signal }),
     ]);
+    if (!me.ok) throw new Error(`Discord returned ${me.status} for the bot user`);
+    const bot = await me.json<APIUser>();
     const history = response.ok ? (await response.json<APIMessage[]>()).reverse() : [];
     const image = [message, message.referenced_message, ...history.toReversed()]
       .flatMap((source) => source?.attachments ?? [])
       .find((attachment) => attachment.content_type?.startsWith('image/'));
-    content = await generate([...history, message], botUserId(token), env, typing, image, signal);
+    content = await generate([...history, message], bot, dm, env, typing, image, signal);
   } catch (error) {
     console.error('Chat reply failed', error instanceof Error ? error.message : error);
   }
 
   const body = {
     content,
-    message_reference: { message_id: message.id, fail_if_not_exists: false },
+    ...(!dm && { message_reference: { message_id: message.id, fail_if_not_exists: false } }),
     allowed_mentions: { parse: [], replied_user: true },
     flags: MessageFlags.SuppressEmbeds,
   } satisfies RESTPostAPIChannelMessageJSONBody;
@@ -75,19 +80,22 @@ export async function replyToMention(
 
 async function generate(
   messages: Message[],
-  botId: string,
+  bot: APIUser,
+  dm: boolean,
   env: Env,
   typing: () => Promise<unknown>,
   image: APIAttachment | undefined,
   signal: AbortSignal,
 ) {
   if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not set');
-  const bot = messages.at(-1)!.mentions.find((user) => user.id === botId)!;
+  const [place, like, commands] = dm
+    ? ['a Discord DM', 'a friend texting', 'your own']
+    : ['a Discord channel', 'a regular member of the server', "this server's"];
   const client = new OpenAI({ apiKey: env.OPENAI_API_KEY, timeout: 30_000 });
   const input = messages.flatMap((message): ResponseInputItem[] => {
     const text = readable(message);
     if (!text) return [];
-    return message.author.id === botId
+    return message.author.id === bot.id
       ? [{ role: 'assistant', content: text }]
       : [{ role: 'user', content: `${displayName(message.author)}: ${text}` }];
   });
@@ -97,7 +105,7 @@ async function generate(
     const response = await client.responses.create(
       {
         model: 'gpt-6.1-terra',
-        instructions: `You are ${displayName(bot)}, a bot chatting in a Discord channel. Be casual, friendly and concise, like a regular member of the server: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Search the web when the last message needs current or recent information, and use the python tool for math or data you'd otherwise work out in your head. You can't share files or charts, so answer in text. Your other tools are this server's slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
+        instructions: `You are ${displayName(bot)}, a bot chatting in ${place}. Be casual, friendly and concise, like ${like}: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Search the web when the last message needs current or recent information, and use the python tool for math or data you'd otherwise work out in your head. You can't share files or charts, so answer in text. Your other tools are ${commands} slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
         input,
         tools: TOOLS,
         tool_choice: round < MAX_TOOL_ROUNDS ? 'auto' : 'none',

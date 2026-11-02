@@ -6,7 +6,7 @@ import {
   type RESTGetAPIGatewayBotResult,
 } from 'discord-api-types/v10';
 import { GATEWAY_NAME } from '../app.ts';
-import { mentionsBot, replyToMention } from '../chat.ts';
+import { addressesBot, replyToMention } from '../chat.ts';
 import type { Env } from '../env.ts';
 import { FATAL_CLOSE_CODES, GatewayConnection, type Session } from './connection.ts';
 import {
@@ -227,7 +227,7 @@ export class DiscordGateway extends DurableObject<Env> {
         }
         if (
           packet.t === GatewayDispatchEvents.MessageCreate &&
-          mentionsBot(packet.d, token) &&
+          addressesBot(packet.d, token) &&
           claim(this.ctx.storage.sql, packet.d.id)
         ) {
           this.ctx.waitUntil(replyToMention(packet.d, token, this.env));
