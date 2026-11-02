@@ -16,8 +16,8 @@ A Discord Gateway bot running on Cloudflare Workers. See `README.md` for setup a
 - `src/app.ts`: `/gateway/{status,start,stop}` control routes, protected by a bearer token
 - `src/gateway/`: the Durable Object lifecycle, the WebSocket connection, and interaction handling
 - `src/chat.ts`: replies to mentions using OpenAI, with slash commands available as tools
-- `src/commands/`: slash commands, registered in `index.ts`
-- `scripts/`: syncs slash commands with Discord and runs the prod gateway control CLI
+- `src/commands/`: slash and message commands, registered in `index.ts`
+- `scripts/`: syncs commands with Discord and runs the prod gateway control CLI
 - `test/`: Vitest tests and fixtures
 
 Before committing, run `npm run check` and `npm test`. After editing `wrangler.jsonc`, rerun `npm install` to regenerate the Worker types.

@@ -1,16 +1,21 @@
 import {
+  ApplicationCommandType,
   InteractionResponseType,
   MessageFlags,
   type APIChatInputApplicationCommandInteractionData,
   type APIInteractionResponseChannelMessageWithSource,
+  type APIMessageApplicationCommandInteractionData,
 } from 'discord-api-types/v10';
 import type { Env } from '../env.ts';
 import { caption } from './caption.ts';
 import { choose } from './choose.ts';
 import { conch } from './conch.ts';
 import { flip } from './flip.ts';
+import { mock } from './mock.ts';
 
 export const commands = [conch, choose, caption, flip];
+// Message commands are run from a message's Apps menu.
+export const messageCommands = [mock];
 
 // Files are only uploaded for deferred commands, whose replies are sent as edits.
 export type CommandResponse = APIInteractionResponseChannelMessageWithSource & { files?: File[] };
@@ -22,16 +27,19 @@ export function isDeferred(name: string) {
 }
 
 export async function runCommand(
-  data: APIChatInputApplicationCommandInteractionData,
+  data: APIChatInputApplicationCommandInteractionData | APIMessageApplicationCommandInteractionData,
   env: Env,
   signal: AbortSignal,
 ): Promise<CommandResponse> {
-  const command = commands.find((command) => command.definition.name === data.name);
-  if (!command) {
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: 'Unknown command.', flags: MessageFlags.Ephemeral },
-    };
+  if (data.type === ApplicationCommandType.Message) {
+    const command = messageCommands.find((command) => command.definition.name === data.name);
+    if (command) return command.execute(data);
+  } else {
+    const command = commands.find((command) => command.definition.name === data.name);
+    if (command) return command.execute(data, env, signal);
   }
-  return command.execute(data, env, signal);
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: { content: 'Unknown command.', flags: MessageFlags.Ephemeral },
+  };
 }

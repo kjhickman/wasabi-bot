@@ -31,7 +31,8 @@ export function pruneInteractions(sql: SqlStorage) {
 export async function handleInteraction(interaction: APIInteraction, env: Env, sql: SqlStorage) {
   if (
     interaction.type !== InteractionType.ApplicationCommand ||
-    interaction.data.type !== ApplicationCommandType.ChatInput
+    (interaction.data.type !== ApplicationCommandType.ChatInput &&
+      interaction.data.type !== ApplicationCommandType.Message)
   ) {
     return;
   }

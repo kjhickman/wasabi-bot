@@ -314,6 +314,35 @@ describe('Gateway in workerd', () => {
     expect(state.callbacks).toEqual([{ type: 4, data: { content: 'Yes' } }]);
   }, 15_000);
 
+  it('answers the Mock message command', async () => {
+    createRuntime();
+    await (await control('start')).text();
+    await connected();
+    await (
+      await fake('emit', {
+        op: 0,
+        t: 'INTERACTION_CREATE',
+        s: 2,
+        d: {
+          type: 2,
+          id: ((BigInt(Date.now()) - 1_420_070_400_000n) << 22n).toString(),
+          token: 'interaction-token',
+          data: {
+            type: 3,
+            name: 'Mock',
+            target_id: '800',
+            resolved: { messages: { '800': { content: 'nice job' } } },
+          },
+        },
+      })
+    ).text();
+    await vi.waitFor(async () => expect((await discordState()).callbacks).toHaveLength(1));
+
+    expect((await discordState()).callbacks).toEqual([
+      { type: 4, data: { content: 'NiCe JoB', allowed_mentions: { parse: [] } } },
+    ]);
+  }, 15_000);
+
   it('defers /caption within the response window and edits in the image with a caption that takes longer', async () => {
     createRuntime();
     await (await fake('configure', { responseDelay: 3_500 })).text();

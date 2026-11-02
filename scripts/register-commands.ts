@@ -1,5 +1,5 @@
 import { RouteBases, Routes } from 'discord-api-types/v10';
-import { commands } from '../src/commands/index.ts';
+import { commands, messageCommands } from '../src/commands/index.ts';
 
 const { DISCORD_APPLICATION_ID, DISCORD_BOT_TOKEN } = process.env;
 
@@ -15,7 +15,7 @@ const response = await fetch(
       Authorization: `Bot ${DISCORD_BOT_TOKEN}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(commands.map((command) => command.definition)),
+    body: JSON.stringify([...commands, ...messageCommands].map((command) => command.definition)),
   },
 );
 
