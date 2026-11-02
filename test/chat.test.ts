@@ -1,4 +1,4 @@
-import type { GatewayMessageCreateDispatchData } from 'discord-api-types/v10';
+import { MessageFlags, type GatewayMessageCreateDispatchData } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { mentionsBot, replyToMention } from '../src/chat.ts';
 import type { Env } from '../src/env.ts';
@@ -30,7 +30,7 @@ const chooseArgs = {
 
 interface OpenAIRequest {
   input: { type?: string; call_id?: string; output?: string }[];
-  tools: { name: string }[];
+  tools: { type: string; name?: string }[];
   tool_choice: string;
 }
 
@@ -135,7 +135,13 @@ describe('replyToMention', () => {
         { role: 'user', content: 'Kyle: @DevBot what should we play?' },
       ],
     });
-    expect(request!.tools.map((tool) => tool.name)).toEqual(['conch', 'choose', 'caption']);
+    expect(request!.tools.map((tool) => tool.name ?? tool.type)).toEqual([
+      'conch',
+      'choose',
+      'caption',
+      'web_search',
+      'code_interpreter',
+    ]);
     expect((request as unknown as { instructions: string }).instructions).toContain(
       'You are DevBot',
     );
@@ -143,6 +149,7 @@ describe('replyToMention', () => {
       content: 'Halo!',
       message_reference: { message_id: '9', fail_if_not_exists: false },
       allowed_mentions: { parse: [], replied_user: true },
+      flags: MessageFlags.SuppressEmbeds,
     });
   });
 
@@ -190,6 +197,66 @@ describe('replyToMention', () => {
     expect(sentReply().content).toBe(
       'Go with Overwatch, and the conch agrees!\n-# used /choose, /conch',
     );
+  });
+
+  it('answers from a web search in one round', async () => {
+    const search = {
+      type: 'web_search_call',
+      id: 'ws_0',
+      status: 'completed',
+      action: { type: 'search', query: 'overwatch patch notes' },
+    };
+    const answer = 'A new hero dropped ([blizzard.com](https://blizzard.com/news))';
+    openai = () =>
+      Response.json({
+        object: 'response',
+        output: [
+          search,
+          { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: answer }] },
+        ],
+      });
+
+    await replyToMention(mention, token, env);
+
+    expect(openaiRequests()).toHaveLength(1);
+    expect(sentReply().content).toBe(answer);
+  });
+
+  it('keeps hosted tool calls in context when the model also runs a command', async () => {
+    const search = {
+      type: 'web_search_call',
+      id: 'ws_0',
+      status: 'completed',
+      action: { type: 'search', query: 'best game right now' },
+    };
+    openai = (request) => {
+      if (request.input.some((item) => item.type === 'function_call_output')) {
+        return openaiText('Overwatch it is');
+      }
+      return Response.json({
+        object: 'response',
+        output: [
+          search,
+          {
+            type: 'function_call',
+            id: 'fc_0',
+            call_id: 'call_0',
+            name: 'choose',
+            arguments: JSON.stringify(chooseArgs),
+            status: 'completed',
+          },
+        ],
+      });
+    };
+
+    await replyToMention(mention, token, env);
+
+    expect(openaiRequests()[1]!.input.slice(-3)).toMatchObject([
+      search,
+      { type: 'function_call', call_id: 'call_0' },
+      { type: 'function_call_output', call_id: 'call_0' },
+    ]);
+    expect(sentReply().content).toBe('Overwatch it is\n-# used /choose');
   });
 
   it('makes the model answer after 3 rounds of commands', async () => {

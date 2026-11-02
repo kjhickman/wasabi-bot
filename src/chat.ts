@@ -1,4 +1,5 @@
 import {
+  MessageFlags,
   RouteBases,
   Routes,
   type APIAttachment,
@@ -8,7 +9,7 @@ import {
   type RESTPostAPIChannelMessageJSONBody,
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
-import type { ResponseInputItem } from 'openai/resources/responses/responses';
+import type { ResponseInputItem, Tool } from 'openai/resources/responses/responses';
 import { commandTools, runCommandTool } from './commands/tools.ts';
 import type { Env } from './env.ts';
 
@@ -18,6 +19,11 @@ const MAX_TOOL_ROUNDS = 3;
 const COMMAND_TIMEOUT_MS = 15_000;
 const REPLY_TIMEOUT_MS = 60_000;
 const FAILURE_REPLY = "Sorry, I couldn't come up with a reply. Try again in a moment.";
+const TOOLS: Tool[] = [
+  ...commandTools,
+  { type: 'web_search' },
+  { type: 'code_interpreter', container: { type: 'auto' } },
+];
 
 type Message = Pick<APIMessage, 'author' | 'content' | 'mentions'>;
 
@@ -61,6 +67,7 @@ export async function replyToMention(
     content,
     message_reference: { message_id: message.id, fail_if_not_exists: false },
     allowed_mentions: { parse: [], replied_user: true },
+    flags: MessageFlags.SuppressEmbeds,
   } satisfies RESTPostAPIChannelMessageJSONBody;
   const sent = await discord(messages, { method: 'POST', body: JSON.stringify(body) });
   if (!sent.ok) console.error('Discord chat reply failed', sent.status);
@@ -90,9 +97,9 @@ async function generate(
     const response = await client.responses.create(
       {
         model: 'gpt-6.1-terra',
-        instructions: `You are ${displayName(bot)}, a bot chatting in a Discord channel. Be casual, friendly and concise, like a regular member of the server: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Your tools are this server's slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
+        instructions: `You are ${displayName(bot)}, a bot chatting in a Discord channel. Be casual, friendly and concise, like a regular member of the server: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Search the web when the last message needs current or recent information, and use the python tool for math or data you'd otherwise work out in your head. You can't share files or charts, so answer in text. Your other tools are this server's slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
         input,
-        tools: commandTools,
+        tools: TOOLS,
         tool_choice: round < MAX_TOOL_ROUNDS ? 'auto' : 'none',
         reasoning: { effort: 'none' },
         max_output_tokens: 500,
@@ -111,7 +118,13 @@ async function generate(
         return { type: 'function_call_output', call_id: call.call_id, output };
       }),
     );
-    input.push(...calls, ...outputs);
+    const toolCalls = response.output.filter(
+      (item) =>
+        item.type === 'function_call' ||
+        item.type === 'web_search_call' ||
+        item.type === 'code_interpreter_call',
+    );
+    input.push(...toolCalls, ...outputs);
   }
   throw new Error('OpenAI kept calling tools');
 }
