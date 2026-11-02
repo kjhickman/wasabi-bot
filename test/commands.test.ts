@@ -5,7 +5,7 @@ import {
 } from 'discord-api-types/v10';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { conch } from '../src/commands/conch.ts';
-import { isDeferred, runCommand } from '../src/commands/index.ts';
+import { commands, isDeferred, messageCommands, runCommand } from '../src/commands/index.ts';
 import type { Env } from '../src/env.ts';
 
 const env = {} as Env;
@@ -35,6 +35,21 @@ describe('runCommand', () => {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: { content: 'Unknown command.', flags: MessageFlags.Ephemeral },
     });
+  });
+});
+
+describe('/help', () => {
+  it('lists every slash and message command with its description', async () => {
+    const data = { id: '1', type: ApplicationCommandType.ChatInput, name: 'help' } as const;
+    const { content } = (await runCommand(data, env, signal)).data;
+
+    for (const { definition } of commands) {
+      expect(content).toContain(`\`/${definition.name}\`: ${definition.description}`);
+    }
+    for (const { definition, description } of messageCommands) {
+      expect(content).toContain(`**${definition.name}**`);
+      expect(content).toContain(description);
+    }
   });
 });
 

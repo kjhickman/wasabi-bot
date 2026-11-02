@@ -15,6 +15,8 @@ export const mock = {
     name: 'Mock',
     type: ApplicationCommandType.Message,
   } satisfies RESTPostAPIContextMenuApplicationCommandsJSONBody,
+  // Discord doesn't allow descriptions on message commands, so this is only shown by /help.
+  description: 'Repeat a message in aLtErNaTiNg CaSe.',
 
   execute(
     data: APIMessageApplicationCommandInteractionData,
