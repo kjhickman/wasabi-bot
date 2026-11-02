@@ -98,7 +98,7 @@ export class FakeDiscord extends DurableObject {
         headers: { 'Content-Type': 'image/png' },
       });
     }
-    if (url.pathname.endsWith('/messages/@original')) {
+    if (url.pathname.endsWith('/messages/%40original')) {
       const form = await request.formData();
       const files = await Promise.all(
         [...form.entries()]

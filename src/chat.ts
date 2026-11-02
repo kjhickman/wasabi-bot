@@ -1,9 +1,11 @@
-import type {
-  APIAttachment,
-  APIMessage,
-  APIUser,
-  GatewayMessageCreateDispatchData,
-  RESTPostAPIChannelMessageJSONBody,
+import {
+  RouteBases,
+  Routes,
+  type APIAttachment,
+  type APIMessage,
+  type APIUser,
+  type GatewayMessageCreateDispatchData,
+  type RESTPostAPIChannelMessageJSONBody,
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import type { ResponseInputItem } from 'openai/resources/responses/responses';
@@ -28,19 +30,21 @@ export async function replyToMention(
   token: string,
   env: Env,
 ) {
-  const discord = (path: string, init?: RequestInit) =>
-    fetch(`https://discord.com/api/v10/channels/${message.channel_id}${path}`, {
+  const messages = Routes.channelMessages(message.channel_id);
+  const discord = (route: string, init?: RequestInit) =>
+    fetch(`${RouteBases.api}${route}`, {
       ...init,
       headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
       redirect: 'manual',
     });
-  const typing = () => discord('/typing', { method: 'POST' }).catch(() => undefined);
+  const typing = () =>
+    discord(Routes.channelTyping(message.channel_id), { method: 'POST' }).catch(() => undefined);
 
   let content = FAILURE_REPLY;
   try {
     const [, response] = await Promise.all([
       typing(),
-      discord(`/messages?before=${message.id}&limit=${HISTORY_LIMIT - 1}`),
+      discord(`${messages}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`),
     ]);
     const history = response.ok ? (await response.json<APIMessage[]>()).reverse() : [];
     const image = [message, message.referenced_message, ...history.toReversed()]
@@ -56,7 +60,7 @@ export async function replyToMention(
     message_reference: { message_id: message.id, fail_if_not_exists: false },
     allowed_mentions: { parse: [], replied_user: true },
   } satisfies RESTPostAPIChannelMessageJSONBody;
-  const sent = await discord('/messages', { method: 'POST', body: JSON.stringify(body) });
+  const sent = await discord(messages, { method: 'POST', body: JSON.stringify(body) });
   if (!sent.ok) console.error('Discord chat reply failed', sent.status);
 }
 

@@ -2,6 +2,8 @@ import {
   ApplicationCommandType,
   InteractionResponseType,
   InteractionType,
+  RouteBases,
+  Routes,
   type APIInteraction,
   type APIInteractionResponse,
 } from 'discord-api-types/v10';
@@ -40,7 +42,7 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
     const callbackBudget = Math.min(CALLBACK_BUDGET_MS, deadline - Date.now() - 50);
     if (callbackBudget <= 0) return false;
     const sent = await fetch(
-      `https://discord.com/api/v10/interactions/${interaction.id}/${interaction.token}/callback`,
+      `${RouteBases.api}${Routes.interactionCallback(interaction.id, interaction.token)}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,7 +80,7 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
       );
       files.forEach((file, i) => body.set(`files[${i}]`, file));
       const edited = await fetch(
-        `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`,
+        `${RouteBases.api}${Routes.webhookMessage(interaction.application_id, interaction.token, '@original')}`,
         { method: 'PATCH', body, redirect: 'manual' },
       );
       if (!edited.ok) console.error('Discord interaction edit failed', edited.status);

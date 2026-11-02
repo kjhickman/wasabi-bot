@@ -337,7 +337,7 @@ describe('Gateway in workerd', () => {
     expect(state.edits).toEqual([
       {
         method: 'PATCH',
-        path: '/api/v10/webhooks/900/interaction-token/messages/@original',
+        path: '/api/v10/webhooks/900/interaction-token/messages/%40original',
         body: {
           content: 'Hey!',
           allowed_mentions: { parse: [] },

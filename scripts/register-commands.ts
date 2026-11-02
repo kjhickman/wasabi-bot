@@ -1,4 +1,4 @@
-import { Routes } from 'discord-api-types/v10';
+import { RouteBases, Routes } from 'discord-api-types/v10';
 import { commands } from '../src/commands/index.ts';
 
 const { DISCORD_APPLICATION_ID, DISCORD_BOT_TOKEN } = process.env;
@@ -8,7 +8,7 @@ if (!DISCORD_APPLICATION_ID || !DISCORD_BOT_TOKEN) {
 }
 
 const response = await fetch(
-  `https://discord.com/api/v10${Routes.applicationCommands(DISCORD_APPLICATION_ID)}`,
+  `${RouteBases.api}${Routes.applicationCommands(DISCORD_APPLICATION_ID)}`,
   {
     method: 'PUT',
     headers: {
