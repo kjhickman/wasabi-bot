@@ -231,7 +231,7 @@ export class DiscordGateway extends DurableObject<Env> {
           mentionsBot(packet.d, token) &&
           claim(this.ctx.storage.sql, packet.d.id)
         ) {
-          this.ctx.waitUntil(replyToMention(packet.d, token, this.env.OPENAI_API_KEY));
+          this.ctx.waitUntil(replyToMention(packet.d, token, this.env));
         }
       },
       onClose: (code, resumable) => {

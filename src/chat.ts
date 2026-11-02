@@ -5,10 +5,14 @@ import type {
   RESTPostAPIChannelMessageJSONBody,
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
-import type { EasyInputMessage } from 'openai/resources/responses/responses';
+import type { ResponseInputItem } from 'openai/resources/responses/responses';
+import { commandTools, runCommandTool } from './commands/tools.ts';
+import type { Env } from './env.ts';
 
 const HISTORY_LIMIT = 50;
 const MAX_MESSAGE_LENGTH = 2_000;
+const MAX_TOOL_ROUNDS = 3;
+const COMMAND_TIMEOUT_MS = 15_000;
 const FAILURE_REPLY = "Sorry, I couldn't come up with a reply. Try again in a moment.";
 
 type Message = Pick<APIMessage, 'author' | 'content' | 'mentions'>;
@@ -21,7 +25,7 @@ export function mentionsBot(message: GatewayMessageCreateDispatchData, token: st
 export async function replyToMention(
   message: GatewayMessageCreateDispatchData,
   token: string,
-  apiKey: string | undefined,
+  env: Env,
 ) {
   const discord = (path: string, init?: RequestInit) =>
     fetch(`https://discord.com/api/v10/channels/${message.channel_id}${path}`, {
@@ -29,15 +33,16 @@ export async function replyToMention(
       headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
       redirect: 'manual',
     });
+  const typing = () => discord('/typing', { method: 'POST' }).catch(() => undefined);
 
   let content = FAILURE_REPLY;
   try {
     const [, response] = await Promise.all([
-      discord('/typing', { method: 'POST' }).catch(() => undefined),
+      typing(),
       discord(`/messages?before=${message.id}&limit=${HISTORY_LIMIT - 1}`),
     ]);
     const history = response.ok ? (await response.json<APIMessage[]>()).reverse() : [];
-    content = await generate([...history, message], botUserId(token), apiKey);
+    content = await generate([...history, message], botUserId(token), env, typing);
   } catch (error) {
     console.error('Chat reply failed', error instanceof Error ? error.message : error);
   }
@@ -51,26 +56,56 @@ export async function replyToMention(
   if (!sent.ok) console.error('Discord chat reply failed', sent.status);
 }
 
-async function generate(messages: Message[], botId: string, apiKey: string | undefined) {
-  if (!apiKey) throw new Error('OPENAI_API_KEY is not set');
+async function generate(
+  messages: Message[],
+  botId: string,
+  env: Env,
+  typing: () => Promise<unknown>,
+) {
+  if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not set');
   const bot = messages.at(-1)!.mentions.find((user) => user.id === botId)!;
-  const client = new OpenAI({ apiKey, timeout: 30_000 });
-  const response = await client.responses.create({
-    model: 'gpt-6.1-terra',
-    instructions: `You are ${displayName(bot)}, a bot chatting in a Discord channel. Be casual, friendly and concise, like a regular member of the server: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front.`,
-    input: messages.flatMap((message): EasyInputMessage[] => {
-      const text = readable(message);
-      if (!text) return [];
-      return message.author.id === botId
-        ? [{ role: 'assistant', content: text }]
-        : [{ role: 'user', content: `${displayName(message.author)}: ${text}` }];
-    }),
-    reasoning: { effort: 'none' },
-    max_output_tokens: 500,
+  const client = new OpenAI({ apiKey: env.OPENAI_API_KEY, timeout: 30_000 });
+  const input = messages.flatMap((message): ResponseInputItem[] => {
+    const text = readable(message);
+    if (!text) return [];
+    return message.author.id === botId
+      ? [{ role: 'assistant', content: text }]
+      : [{ role: 'user', content: `${displayName(message.author)}: ${text}` }];
   });
-  const text = response.output_text.trim();
+  const used = new Set<string>();
+
+  for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+    const response = await client.responses.create({
+      model: 'gpt-6.1-terra',
+      instructions: `You are ${displayName(bot)}, a bot chatting in a Discord channel. Be casual, friendly and concise, like a regular member of the server: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Your tools are this server's slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
+      input,
+      tools: commandTools,
+      tool_choice: round < MAX_TOOL_ROUNDS ? 'auto' : 'none',
+      reasoning: { effort: 'none' },
+      max_output_tokens: 500,
+    });
+    const calls = response.output.filter((item) => item.type === 'function_call');
+    if (!calls.length) return withNote(response.output_text.trim(), used);
+
+    void typing();
+    const outputs = await Promise.all(
+      calls.map(async (call): Promise<ResponseInputItem> => {
+        used.add(call.name);
+        const signal = AbortSignal.timeout(COMMAND_TIMEOUT_MS);
+        const output = await runCommandTool(call.name, call.arguments, env, signal);
+        return { type: 'function_call_output', call_id: call.call_id, output };
+      }),
+    );
+    input.push(...calls, ...outputs);
+  }
+  throw new Error('OpenAI kept calling tools');
+}
+
+function withNote(text: string, used: Set<string>) {
   if (!text) throw new Error('OpenAI returned no text');
-  return text.length > MAX_MESSAGE_LENGTH ? `${text.slice(0, MAX_MESSAGE_LENGTH - 1)}…` : text;
+  const note = used.size ? `\n-# used ${[...used].map((name) => `/${name}`).join(', ')}` : '';
+  const limit = MAX_MESSAGE_LENGTH - note.length;
+  return (text.length > limit ? `${text.slice(0, limit - 1)}…` : text) + note;
 }
 
 function readable(message: Message) {
