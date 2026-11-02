@@ -5,6 +5,7 @@ import {
   Routes,
   type RESTGetAPIGatewayBotResult,
 } from 'discord-api-types/v10';
+import { GATEWAY_NAME } from '../app.ts';
 import { mentionsBot, replyToMention } from '../chat.ts';
 import type { Env } from '../env.ts';
 import { FATAL_CLOSE_CODES, GatewayConnection, type Session } from './connection.ts';
@@ -76,6 +77,12 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   async ensureConnected() {
+    // An object left under an old name keeps waking on its alarm and would open a
+    // second Gateway connection, so it erases itself instead.
+    if (this.ctx.id.name !== GATEWAY_NAME) {
+      await this.ctx.storage.deleteAll();
+      return this.status();
+    }
     if (!this.shouldRun()) return this.status();
     const token = this.env.DISCORD_BOT_TOKEN;
     if (!token || !this.env.GATEWAY_CONTROL_TOKEN) {
