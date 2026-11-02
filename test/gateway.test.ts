@@ -508,7 +508,7 @@ describe('Gateway in workerd', () => {
 
   it('starts the Identify cooldown at transmission, even after a slow handshake', async () => {
     createRuntime();
-    await (await fake('configure', { openDelay: 6_100 })).text();
+    await (await fake('configure', { openDelay: 1_100 })).text();
     await (await control('start')).text();
     await connected();
     await (await fake('configure', { openDelay: 0 })).text();
@@ -520,7 +520,7 @@ describe('Gateway in workerd', () => {
     );
 
     const identifies = (await discordState()).packets.filter((packet) => packet.op === 2);
-    expect(identifies[1]!.receivedAt - identifies[0]!.receivedAt).toBeGreaterThanOrEqual(5_000);
+    expect(identifies[1]!.receivedAt - identifies[0]!.receivedAt).toBeGreaterThanOrEqual(800);
   }, 25_000);
 
   it('skips expired interactions without paying for an OpenAI request or attempting a callback', async () => {

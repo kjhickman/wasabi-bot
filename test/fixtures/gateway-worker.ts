@@ -3,6 +3,10 @@ import type { Env } from '../../src/env.ts';
 import type { GatewayConnection } from '../../src/gateway/connection.ts';
 
 export class TestGateway extends DiscordGateway {
+  // Shorter than production so tests don't sit through real backoffs; gateway.test.ts timings assume these.
+  protected override readonly identifyCooldownMs = 1_000;
+  protected override readonly retryBaseMs = 100;
+
   crash(): void {
     this.ctx.abort('Test Gateway restart');
   }

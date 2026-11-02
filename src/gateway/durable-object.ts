@@ -11,7 +11,6 @@ import {
 } from './interactions.ts';
 
 const WATCHDOG_MS = 30_000;
-const IDENTIFY_COOLDOWN_MS = 6_000;
 const MAX_BACKOFF_MS = 5 * 60 * 1_000;
 
 interface Lifecycle {
@@ -26,6 +25,8 @@ interface Lifecycle {
 // Decides whether the single Gateway connection should run, and when to (re)connect.
 // Durable alarms drive every reconnect so recovery survives Durable Object restarts.
 export class DiscordGateway extends DurableObject<Env> {
+  protected readonly identifyCooldownMs: number = 6_000;
+  protected readonly retryBaseMs: number = 1_000;
   private lifecycle: Lifecycle;
   private connection: GatewayConnection | undefined;
   private connecting: Promise<void> | undefined;
@@ -129,7 +130,7 @@ export class DiscordGateway extends DurableObject<Env> {
     const failures = ++this.lifecycle.failures;
     // The first disconnect plus two failed resumes: start a fresh session instead.
     if (failures >= 3) this.lifecycle.session = null;
-    const backoff = Math.min(MAX_BACKOFF_MS, 1_000 * 2 ** failures);
+    const backoff = Math.min(MAX_BACKOFF_MS, this.retryBaseMs * 2 ** failures);
     this.lifecycle.retryAt = Math.max(this.lifecycle.retryAt, Date.now() + backoff);
     this.lifecycle.error ??= 'Gateway disconnected; reconnect scheduled.';
     this.save();
@@ -194,7 +195,7 @@ export class DiscordGateway extends DurableObject<Env> {
       url,
       session,
       onIdentify: () => {
-        this.lifecycle.identifyAfter = Date.now() + IDENTIFY_COOLDOWN_MS;
+        this.lifecycle.identifyAfter = Date.now() + this.identifyCooldownMs;
         this.save();
       },
       onDispatch: (packet) => {
