@@ -1,4 +1,4 @@
-import app from './app.ts';
+import app, { gateway } from './app.ts';
 import type { Env } from './env.ts';
 
 export { DiscordGateway } from './gateway/durable-object.ts';
@@ -6,6 +6,6 @@ export { DiscordGateway } from './gateway/durable-object.ts';
 export default {
   fetch: app.fetch,
   async scheduled(_controller: ScheduledController, env: Env) {
-    await env.DISCORD_GATEWAY.getByName('gateway').ensureConnected();
+    await gateway(env).ensureConnected();
   },
 } satisfies ExportedHandler<Env>;

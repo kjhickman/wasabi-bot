@@ -27,7 +27,7 @@ Before committing, run `npm run check` and `npm test`. After editing `wrangler.j
 Production is the `prod` env (Worker `discord-bot-prod`). Use `cf` or `npx wrangler` to inspect it:
 
 - `npm run gateway -- status`: shows the gateway's lifecycle state and its last error
-- `npx wrangler tail --env prod`: streams live logs. Workers Logs isn't enabled, so there's no log history.
+- `npx wrangler tail --env prod`: streams live logs. Workers Logs keeps history; browse it in the Cloudflare dashboard for `discord-bot-prod`.
 - `npx wrangler deployments list --env prod` / `npx wrangler secret list --env prod`
 - `cf cli search "<task>"`: finds the right `cf` command. Then run `<command> --help`.
 - `cf docs search "<question>"`: searches the Cloudflare docs

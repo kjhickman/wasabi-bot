@@ -297,6 +297,28 @@ describe('replyToMention', () => {
     });
   });
 
+  it('gives up and apologizes when the reply runs out of time', async () => {
+    const deadline = new AbortController();
+    const respond = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((url, init) => {
+      if (!String(url).endsWith('/v1/responses')) return respond(url, init);
+      return new Promise((_resolve, reject) => {
+        const signal = init!.signal!;
+        if (signal.aborted) return reject(signal.reason);
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      });
+    });
+
+    const reply = replyToMention(mention, token, env, deadline.signal);
+    await vi.waitFor(() => expect(openaiRequests()).toHaveLength(1));
+    deadline.abort();
+    await reply;
+
+    expect(sentReply().content).toBe(
+      "Sorry, I couldn't come up with a reply. Try again in a moment.",
+    );
+  });
+
   it.each([
     ['OpenAI rejects the request', env, () => new Response('Unauthorized', { status: 401 })],
     ['OpenAI returns no text', env, () => openaiText('  ')],

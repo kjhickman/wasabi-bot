@@ -88,7 +88,7 @@ describe('/caption', () => {
     expect(caption.deferred).toBe(true);
   });
 
-  it('captions the downloaded image and re-posts it without pinging anyone', async () => {
+  it('captions the image by URL and re-posts a downloaded copy without pinging anyone', async () => {
     openai = () => textResponse('  When the code works on the first try  ');
 
     const response = await run();
@@ -114,9 +114,7 @@ describe('/caption', () => {
       input: [
         {
           role: 'user',
-          content: [
-            { type: 'input_image', image_url: 'data:image/png;base64,iVBORw==', detail: 'auto' },
-          ],
+          content: [{ type: 'input_image', image_url: url, detail: 'auto' }],
         },
       ],
       reasoning: { effort: 'low' },
@@ -192,11 +190,16 @@ describe('/caption', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('handles a failed image download without calling OpenAI', async () => {
+  it('stops waiting for OpenAI when the image download fails', async () => {
     download = () => new Response('Not found', { status: 404 });
+    openai = (init) =>
+      new Promise((_resolve, reject) => {
+        const signal = init.signal!;
+        if (signal.aborted) return reject(signal.reason);
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      });
 
     expect(await run()).toEqual(errorResponse);
-    expect(openaiCalls()).toHaveLength(0);
   });
 
   it('handles an OpenAI error', async () => {

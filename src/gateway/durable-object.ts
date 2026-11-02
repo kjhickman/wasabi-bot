@@ -84,6 +84,7 @@ export class DiscordGateway extends DurableObject<Env> {
       );
       return this.status();
     }
+    this.save();
     await this.armAlarm();
     if (!this.shouldRun()) return this.status();
     if (this.connection && !this.connection.alive) this.retry();
@@ -206,14 +207,14 @@ export class DiscordGateway extends DurableObject<Env> {
       onDispatch: (packet) => {
         if (!this.shouldRun()) return;
         this.lastEvent = packet.t;
+        this.lifecycle.session = connection.session;
         if (
           packet.t === GatewayDispatchEvents.Ready ||
           packet.t === GatewayDispatchEvents.Resumed
         ) {
           Object.assign(this.lifecycle, { failures: 0, retryAt: 0, error: null });
+          this.save();
         }
-        this.lifecycle.session = connection.session;
-        this.save();
         if (packet.t === GatewayDispatchEvents.InteractionCreate) {
           this.ctx.waitUntil(handleInteraction(packet.d, this.env, this.ctx.storage.sql));
         }

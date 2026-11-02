@@ -19,8 +19,8 @@ app.post('/gateway/start', async (c) => c.json(await gateway(c.env).start()));
 app.post('/gateway/stop', async (c) => c.json(await gateway(c.env).stop()));
 app.notFound((c) => c.text('Not found', 404));
 
-function gateway(env: Env) {
-  return env.DISCORD_GATEWAY.getByName('gateway');
+export function gateway(env: Env) {
+  return env.DISCORD_GATEWAY.getByName('gateway-enam', { locationHint: 'enam' });
 }
 
 export default app;

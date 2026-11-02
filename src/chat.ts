@@ -16,6 +16,7 @@ const HISTORY_LIMIT = 50;
 const MAX_MESSAGE_LENGTH = 2_000;
 const MAX_TOOL_ROUNDS = 3;
 const COMMAND_TIMEOUT_MS = 15_000;
+const REPLY_TIMEOUT_MS = 60_000;
 const FAILURE_REPLY = "Sorry, I couldn't come up with a reply. Try again in a moment.";
 
 type Message = Pick<APIMessage, 'author' | 'content' | 'mentions'>;
@@ -29,6 +30,7 @@ export async function replyToMention(
   message: GatewayMessageCreateDispatchData,
   token: string,
   env: Env,
+  signal = AbortSignal.timeout(REPLY_TIMEOUT_MS),
 ) {
   const messages = Routes.channelMessages(message.channel_id);
   const discord = (route: string, init?: RequestInit) =>
@@ -44,13 +46,13 @@ export async function replyToMention(
   try {
     const [, response] = await Promise.all([
       typing(),
-      discord(`${messages}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`),
+      discord(`${messages}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`, { signal }),
     ]);
     const history = response.ok ? (await response.json<APIMessage[]>()).reverse() : [];
     const image = [message, message.referenced_message, ...history.toReversed()]
       .flatMap((source) => source?.attachments ?? [])
       .find((attachment) => attachment.content_type?.startsWith('image/'));
-    content = await generate([...history, message], botUserId(token), env, typing, image);
+    content = await generate([...history, message], botUserId(token), env, typing, image, signal);
   } catch (error) {
     console.error('Chat reply failed', error instanceof Error ? error.message : error);
   }
@@ -70,6 +72,7 @@ async function generate(
   env: Env,
   typing: () => Promise<unknown>,
   image: APIAttachment | undefined,
+  signal: AbortSignal,
 ) {
   if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not set');
   const bot = messages.at(-1)!.mentions.find((user) => user.id === botId)!;
@@ -84,15 +87,18 @@ async function generate(
   const used = new Set<string>();
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-    const response = await client.responses.create({
-      model: 'gpt-6.1-terra',
-      instructions: `You are ${displayName(bot)}, a bot chatting in a Discord channel. Be casual, friendly and concise, like a regular member of the server: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Your tools are this server's slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
-      input,
-      tools: commandTools,
-      tool_choice: round < MAX_TOOL_ROUNDS ? 'auto' : 'none',
-      reasoning: { effort: 'none' },
-      max_output_tokens: 500,
-    });
+    const response = await client.responses.create(
+      {
+        model: 'gpt-6.1-terra',
+        instructions: `You are ${displayName(bot)}, a bot chatting in a Discord channel. Be casual, friendly and concise, like a regular member of the server: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Your tools are this server's slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
+        input,
+        tools: commandTools,
+        tool_choice: round < MAX_TOOL_ROUNDS ? 'auto' : 'none',
+        reasoning: { effort: 'none' },
+        max_output_tokens: 500,
+      },
+      { signal },
+    );
     const calls = response.output.filter((item) => item.type === 'function_call');
     if (!calls.length) return withNote(response.output_text.trim(), used);
 
@@ -100,8 +106,8 @@ async function generate(
     const outputs = await Promise.all(
       calls.map(async (call): Promise<ResponseInputItem> => {
         used.add(call.name);
-        const signal = AbortSignal.timeout(COMMAND_TIMEOUT_MS);
-        const output = await runCommandTool(call.name, call.arguments, env, signal, image);
+        const deadline = AbortSignal.any([signal, AbortSignal.timeout(COMMAND_TIMEOUT_MS)]);
+        const output = await runCommandTool(call.name, call.arguments, env, deadline, image);
         return { type: 'function_call_output', call_id: call.call_id, output };
       }),
     );

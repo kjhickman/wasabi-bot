@@ -7,7 +7,6 @@ import {
   type APIInteractionResponseChannelMessageWithSource,
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
-import { Buffer } from 'node:buffer';
 import OpenAI from 'openai';
 import type { Env } from '../env.ts';
 import type { CommandResponse } from './index.ts';
@@ -53,10 +52,16 @@ export const caption = {
       return ephemeral('Captions are not configured yet.');
     }
 
-    const file = await download(image.url, image.filename, image.content_type, signal).catch(
-      () => undefined,
-    );
-    const text = file && (await write(file, env.OPENAI_API_KEY, signal).catch(() => ''));
+    const downloadFailed = new AbortController();
+    const [file, text] = await Promise.all([
+      download(image.url, image.filename, image.content_type, signal).catch(() => {
+        downloadFailed.abort();
+        return undefined;
+      }),
+      write(image.url, env.OPENAI_API_KEY, AbortSignal.any([signal, downloadFailed.signal])).catch(
+        () => '',
+      ),
+    ]);
     if (!file || !text) return ephemeral("I couldn't think of a caption. Try again.");
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
@@ -73,8 +78,8 @@ async function download(url: string, filename: string, type: string, signal: Abo
   return new File([await response.arrayBuffer()], filename, { type });
 }
 
-async function write(file: File, apiKey: string, signal: AbortSignal) {
-  const image = Buffer.from(await file.arrayBuffer()).toString('base64');
+// OpenAI fetches the image itself, so the Durable Object never holds a base64 copy.
+async function write(url: string, apiKey: string, signal: AbortSignal) {
   const client = new OpenAI({ apiKey });
   const response = await client.responses.create(
     {
@@ -84,9 +89,7 @@ async function write(file: File, apiKey: string, signal: AbortSignal) {
       input: [
         {
           role: 'user',
-          content: [
-            { type: 'input_image', image_url: `data:${file.type};base64,${image}`, detail: 'auto' },
-          ],
+          content: [{ type: 'input_image', image_url: url, detail: 'auto' }],
         },
       ],
       reasoning: { effort: 'low' },

@@ -273,7 +273,7 @@ describe('Gateway in workerd', () => {
     expect((await discordState()).discoveries).toBe(1);
   }, 15_000);
 
-  it('restores the resume URL, session and sequence after a DO reset', async () => {
+  it('restores the resume URL, session and checkpointed sequence after a DO reset', async () => {
     createRuntime();
     await (await control('start')).text();
     await connected();
@@ -286,6 +286,9 @@ describe('Gateway in workerd', () => {
       })
     ).text();
     await vi.waitFor(async () => expect((await status()).lastEvent).toBe('MESSAGE_CREATE'));
+    await reconcile();
+    await (await fake('emit', { op: 0, t: 'TYPING_START', s: 6, d: {} })).text();
+    await vi.waitFor(async () => expect((await status()).lastEvent).toBe('TYPING_START'));
     await (await runtime!.dispatchFetch('https://bot.test/_test/crash')).text();
     await reconcile();
     await connected();

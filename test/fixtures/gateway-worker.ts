@@ -1,3 +1,4 @@
+import { gateway as gatewayStub } from '../../src/app.ts';
 import worker, { DiscordGateway } from '../../src/index.ts';
 import type { Env } from '../../src/env.ts';
 import type { GatewayConnection } from '../../src/gateway/connection.ts';
@@ -24,9 +25,7 @@ export class TestGateway extends DiscordGateway {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const path = new URL(request.url).pathname;
-    const gateway = (env.DISCORD_GATEWAY as DurableObjectNamespace<TestGateway>).getByName(
-      'gateway',
-    );
+    const gateway = gatewayStub(env) as unknown as DurableObjectStub<TestGateway>;
     if (path === '/_test/reconcile') {
       await worker.scheduled({} as ScheduledController, env);
       return new Response(null, { status: 204 });
