@@ -1,6 +1,8 @@
 import { Log, LogLevel, Miniflare } from 'miniflare';
 import { build } from 'vite-plus';
 import { afterEach, assert, beforeAll, describe, expect, it, vi } from 'vite-plus/test';
+import { snowflakeTime } from '../src/discord.ts';
+import { snowflake } from './fixtures/builders.ts';
 
 let gatewayCode: string;
 let discordCode: string;
@@ -148,8 +150,7 @@ async function connected() {
 }
 
 function conchInteraction(age = 0) {
-  const createdAt = Date.now() - age;
-  const id = ((BigInt(createdAt) - 1_420_070_400_000n) << 22n).toString();
+  const id = snowflake(Date.now() - age);
   return {
     op: 0,
     t: 'INTERACTION_CREATE',
@@ -169,7 +170,7 @@ function conchInteraction(age = 0) {
 }
 
 function captionInteraction() {
-  const id = ((BigInt(Date.now()) - 1_420_070_400_000n) << 22n).toString();
+  const id = snowflake();
   return {
     op: 0,
     t: 'INTERACTION_CREATE',
@@ -349,7 +350,7 @@ describe('Gateway in workerd', () => {
         s: 2,
         d: {
           type: 2,
-          id: ((BigInt(Date.now()) - 1_420_070_400_000n) << 22n).toString(),
+          id: snowflake(),
           token: 'interaction-token',
           data: {
             type: 3,
@@ -373,7 +374,7 @@ describe('Gateway in workerd', () => {
     await (await control('start')).text();
     await connected();
     const interaction = captionInteraction();
-    const deadline = Number(BigInt(interaction.d.id) >> 22n) + 1_420_070_400_000 + 3_000;
+    const deadline = snowflakeTime(interaction.d.id) + 3_000;
     await (await fake('emit', interaction)).text();
     await vi.waitFor(async () => expect((await discordState()).edits).toHaveLength(1), {
       timeout: 8_000,
@@ -591,7 +592,7 @@ describe('Gateway in workerd', () => {
     await (await control('start')).text();
     await connected();
     const interaction = conchInteraction(1_000);
-    const deadline = Number(BigInt(interaction.d.id) >> 22n) + 1_420_070_400_000 + 3_000;
+    const deadline = snowflakeTime(interaction.d.id) + 3_000;
     await (await fake('emit', interaction)).text();
     await vi.waitFor(async () => expect((await discordState()).callbacks).toHaveLength(1), {
       timeout: 4_000,

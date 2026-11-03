@@ -12,21 +12,12 @@ import { commands } from '../src/commands/index.ts';
 import { commandTool, commandTools, runCommandTool, type ToolContext } from '../src/chat/tools.ts';
 import type { Env } from '../src/env.ts';
 import { takeUsage } from '../src/usage.ts';
+import { chooseArgs } from './fixtures/builders.ts';
 import { sqlStorage } from './fixtures/sql.ts';
 
 const env = {} as Env;
 const signal = new AbortController().signal;
 let context: ToolContext;
-const chooseArgs = {
-  option1: 'WoW',
-  option2: 'Overwatch',
-  option3: null,
-  option4: null,
-  option5: null,
-  option6: null,
-  option7: null,
-};
-
 function definition(extra: object) {
   return {
     name: 'test',

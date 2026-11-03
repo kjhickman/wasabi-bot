@@ -4,6 +4,7 @@ import { conch as conchCommand } from '../src/commands/conch.ts';
 import type { Env } from '../src/env.ts';
 import { handleInteraction } from '../src/gateway/interactions.ts';
 import { takeUsage } from '../src/usage.ts';
+import { snowflake } from './fixtures/builders.ts';
 import { sqlStorage } from './fixtures/sql.ts';
 
 const env = { OPENAI_API_KEY: 'test-key' } as Env;
@@ -12,10 +13,9 @@ let sql: SqlStorage;
 let nextId = 0;
 
 function interaction(user: object, data: object) {
-  const id = ((BigInt(Date.now()) - 1_420_070_400_000n) << 22n) + BigInt(nextId++);
   return {
     type: 2,
-    id: id.toString(),
+    id: snowflake(Date.now(), nextId++),
     application_id: '900',
     token: 'interaction-token',
     ...user,

@@ -8,6 +8,7 @@ import { addressesBot, replyToMessage } from '../src/chat/index.ts';
 import { commandTools } from '../src/chat/tools.ts';
 import type { Env } from '../src/env.ts';
 import { takeUsage } from '../src/usage.ts';
+import { chooseArgs } from './fixtures/builders.ts';
 import { sqlStorage } from './fixtures/sql.ts';
 
 const BOT_ID = '100';
@@ -25,16 +26,6 @@ const mention = {
   content: `<@${BOT_ID}> what should we play?`,
   mentions: [bot],
 } as unknown as GatewayMessageCreateDispatchData;
-
-const chooseArgs = {
-  option1: 'WoW',
-  option2: 'Overwatch',
-  option3: null,
-  option4: null,
-  option5: null,
-  option6: null,
-  option7: null,
-};
 
 interface OpenAIRequest {
   input: { type?: string; call_id?: string; output?: string }[];

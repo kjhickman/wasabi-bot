@@ -9,7 +9,7 @@ import {
 export const MAX_MESSAGE_LENGTH = 2_000;
 // Discord's default upload limit for bots.
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
-const DISCORD_EPOCH_MS = 1_420_070_400_000;
+export const DISCORD_EPOCH_MS = 1_420_070_400_000;
 
 export function discordFetch(
   route: string,
