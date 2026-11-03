@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { takeUsage, type Kind } from '../src/usage.ts';
+import { takeUsage, type Kind, type Usage } from '../src/usage.ts';
 import { sqlStorage } from './fixtures/sql.ts';
 
 const MINUTE = 60 * 1_000;
@@ -8,7 +8,8 @@ const DAY = 24 * HOUR;
 const now = Date.UTC(2026, 10, 2, 12);
 
 function fill(sql: SqlStorage, kind: Kind, userId: string, count: number, at = now) {
-  for (let i = 0; i < count; i++) expect(takeUsage(sql, kind, userId, at)).toHaveProperty('refund');
+  for (let i = 0; i < count; i++)
+    expect(takeUsage(sql, kind, userId, at)).toMatchObject({ ok: true });
 }
 
 describe('takeUsage', () => {
@@ -18,9 +19,10 @@ describe('takeUsage', () => {
     fill(sql, 'image', 'kyle', 49);
 
     expect(takeUsage(sql, 'image', 'kyle', now)).toEqual({
-      refused: "You've used all 50 of your images for today. Try again in 3h 30m.",
+      ok: false,
+      reason: "You've used all 50 of your images for today. Try again in 3h 30m.",
     });
-    expect(takeUsage(sql, 'image', 'sam', now)).toHaveProperty('refund');
+    expect(takeUsage(sql, 'image', 'sam', now)).toMatchObject({ ok: true });
   });
 
   it('allows 100 images across everyone', () => {
@@ -30,7 +32,8 @@ describe('takeUsage', () => {
     fill(sql, 'image', 'sam', 50);
 
     expect(takeUsage(sql, 'image', 'alex', now)).toEqual({
-      refused: "I've used all 100 of my images for today across everyone. Try again in 1m.",
+      ok: false,
+      reason: "I've used all 100 of my images for today across everyone. Try again in 1m.",
     });
   });
 
@@ -40,11 +43,13 @@ describe('takeUsage', () => {
     fill(sql, 'text', 'kyle', 100);
 
     expect(takeUsage(sql, 'text', 'kyle', now)).toEqual({
-      refused: "You've used all 100 of your requests for today. Try again in 24h 0m.",
+      ok: false,
+      reason: "You've used all 100 of your requests for today. Try again in 24h 0m.",
     });
     fill(sql, 'text', 'sam', 100);
     expect(takeUsage(sql, 'text', 'alex', now)).toEqual({
-      refused: "I've used all 200 of my requests for today across everyone. Try again in 24h 0m.",
+      ok: false,
+      reason: "I've used all 200 of my requests for today across everyone. Try again in 24h 0m.",
     });
   });
 
@@ -56,17 +61,17 @@ describe('takeUsage', () => {
 
     last.refund();
 
-    expect(takeUsage(sql, 'image', 'kyle', now)).toHaveProperty('refund');
+    expect(takeUsage(sql, 'image', 'kyle', now)).toMatchObject({ ok: true });
   });
 
   it('forgets uses older than a day', () => {
     const sql = sqlStorage();
     fill(sql, 'image', 'kyle', 50, now - DAY);
 
-    expect(takeUsage(sql, 'image', 'kyle', now)).toHaveProperty('refund');
+    expect(takeUsage(sql, 'image', 'kyle', now)).toMatchObject({ ok: true });
   });
 });
 
-function assertRefundable(use: ReturnType<typeof takeUsage>): asserts use is { refund(): void } {
-  expect(use).toHaveProperty('refund');
+function assertRefundable(use: Usage): asserts use is Extract<Usage, { ok: true }> {
+  expect(use).toMatchObject({ ok: true });
 }

@@ -23,10 +23,11 @@ const DEFERRED_BUDGET_MS = 120_000;
 // Discord allows 3 seconds from creation (encoded in the snowflake ID) to reply. Each
 // interaction is claimed once so a replayed event never runs a command twice.
 export async function handleInteraction(interaction: APIInteraction, env: Env, sql: SqlStorage) {
+  if (interaction.type !== InteractionType.ApplicationCommand) return;
+  const { data } = interaction;
   if (
-    interaction.type !== InteractionType.ApplicationCommand ||
-    (interaction.data.type !== ApplicationCommandType.ChatInput &&
-      interaction.data.type !== ApplicationCommandType.Message)
+    data.type !== ApplicationCommandType.ChatInput &&
+    data.type !== ApplicationCommandType.Message
   ) {
     return;
   }
@@ -46,26 +47,21 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
     return sent.ok;
   };
 
-  const command = getCommand(interaction.data.name);
+  const command = getCommand(data.name);
   const user = interaction.member?.user ?? interaction.user;
   const use = command?.limit && user ? takeUsage(sql, command.limit, user.id) : undefined;
-  if (use && 'refused' in use) {
-    await callback(ephemeral(use.refused));
+  if (use && !use.ok) {
+    await callback(ephemeral(use.reason));
     return;
   }
 
-  // Only uses that reach the user without an error count toward the limit.
-  let succeeded = false;
-  try {
+  // Resolves to whether the reply reached the user without an error.
+  const respond = async () => {
     if (command?.deferred) {
       if (!(await callback({ type: InteractionResponseType.DeferredChannelMessageWithSource }))) {
-        return;
+        return false;
       }
-      const { response, failed } = await run(
-        interaction.data,
-        env,
-        AbortSignal.timeout(DEFERRED_BUDGET_MS),
-      );
+      const { response, failed } = await run(data, env, AbortSignal.timeout(DEFERRED_BUDGET_MS));
       // A deferred reply's visibility is fixed when it is acknowledged, so flags can't change.
       const {
         files = [],
@@ -76,19 +72,21 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
         { method: 'PATCH', body: withFiles(message, files) },
       );
       if (!edited.ok) console.error('Discord interaction edit failed', edited.status);
-      succeeded = edited.ok && !failed;
-      return;
+      return edited.ok && !failed;
     }
 
     const commandBudget = deadline - Date.now() - CALLBACK_BUDGET_MS;
     const signal = commandBudget > 0 ? AbortSignal.timeout(commandBudget) : AbortSignal.abort();
-    const { response, failed } = await run(interaction.data, env, signal);
-    succeeded = (await callback(response)) && !failed;
-  } catch {
+    const { response, failed } = await run(data, env, signal);
+    return (await callback(response)) && !failed;
+  };
+
+  // Only uses that reach the user without an error count toward the limit.
+  const counted = await respond().catch(() => {
     console.error('Gateway command failed');
-  } finally {
-    if (!succeeded) use?.refund();
-  }
+    return false;
+  });
+  if (!counted) use?.refund();
 }
 
 // A command's own errors are shown privately to the person who ran it.

@@ -62,7 +62,6 @@ export async function runCommandTool(
   if (!command || !commandTool(command.definition)) return failure('unknown command.');
 
   let use: Usage | undefined;
-  let succeeded = false;
   try {
     const args = JSON.parse(json) as Record<string, Value>;
     const options: APIApplicationCommandInteractionDataBasicOption[] = [];
@@ -95,7 +94,7 @@ export async function runCommandTool(
     // The chat reply already counts as a request, so only images count again here.
     if (command.limit === 'image') {
       use = takeUsage(user.sql, 'image', user.id);
-      if ('refused' in use) return failure(use.refused);
+      if (!use.ok) return failure(use.reason);
     }
     const response = await runCommand(
       {
@@ -108,16 +107,14 @@ export async function runCommandTool(
       env,
       signal,
     );
-    succeeded = true;
     const files = command.textOnlyInChat ? [] : (response.files ?? []);
     const note = files.length ? '\nThe image is attached to your reply.' : '';
     return { output: (response.data.content ?? '') + note, files };
   } catch (error) {
+    if (use?.ok) use.refund();
     if (error instanceof CommandError) return failure(error.message);
     console.error('Chat command failed', name, error instanceof Error ? error.message : error);
     return failure('the command failed.');
-  } finally {
-    if (!succeeded && use && 'refund' in use) use.refund();
   }
 }
 

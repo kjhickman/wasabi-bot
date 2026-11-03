@@ -5,7 +5,7 @@ const LIMITS = {
 };
 
 export type Kind = keyof typeof LIMITS;
-export type Usage = { refund(): void } | { refused: string };
+export type Usage = { ok: true; refund(): void } | { ok: false; reason: string };
 
 // Counts uses over the last 24 hours, for the user and for everyone. The Durable Object
 // runs one event at a time, so the check and the insert can't interleave with another.
@@ -22,7 +22,8 @@ export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Dat
     .one();
   if (mine.count >= user) {
     return {
-      refused: `You've used all ${user} of your ${label} for today. Try again in ${wait(mine.oldest! + USAGE_WINDOW_MS - now)}.`,
+      ok: false,
+      reason: `You've used all ${user} of your ${label} for today. Try again in ${wait(mine.oldest! + USAGE_WINDOW_MS - now)}.`,
     };
   }
   const everyone = sql
@@ -34,7 +35,8 @@ export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Dat
     .one();
   if (everyone.count >= bot) {
     return {
-      refused: `I've used all ${bot} of my ${label} for today across everyone. Try again in ${wait(everyone.oldest! + USAGE_WINDOW_MS - now)}.`,
+      ok: false,
+      reason: `I've used all ${bot} of my ${label} for today across everyone. Try again in ${wait(everyone.oldest! + USAGE_WINDOW_MS - now)}.`,
     };
   }
   const { id } = sql
@@ -45,7 +47,7 @@ export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Dat
       now,
     )
     .one();
-  return { refund: () => void sql.exec('DELETE FROM usage WHERE id = ?', id) };
+  return { ok: true, refund: () => void sql.exec('DELETE FROM usage WHERE id = ?', id) };
 }
 
 function wait(ms: number) {

@@ -66,7 +66,7 @@ export async function replyToMention(
 
   const user = { id: message.author.id, sql };
   const use = takeUsage(sql, 'text', user.id);
-  if ('refused' in use) return send(use.refused);
+  if (!use.ok) return send(use.reason);
 
   let content = FAILURE_REPLY;
   let files: File[] = [];
