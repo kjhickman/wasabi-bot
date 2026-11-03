@@ -1,6 +1,5 @@
 import {
   MessageFlags,
-  RouteBases,
   Routes,
   type APIAttachment,
   type APIMessage,
@@ -10,13 +9,13 @@ import {
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import type { ResponseInputItem, Tool } from 'openai/resources/responses/responses';
-import { withFiles } from './commands/index.ts';
 import { commandTools, runCommandTool } from './commands/tools.ts';
+import { discordFetch, MAX_MESSAGE_LENGTH, withFiles } from './discord.ts';
 import type { Env } from './env.ts';
+import { MODELS } from './openai.ts';
 import { takeUsage } from './usage.ts';
 
 const HISTORY_LIMIT = 50;
-const MAX_MESSAGE_LENGTH = 2_000;
 const MAX_TOOL_ROUNDS = 3;
 const COMMAND_TIMEOUT_MS = 120_000;
 const REPLY_TIMEOUT_MS = 180_000;
@@ -46,14 +45,10 @@ export async function replyToMention(
 ) {
   const dm = !message.guild_id;
   const messages = Routes.channelMessages(message.channel_id);
-  const discord = (route: string, init?: RequestInit) =>
-    fetch(`${RouteBases.api}${route}`, {
-      ...init,
-      headers: { Authorization: `Bot ${token}` },
-      redirect: 'manual',
-    });
   const typing = () =>
-    discord(Routes.channelTyping(message.channel_id), { method: 'POST' }).catch(() => undefined);
+    discordFetch(Routes.channelTyping(message.channel_id), { method: 'POST', token }).catch(
+      () => undefined,
+    );
   const send = async (content: string, files: File[] = []) => {
     const body = {
       content,
@@ -61,7 +56,11 @@ export async function replyToMention(
       allowed_mentions: { parse: [], replied_user: true },
       flags: MessageFlags.SuppressEmbeds,
     } satisfies RESTPostAPIChannelMessageJSONBody;
-    const sent = await discord(messages, { method: 'POST', body: withFiles(body, files) });
+    const sent = await discordFetch(messages, {
+      method: 'POST',
+      body: withFiles(body, files),
+      token,
+    });
     if (!sent.ok) console.error('Discord chat reply failed', sent.status);
   };
 
@@ -74,8 +73,11 @@ export async function replyToMention(
   try {
     const [, response, me] = await Promise.all([
       typing(),
-      discord(`${messages}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`, { signal }),
-      discord(Routes.user(), { signal }),
+      discordFetch(`${messages}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`, {
+        signal,
+        token,
+      }),
+      discordFetch(Routes.user(), { signal, token }),
     ]);
     if (!me.ok) throw new Error(`Discord returned ${me.status} for the bot user`);
     const bot = await me.json<APIUser>();
@@ -114,6 +116,7 @@ async function generate(
   const [place, like, commands] = dm
     ? ['a Discord DM', 'a friend texting', 'your own']
     : ['a Discord channel', 'a regular member of the server', "this server's"];
+  // Each round gets its own timeout, so one slow request can't use up the whole reply's time.
   const client = new OpenAI({ apiKey: env.OPENAI_API_KEY, timeout: 30_000 });
   const input = messages.flatMap((message): ResponseInputItem[] => {
     const text = readable(message);
@@ -128,7 +131,7 @@ async function generate(
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const response = await client.responses.create(
       {
-        model: 'gpt-6.1-terra',
+        model: MODELS.text,
         instructions: `You are ${displayName(bot)}, a bot chatting in ${place}. Be casual, friendly and concise, like ${like}: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Search the web when the last message needs current or recent information, and use the python tool for math or data you'd otherwise work out in your head. You can't share files or charts, but images your commands make are attached to your reply automatically. Your other tools are ${commands} slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
         input,
         tools: TOOLS,

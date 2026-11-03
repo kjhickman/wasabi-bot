@@ -1,9 +1,11 @@
-import type {
-  APIChatInputApplicationCommandInteractionData,
-  APIInteractionResponseChannelMessageWithSource,
-  APIMessageApplicationCommandInteractionData,
-  RESTPostAPIChatInputApplicationCommandsJSONBody,
-  RESTPostAPIContextMenuApplicationCommandsJSONBody,
+import {
+  InteractionResponseType,
+  type APIChatInputApplicationCommandInteractionData,
+  type APIInteractionResponseCallbackData,
+  type APIInteractionResponseChannelMessageWithSource,
+  type APIMessageApplicationCommandInteractionData,
+  type RESTPostAPIChatInputApplicationCommandsJSONBody,
+  type RESTPostAPIContextMenuApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import type { Env } from '../env.ts';
 import type { Kind } from '../usage.ts';
@@ -14,6 +16,10 @@ export class CommandError extends Error {}
 
 // Slash commands only upload files when deferred, since their replies are sent as edits.
 export type CommandResponse = APIInteractionResponseChannelMessageWithSource & { files?: File[] };
+
+export function reply(data: APIInteractionResponseCallbackData, files?: File[]): CommandResponse {
+  return { type: InteractionResponseType.ChannelMessageWithSource, data, ...(files && { files }) };
+}
 
 export interface SlashCommand {
   definition: RESTPostAPIChatInputApplicationCommandsJSONBody;

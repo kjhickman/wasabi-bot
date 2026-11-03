@@ -1,12 +1,12 @@
 import { DurableObject } from 'cloudflare:workers';
 import {
   GatewayDispatchEvents,
-  RouteBases,
   Routes,
   type RESTGetAPIGatewayBotResult,
 } from 'discord-api-types/v10';
 import { GATEWAY_NAME } from '../app.ts';
 import { addressesBot, replyToMention } from '../chat.ts';
+import { discordFetch } from '../discord.ts';
 import type { Env } from '../env.ts';
 import { createUsageTable, pruneUsage } from '../usage.ts';
 import { FATAL_CLOSE_CODES, GatewayConnection, type Session } from './connection.ts';
@@ -164,9 +164,8 @@ export class DiscordGateway extends DurableObject<Env> {
     const generation = this.generation;
     const stale = () => generation !== this.generation || !this.shouldRun();
     try {
-      const response = await fetch(`${RouteBases.api}${Routes.gatewayBot()}`, {
-        headers: { Authorization: `Bot ${token}` },
-        redirect: 'manual',
+      const response = await discordFetch(Routes.gatewayBot(), {
+        token,
         signal: AbortSignal.timeout(5_000),
       });
       if (stale()) return;

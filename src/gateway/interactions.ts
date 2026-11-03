@@ -3,19 +3,18 @@ import {
   InteractionResponseType,
   InteractionType,
   MessageFlags,
-  RouteBases,
   Routes,
   type APIChatInputApplicationCommandInteractionData,
   type APIInteraction,
   type APIInteractionResponse,
   type APIMessageApplicationCommandInteractionData,
 } from 'discord-api-types/v10';
-import { CommandError, type CommandResponse } from '../commands/command.ts';
-import { getCommand, runCommand, withFiles } from '../commands/index.ts';
+import { CommandError, reply, type CommandResponse } from '../commands/command.ts';
+import { getCommand, runCommand } from '../commands/index.ts';
+import { discordFetch, snowflakeTime, withFiles } from '../discord.ts';
 import type { Env } from '../env.ts';
 import { takeUsage } from '../usage.ts';
 
-const DISCORD_EPOCH_MS = 1_420_070_400_000;
 const RESPONSE_WINDOW_MS = 3_000;
 const CALLBACK_BUDGET_MS = 750;
 const DEFERRED_BUDGET_MS = 120_000;
@@ -41,22 +40,18 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
   ) {
     return;
   }
-  const deadline = Number(BigInt(interaction.id) >> 22n) + DISCORD_EPOCH_MS + RESPONSE_WINDOW_MS;
+  const deadline = snowflakeTime(interaction.id) + RESPONSE_WINDOW_MS;
   if (deadline <= Date.now() || !claim(sql, interaction.id)) return;
 
   const callback = async (response: APIInteractionResponse) => {
     const callbackBudget = Math.min(CALLBACK_BUDGET_MS, deadline - Date.now() - 50);
     if (callbackBudget <= 0) return false;
-    const sent = await fetch(
-      `${RouteBases.api}${Routes.interactionCallback(interaction.id, interaction.token)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(response),
-        redirect: 'manual',
-        signal: AbortSignal.timeout(callbackBudget),
-      },
-    );
+    const sent = await discordFetch(Routes.interactionCallback(interaction.id, interaction.token), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(response),
+      signal: AbortSignal.timeout(callbackBudget),
+    });
     if (!sent.ok) console.error('Discord interaction callback failed', sent.status);
     return sent.ok;
   };
@@ -86,9 +81,9 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
         files = [],
         data: { flags: _flags, ...message },
       } = response;
-      const edited = await fetch(
-        `${RouteBases.api}${Routes.webhookMessage(interaction.application_id, interaction.token, '@original')}`,
-        { method: 'PATCH', body: withFiles(message, files), redirect: 'manual' },
+      const edited = await discordFetch(
+        Routes.webhookMessage(interaction.application_id, interaction.token, '@original'),
+        { method: 'PATCH', body: withFiles(message, files) },
       );
       if (!edited.ok) console.error('Discord interaction edit failed', edited.status);
       succeeded = edited.ok && !failed;
@@ -120,11 +115,8 @@ async function run(
   }
 }
 
-function ephemeral(content: string): CommandResponse {
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: { content, flags: MessageFlags.Ephemeral },
-  };
+function ephemeral(content: string) {
+  return reply({ content, flags: MessageFlags.Ephemeral });
 }
 
 export function claim(sql: SqlStorage, id: string) {

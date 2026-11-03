@@ -1,6 +1,5 @@
 import {
   ApplicationCommandType,
-  InteractionResponseType,
   type APIChatInputApplicationCommandInteractionData,
   type APIMessageApplicationCommandInteractionData,
 } from 'discord-api-types/v10';
@@ -9,6 +8,7 @@ import { caption } from './caption.ts';
 import { choose } from './choose.ts';
 import {
   CommandError,
+  reply,
   type CommandResponse,
   type MessageCommand,
   type SlashCommand,
@@ -34,10 +34,7 @@ const help = {
           `- **${definition.name}** (right-click a message, then Apps): ${description}`,
       ),
     ];
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: lines.join('\n') },
-    };
+    return reply({ content: lines.join('\n') });
   },
 } satisfies SlashCommand;
 
@@ -48,19 +45,6 @@ const commandsByName = new Map(commands.map((command) => [command.definition.nam
 
 export function getCommand(name: string) {
   return commandsByName.get(name);
-}
-
-export function withFiles(message: object, files: File[]) {
-  const body = new FormData();
-  body.set(
-    'payload_json',
-    JSON.stringify({
-      ...message,
-      attachments: files.map((file, id) => ({ id, filename: file.name })),
-    }),
-  );
-  files.forEach((file, i) => body.set(`files[${i}]`, file));
-  return body;
 }
 
 export async function runCommand(

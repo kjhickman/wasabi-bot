@@ -1,10 +1,9 @@
 import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
-  InteractionResponseType,
   type APIApplicationCommandStringOption,
 } from 'discord-api-types/v10';
-import { CommandError, type SlashCommand } from './command.ts';
+import { CommandError, reply, type SlashCommand } from './command.ts';
 
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 7;
@@ -35,12 +34,9 @@ export const choose = {
     }
 
     const choice = choices[Math.floor(Math.random() * choices.length)]!;
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: `Choosing between: ${choices.join(', ')}\nI choose **${choice}**!`,
-        allowed_mentions: { parse: [] },
-      },
-    };
+    return reply({
+      content: `Choosing between: ${choices.join(', ')}\nI choose **${choice}**!`,
+      allowed_mentions: { parse: [] },
+    });
   },
 } satisfies SlashCommand;

@@ -1,5 +1,5 @@
-import { ApplicationCommandType, InteractionResponseType } from 'discord-api-types/v10';
-import type { SlashCommand } from './command.ts';
+import { ApplicationCommandType } from 'discord-api-types/v10';
+import { reply, type SlashCommand } from './command.ts';
 
 export const flip = {
   definition: {
@@ -10,9 +10,6 @@ export const flip = {
 
   execute() {
     const side = Math.random() < 0.5 ? 'Heads' : 'Tails';
-    return {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: `🪙 **${side}**!` },
-    };
+    return reply({ content: `🪙 **${side}**!` });
   },
 } satisfies SlashCommand;

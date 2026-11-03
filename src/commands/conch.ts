@@ -1,11 +1,8 @@
-import {
-  ApplicationCommandOptionType,
-  ApplicationCommandType,
-  InteractionResponseType,
-  type APIInteractionResponseChannelMessageWithSource,
-} from 'discord-api-types/v10';
+import { ApplicationCommandOptionType, ApplicationCommandType } from 'discord-api-types/v10';
 import OpenAI from 'openai';
-import { CommandError, type SlashCommand } from './command.ts';
+import { stringOption } from '../discord.ts';
+import { MODELS } from '../openai.ts';
+import { CommandError, reply, type SlashCommand } from './command.ts';
 
 const UNSURE_ANSWERS = ['Yes', 'No', "I don't think so", 'Maybe', 'Try asking again'];
 
@@ -27,31 +24,32 @@ export const conch = {
   limit: 'text',
 
   async execute(data, env, signal) {
-    const question = data.options?.find((option) => option.name === 'question');
-    if (question?.type !== ApplicationCommandOptionType.String || !question.value.trim()) {
+    const question = stringOption(data, 'question');
+    if (!question) {
       throw new CommandError('Ask the conch a yes/no question.');
     }
     if (!env.OPENAI_API_KEY) {
       throw new CommandError('The conch is not configured yet.');
     }
 
-    const choice = await decide(question.value.trim(), env.OPENAI_API_KEY, signal).catch(
-      () => undefined,
-    );
-    if (choice === 'yes') return reply('Yes');
-    if (choice === 'no') return reply('No');
+    const choice = await decide(question, env.OPENAI_API_KEY, signal).catch(() => undefined);
+    if (choice === 'yes') return reply({ content: 'Yes' });
+    if (choice === 'no') return reply({ content: 'No' });
     if (choice === 'unsure') {
-      return reply(UNSURE_ANSWERS[Math.floor(Math.random() * UNSURE_ANSWERS.length)]!);
+      return reply({
+        content: UNSURE_ANSWERS[Math.floor(Math.random() * UNSURE_ANSWERS.length)]!,
+      });
     }
     throw new CommandError("The conch couldn't answer. Try again.");
   },
 } satisfies SlashCommand;
 
 async function decide(question: string, apiKey: string, signal: AbortSignal) {
+  // /conch answers within Discord's 3-second response window, which leaves no time to retry.
   const client = new OpenAI({ apiKey, maxRetries: 0 });
   const decision = await client.decisions.create(
     {
-      model: 'gpt-6-luna',
+      model: MODELS.decision,
       input: question,
       questions: [
         {
@@ -71,8 +69,4 @@ async function decide(question: string, apiKey: string, signal: AbortSignal) {
   );
   const answer = decision.answers[0];
   return answer?.type === 'choice' ? answer.choice : undefined;
-}
-
-function reply(content: string): APIInteractionResponseChannelMessageWithSource {
-  return { type: InteractionResponseType.ChannelMessageWithSource, data: { content } };
 }
