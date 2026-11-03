@@ -1,7 +1,6 @@
 import {
   MessageFlags,
   Routes,
-  type APIAttachment,
   type APIMessage,
   type APIUser,
   type GatewayMessageCreateDispatchData,
@@ -9,7 +8,7 @@ import {
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import type { ResponseInputItem, Tool } from 'openai/resources/responses/responses';
-import { commandTools, runCommandTool } from './tools.ts';
+import { commandTools, runCommandTool, type ToolContext } from './tools.ts';
 import { discordFetch, MAX_MESSAGE_LENGTH, withFiles } from '../discord.ts';
 import type { Env } from '../env.ts';
 import { MODELS } from '../openai.ts';
@@ -30,6 +29,19 @@ const TOOLS: Tool[] = [
 
 type Message = Pick<APIMessage, 'author' | 'content' | 'mentions'>;
 
+export interface ChatOptions {
+  token: string;
+  env: Env;
+  sql: SqlStorage;
+  signal?: AbortSignal;
+}
+
+interface Conversation extends ToolContext {
+  bot: APIUser;
+  dm: boolean;
+  typing(): Promise<unknown>;
+}
+
 export function addressesBot(message: GatewayMessageCreateDispatchData, token: string) {
   const botId = botUserId(token);
   const isDM = !message.guild_id;
@@ -38,10 +50,7 @@ export function addressesBot(message: GatewayMessageCreateDispatchData, token: s
 
 export async function replyToMention(
   message: GatewayMessageCreateDispatchData,
-  token: string,
-  env: Env,
-  sql: SqlStorage,
-  signal = AbortSignal.timeout(REPLY_TIMEOUT_MS),
+  { token, env, sql, signal = AbortSignal.timeout(REPLY_TIMEOUT_MS) }: ChatOptions,
 ) {
   const dm = !message.guild_id;
   const messages = Routes.channelMessages(message.channel_id);
@@ -64,8 +73,8 @@ export async function replyToMention(
     if (!sent.ok) console.error('Discord chat reply failed', sent.status);
   };
 
-  const user = { id: message.author.id, sql };
-  const use = takeUsage(sql, 'text', user.id);
+  const userId = message.author.id;
+  const use = takeUsage(sql, 'text', userId);
   if (!use.ok) return send(use.reason);
 
   let content = FAILURE_REPLY;
@@ -85,16 +94,16 @@ export async function replyToMention(
     const image = [message, message.referenced_message, ...history.toReversed()]
       .flatMap((source) => source?.attachments ?? [])
       .find((attachment) => attachment.content_type?.startsWith('image/'));
-    ({ content, files } = await generate(
-      [...history, message],
+    ({ content, files } = await generate([...history, message], {
       bot,
       dm,
-      env,
       typing,
-      user,
+      env,
+      sql,
+      userId,
       image,
       signal,
-    ));
+    }));
   } catch (error) {
     use.refund();
     console.error('Chat reply failed', error instanceof Error ? error.message : error);
@@ -102,16 +111,8 @@ export async function replyToMention(
   await send(content, files);
 }
 
-async function generate(
-  messages: Message[],
-  bot: APIUser,
-  dm: boolean,
-  env: Env,
-  typing: () => Promise<unknown>,
-  user: { id: string; sql: SqlStorage },
-  image: APIAttachment | undefined,
-  signal: AbortSignal,
-) {
+async function generate(messages: Message[], conversation: Conversation) {
+  const { bot, dm, typing, env, signal } = conversation;
   if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not set');
   const [place, like, commands] = dm
     ? ['a Discord DM', 'a friend texting', 'your own']
@@ -160,7 +161,10 @@ async function generate(
       calls.map(async (call): Promise<ResponseInputItem> => {
         used.add(call.name);
         const deadline = AbortSignal.any([signal, AbortSignal.timeout(COMMAND_TIMEOUT_MS)]);
-        const result = await runCommandTool(call.name, call.arguments, env, deadline, user, image);
+        const result = await runCommandTool(call.name, call.arguments, {
+          ...conversation,
+          signal: deadline,
+        });
         files.push(...result.files);
         return { type: 'function_call_output', call_id: call.call_id, output: result.output };
       }),

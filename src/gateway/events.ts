@@ -19,6 +19,6 @@ export async function handleEvent(
     addressesBot(packet.d, token) &&
     claim(sql, packet.d.id)
   ) {
-    return replyToMention(packet.d, token, env, sql);
+    return replyToMention(packet.d, { token, env, sql });
   }
 }

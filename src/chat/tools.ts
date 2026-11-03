@@ -49,13 +49,20 @@ export function commandTool(definition: Definition): FunctionTool | undefined {
 
 export const commandTools = commands.flatMap((command) => commandTool(command.definition) ?? []);
 
+// What a command needs when chat runs it for someone.
+export interface ToolContext {
+  env: Env;
+  sql: SqlStorage;
+  userId: string;
+  // The image the conversation is about, for commands that take one.
+  image?: APIAttachment | undefined;
+  signal: AbortSignal;
+}
+
 export async function runCommandTool(
   name: string,
   json: string,
-  env: Env,
-  signal: AbortSignal,
-  user: { id: string; sql: SqlStorage },
-  image?: APIAttachment,
+  { env, sql, userId, image, signal }: ToolContext,
 ): Promise<{ output: string; files: File[] }> {
   const failure = (message: string) => ({ output: `Error: ${message}`, files: [] });
   const command = getCommand(name);
@@ -93,7 +100,7 @@ export async function runCommandTool(
     }
     // The chat reply already counts as a request, so only images count again here.
     if (command.limit === 'image') {
-      use = takeUsage(user.sql, 'image', user.id);
+      use = takeUsage(sql, 'image', userId);
       if (!use.ok) return failure(use.reason);
     }
     const response = await runCommand(
