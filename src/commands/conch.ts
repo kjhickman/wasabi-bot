@@ -2,11 +2,10 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
   type APIInteractionResponseChannelMessageWithSource,
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
-import type { SlashCommand } from './command.ts';
+import { CommandError, type SlashCommand } from './command.ts';
 
 const UNSURE_ANSWERS = ['Yes', 'No', "I don't think so", 'Maybe', 'Try asking again'];
 
@@ -30,10 +29,10 @@ export const conch = {
   async execute(data, env, signal) {
     const question = data.options?.find((option) => option.name === 'question');
     if (question?.type !== ApplicationCommandOptionType.String || !question.value.trim()) {
-      return ephemeral('Ask the conch a yes/no question.');
+      throw new CommandError('Ask the conch a yes/no question.');
     }
     if (!env.OPENAI_API_KEY) {
-      return ephemeral('The conch is not configured yet.');
+      throw new CommandError('The conch is not configured yet.');
     }
 
     const choice = await decide(question.value.trim(), env.OPENAI_API_KEY, signal).catch(
@@ -44,7 +43,7 @@ export const conch = {
     if (choice === 'unsure') {
       return reply(UNSURE_ANSWERS[Math.floor(Math.random() * UNSURE_ANSWERS.length)]!);
     }
-    return ephemeral("The conch couldn't answer. Try again.");
+    throw new CommandError("The conch couldn't answer. Try again.");
   },
 } satisfies SlashCommand;
 
@@ -76,11 +75,4 @@ async function decide(question: string, apiKey: string, signal: AbortSignal) {
 
 function reply(content: string): APIInteractionResponseChannelMessageWithSource {
   return { type: InteractionResponseType.ChannelMessageWithSource, data: { content } };
-}
-
-function ephemeral(content: string): APIInteractionResponseChannelMessageWithSource {
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: { content, flags: MessageFlags.Ephemeral },
-  };
 }

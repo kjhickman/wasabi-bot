@@ -1,10 +1,10 @@
 import {
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
   type APIMessage,
 } from 'discord-api-types/v10';
 import { describe, expect, it } from 'vite-plus/test';
+import { CommandError } from '../src/commands/command.ts';
 import { mock } from '../src/commands/mock.ts';
 
 function run(content: string) {
@@ -29,10 +29,7 @@ describe('Mock', () => {
     expect(run('a'.repeat(4_000)).data.content).toHaveLength(2_000);
   });
 
-  it.each(['', '   '])('rejects a message without text privately: %j', (content) => {
-    expect(run(content)).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: 'That message has no text to mock.', flags: MessageFlags.Ephemeral },
-    });
+  it.each(['', '   '])('rejects a message without text: %j', (content) => {
+    expect(() => run(content)).toThrow(new CommandError('That message has no text to mock.'));
   });
 });

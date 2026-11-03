@@ -8,6 +8,10 @@ import type {
 import type { Env } from '../env.ts';
 import type { Kind } from '../usage.ts';
 
+// A failure to show the person who ran the command, such as bad input. It doesn't count
+// toward their daily limit.
+export class CommandError extends Error {}
+
 // Slash commands only upload files when deferred, since their replies are sent as edits.
 export type CommandResponse = APIInteractionResponseChannelMessageWithSource & { files?: File[] };
 

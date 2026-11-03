@@ -5,9 +5,12 @@ import {
   MessageFlags,
   RouteBases,
   Routes,
+  type APIChatInputApplicationCommandInteractionData,
   type APIInteraction,
   type APIInteractionResponse,
+  type APIMessageApplicationCommandInteractionData,
 } from 'discord-api-types/v10';
+import { CommandError, type CommandResponse } from '../commands/command.ts';
 import { getCommand, runCommand, withFiles } from '../commands/index.ts';
 import type { Env } from '../env.ts';
 import { takeUsage } from '../usage.ts';
@@ -62,10 +65,7 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
   const user = interaction.member?.user ?? interaction.user;
   const use = command?.limit && user ? takeUsage(sql, command.limit, user.id) : undefined;
   if (use && 'refused' in use) {
-    await callback({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: use.refused, flags: MessageFlags.Ephemeral },
-    });
+    await callback(ephemeral(use.refused));
     return;
   }
 
@@ -76,7 +76,7 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
       if (!(await callback({ type: InteractionResponseType.DeferredChannelMessageWithSource }))) {
         return;
       }
-      const response = await runCommand(
+      const { response, failed } = await run(
         interaction.data,
         env,
         AbortSignal.timeout(DEFERRED_BUDGET_MS),
@@ -84,21 +84,21 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
       // A deferred reply's visibility is fixed when it is acknowledged, so flags can't change.
       const {
         files = [],
-        data: { flags, ...message },
+        data: { flags: _flags, ...message },
       } = response;
       const edited = await fetch(
         `${RouteBases.api}${Routes.webhookMessage(interaction.application_id, interaction.token, '@original')}`,
         { method: 'PATCH', body: withFiles(message, files), redirect: 'manual' },
       );
       if (!edited.ok) console.error('Discord interaction edit failed', edited.status);
-      succeeded = edited.ok && !isError(flags);
+      succeeded = edited.ok && !failed;
       return;
     }
 
     const commandBudget = deadline - Date.now() - CALLBACK_BUDGET_MS;
     const signal = commandBudget > 0 ? AbortSignal.timeout(commandBudget) : AbortSignal.abort();
-    const response = await runCommand(interaction.data, env, signal);
-    succeeded = (await callback(response)) && !isError(response.data.flags);
+    const { response, failed } = await run(interaction.data, env, signal);
+    succeeded = (await callback(response)) && !failed;
   } catch {
     console.error('Gateway command failed');
   } finally {
@@ -106,9 +106,25 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
   }
 }
 
-// Commands report errors privately (ephemerally).
-function isError(flags = 0) {
-  return (flags & MessageFlags.Ephemeral) !== 0;
+// A command's own errors are shown privately to the person who ran it.
+async function run(
+  data: APIChatInputApplicationCommandInteractionData | APIMessageApplicationCommandInteractionData,
+  env: Env,
+  signal: AbortSignal,
+): Promise<{ response: CommandResponse; failed: boolean }> {
+  try {
+    return { response: await runCommand(data, env, signal), failed: false };
+  } catch (error) {
+    if (!(error instanceof CommandError)) throw error;
+    return { response: ephemeral(error.message), failed: true };
+  }
+}
+
+function ephemeral(content: string): CommandResponse {
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: { content, flags: MessageFlags.Ephemeral },
+  };
 }
 
 export function claim(sql: SqlStorage, id: string) {

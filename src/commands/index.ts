@@ -1,14 +1,18 @@
 import {
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
   type APIChatInputApplicationCommandInteractionData,
   type APIMessageApplicationCommandInteractionData,
 } from 'discord-api-types/v10';
 import type { Env } from '../env.ts';
 import { caption } from './caption.ts';
 import { choose } from './choose.ts';
-import type { CommandResponse, MessageCommand, SlashCommand } from './command.ts';
+import {
+  CommandError,
+  type CommandResponse,
+  type MessageCommand,
+  type SlashCommand,
+} from './command.ts';
 import { conch } from './conch.ts';
 import { flip } from './flip.ts';
 import { edit, imagine } from './image.ts';
@@ -71,8 +75,5 @@ export async function runCommand(
     const command = getCommand(data.name);
     if (command) return command.execute(data, env, signal);
   }
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: { content: 'Unknown command.', flags: MessageFlags.Ephemeral },
-  };
+  throw new CommandError('Unknown command.');
 }

@@ -1,9 +1,5 @@
-import {
-  ApplicationCommandType,
-  InteractionResponseType,
-  MessageFlags,
-} from 'discord-api-types/v10';
-import type { MessageCommand } from './command.ts';
+import { ApplicationCommandType, InteractionResponseType } from 'discord-api-types/v10';
+import { CommandError, type MessageCommand } from './command.ts';
 
 // Nitro members can send 4,000 characters, but bots are limited to 2,000.
 const MAX_MESSAGE_LENGTH = 2_000;
@@ -17,12 +13,7 @@ export const mock = {
 
   execute(data) {
     const text = data.resolved.messages[data.target_id]?.content.trim();
-    if (!text) {
-      return {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: { content: 'That message has no text to mock.', flags: MessageFlags.Ephemeral },
-      };
-    }
+    if (!text) throw new CommandError('That message has no text to mock.');
 
     let letters = 0;
     const mocked = text.replace(/\p{L}/gu, (letter) =>

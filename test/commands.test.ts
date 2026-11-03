@@ -1,9 +1,6 @@
-import {
-  ApplicationCommandType,
-  InteractionResponseType,
-  MessageFlags,
-} from 'discord-api-types/v10';
+import { ApplicationCommandType, InteractionResponseType } from 'discord-api-types/v10';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { CommandError } from '../src/commands/command.ts';
 import { conch } from '../src/commands/conch.ts';
 import { commands, getCommand, messageCommands, runCommand } from '../src/commands/index.ts';
 import type { Env } from '../src/env.ts';
@@ -28,13 +25,12 @@ describe('runCommand', () => {
     expect(execute).toHaveBeenCalledExactlyOnceWith(data, env, signal);
   });
 
-  it('rejects an unknown command privately', async () => {
+  it('rejects an unknown command', async () => {
     const data = { id: '1', type: ApplicationCommandType.ChatInput, name: 'unknown' } as const;
 
-    expect(await runCommand(data, env, signal)).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: 'Unknown command.', flags: MessageFlags.Ephemeral },
-    });
+    await expect(runCommand(data, env, signal)).rejects.toEqual(
+      new CommandError('Unknown command.'),
+    );
   });
 });
 

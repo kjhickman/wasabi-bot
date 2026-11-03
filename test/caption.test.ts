@@ -2,13 +2,13 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
   type APIApplicationCommandInteractionDataOption,
   type APIAttachment,
   type APIChatInputApplicationCommandInteractionData,
 } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { caption } from '../src/commands/caption.ts';
+import { CommandError } from '../src/commands/command.ts';
 import type { Env } from '../src/env.ts';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -20,10 +20,7 @@ const imageOption: APIApplicationCommandInteractionDataOption = {
   value: '700',
 };
 const attachment = { id: '700', filename: 'cat.png', content_type: 'image/png', size: 4, url };
-const errorResponse = {
-  type: InteractionResponseType.ChannelMessageWithSource,
-  data: { content: "I couldn't think of a caption. Try again.", flags: MessageFlags.Ephemeral },
-};
+const failure = new CommandError("I couldn't think of a caption. Try again.");
 
 let download: () => Response;
 let openai: (init: RequestInit) => Response | Promise<Response>;
@@ -142,34 +139,25 @@ describe('/caption', () => {
     options: APIApplicationCommandInteractionDataOption[] | null;
     attachments: Record<string, Partial<APIAttachment>> | null;
   }[])('rejects $name without downloading it', async ({ options, attachments }) => {
-    expect(await run(options, attachments)).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: 'Upload a PNG, JPEG, WebP, or GIF image to caption.',
-        flags: MessageFlags.Ephemeral,
-      },
-    });
+    await expect(run(options, attachments)).rejects.toEqual(
+      new CommandError('Upload a PNG, JPEG, WebP, or GIF image to caption.'),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('rejects an image too big to re-post without downloading it', async () => {
     const big = { ...attachment, size: 10 * 1024 * 1024 + 1 };
 
-    expect(await run(undefined, { '700': big })).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: 'That image is too big. Upload one under 10 MB.',
-        flags: MessageFlags.Ephemeral,
-      },
-    });
+    await expect(run(undefined, { '700': big })).rejects.toEqual(
+      new CommandError('That image is too big. Upload one under 10 MB.'),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it.each([{}, { OPENAI_API_KEY: '' }])('handles a missing API key: %j', async (env) => {
-    expect(await run(undefined, undefined, env as Env)).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: 'Captions are not configured yet.', flags: MessageFlags.Ephemeral },
-    });
+    await expect(run(undefined, undefined, env as Env)).rejects.toEqual(
+      new CommandError('Captions are not configured yet.'),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -182,19 +170,19 @@ describe('/caption', () => {
         signal.addEventListener('abort', () => reject(signal.reason), { once: true });
       });
 
-    expect(await run()).toEqual(errorResponse);
+    await expect(run()).rejects.toEqual(failure);
   });
 
   it('handles an OpenAI error', async () => {
     openai = () => new Response('Unauthorized', { status: 401 });
 
-    expect(await run()).toEqual(errorResponse);
+    await expect(run()).rejects.toEqual(failure);
   });
 
   it('handles an empty caption', async () => {
     openai = () => textResponse('   ');
 
-    expect(await run()).toEqual(errorResponse);
+    await expect(run()).rejects.toEqual(failure);
   });
 
   it('gives up when the caller deadline passes', async () => {
@@ -209,7 +197,7 @@ describe('/caption', () => {
     await vi.waitFor(() => expect(openaiCalls()).toHaveLength(1));
     deadline.abort();
 
-    expect(await reply).toEqual(errorResponse);
+    await expect(reply).rejects.toEqual(failure);
     expect(openaiCalls()).toHaveLength(1);
   });
 });

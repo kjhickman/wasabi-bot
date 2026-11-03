@@ -2,10 +2,10 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
   type APIApplicationCommandInteractionDataOption,
 } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { CommandError } from '../src/commands/command.ts';
 import { conch } from '../src/commands/conch.ts';
 import type { Env } from '../src/env.ts';
 
@@ -17,13 +17,7 @@ const questionOption = (value: string): APIApplicationCommandInteractionDataOpti
   value,
 });
 const options = [questionOption(question)];
-const errorResponse = {
-  type: InteractionResponseType.ChannelMessageWithSource,
-  data: {
-    content: "The conch couldn't answer. Try again.",
-    flags: MessageFlags.Ephemeral,
-  },
-};
+const failure = new CommandError("The conch couldn't answer. Try again.");
 
 function ask(
   questionOptions: APIApplicationCommandInteractionDataOption[] | undefined,
@@ -104,39 +98,37 @@ describe('/conch', () => {
     { options: [questionOption('   ')] },
     { options: [{ type: ApplicationCommandOptionType.Integer, name: 'question', value: 42 }] },
   ])('rejects a missing or invalid question: %j', async ({ options: invalidOptions }) => {
-    expect(await ask(invalidOptions)).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: 'Ask the conch a yes/no question.', flags: MessageFlags.Ephemeral },
-    });
+    await expect(ask(invalidOptions)).rejects.toEqual(
+      new CommandError('Ask the conch a yes/no question.'),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it.each([{}, { OPENAI_API_KEY: '' }])('handles a missing API key: %j', async (env) => {
-    expect(await ask(options, env as Env)).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: 'The conch is not configured yet.', flags: MessageFlags.Ephemeral },
-    });
+    await expect(ask(options, env as Env)).rejects.toEqual(
+      new CommandError('The conch is not configured yet.'),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it.each([401, 429, 500])('handles HTTP %s without retrying', async (status) => {
     fetchMock.mockResolvedValue(new Response('Upstream error', { status }));
 
-    expect(await ask(options)).toEqual(errorResponse);
+    await expect(ask(options)).rejects.toEqual(failure);
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it('handles a network failure', async () => {
     fetchMock.mockRejectedValue(new TypeError('Network error'));
 
-    expect(await ask(options)).toEqual(errorResponse);
+    await expect(ask(options)).rejects.toEqual(failure);
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it('handles invalid JSON', async () => {
     fetchMock.mockResolvedValue(new Response('not JSON'));
 
-    expect(await ask(options)).toEqual(errorResponse);
+    await expect(ask(options)).rejects.toEqual(failure);
   });
 
   it.each([
@@ -151,7 +143,7 @@ describe('/conch', () => {
   ])('handles an invalid or refused decision without randomizing: %j', async (body) => {
     fetchMock.mockResolvedValue(Response.json(body));
 
-    expect(await ask(options)).toEqual(errorResponse);
+    await expect(ask(options)).rejects.toEqual(failure);
   });
 
   it('gives up when the caller deadline passes', async () => {
@@ -168,7 +160,7 @@ describe('/conch', () => {
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
     deadline.abort();
 
-    expect(await answer).toEqual(errorResponse);
+    await expect(answer).rejects.toEqual(failure);
     expect(fetchMock.mock.calls[0]![1]!.signal!.aborted).toBe(true);
   });
 
@@ -185,7 +177,7 @@ describe('/conch', () => {
       return new Response(body, { status, headers: { 'Content-Type': 'application/json' } });
     });
 
-    expect(await ask(options, undefined, deadline.signal)).toEqual(errorResponse);
+    await expect(ask(options, undefined, deadline.signal)).rejects.toEqual(failure);
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock.mock.calls[0]![1]!.signal!.aborted).toBe(true);
   });

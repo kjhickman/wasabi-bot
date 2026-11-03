@@ -2,10 +2,9 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
   type APIApplicationCommandStringOption,
 } from 'discord-api-types/v10';
-import type { SlashCommand } from './command.ts';
+import { CommandError, type SlashCommand } from './command.ts';
 
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 7;
@@ -32,13 +31,7 @@ export const choose = {
         : [],
     );
     if (choices.length < MIN_OPTIONS) {
-      return {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          content: `Give me at least ${MIN_OPTIONS} options to choose from.`,
-          flags: MessageFlags.Ephemeral,
-        },
-      };
+      throw new CommandError(`Give me at least ${MIN_OPTIONS} options to choose from.`);
     }
 
     const choice = choices[Math.floor(Math.random() * choices.length)]!;

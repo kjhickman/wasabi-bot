@@ -10,7 +10,7 @@ const fetchMock = vi.fn<typeof fetch>();
 let sql: SqlStorage;
 let nextId = 0;
 
-function conch(user: object) {
+function interaction(user: object, data: object) {
   const id = ((BigInt(Date.now()) - 1_420_070_400_000n) << 22n) + BigInt(nextId++);
   return {
     type: 2,
@@ -18,18 +18,27 @@ function conch(user: object) {
     application_id: '900',
     token: 'interaction-token',
     ...user,
-    data: {
-      type: 1,
-      name: 'conch',
-      options: [{ type: 3, name: 'question', value: 'Is the sky blue?' }],
-    },
+    data: { type: 1, ...data },
   } as unknown as APIInteraction;
+}
+
+function conch(user: object) {
+  return interaction(user, {
+    name: 'conch',
+    options: [{ type: 3, name: 'question', value: 'Is the sky blue?' }],
+  });
 }
 
 function callbacks() {
   return fetchMock.mock.calls
     .filter(([url]) => String(url).endsWith('/callback'))
     .map(([, init]) => JSON.parse(init!.body as string));
+}
+
+function edits() {
+  return fetchMock.mock.calls
+    .filter(([url]) => String(url).endsWith('/messages/%40original'))
+    .map(([, init]) => JSON.parse((init!.body as FormData).get('payload_json') as string));
 }
 
 function requests() {
@@ -71,6 +80,18 @@ describe('daily limits for slash commands', () => {
     await handleInteraction(conch({ user: { id: '200' } }), {} as Env, sql);
 
     expect(callbacks()[0].data.flags).toBe(MessageFlags.Ephemeral);
+    expect(requests()).toEqual([]);
+  });
+
+  it('edits a deferred command’s error into its reply without counting it', async () => {
+    await handleInteraction(interaction({ user: { id: '200' } }, { name: 'caption' }), env, sql);
+
+    expect(callbacks()).toEqual([
+      { type: InteractionResponseType.DeferredChannelMessageWithSource },
+    ]);
+    expect(edits()).toEqual([
+      { content: 'Upload a PNG, JPEG, WebP, or GIF image to caption.', attachments: [] },
+    ]);
     expect(requests()).toEqual([]);
   });
 

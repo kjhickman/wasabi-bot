@@ -2,11 +2,11 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
   type APIApplicationCommandInteractionDataOption,
 } from 'discord-api-types/v10';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { choose } from '../src/commands/choose.ts';
+import { CommandError } from '../src/commands/command.ts';
 
 const option = (n: number, value: string): APIApplicationCommandInteractionDataOption => ({
   type: ApplicationCommandOptionType.String,
@@ -53,13 +53,9 @@ describe('/choose', () => {
     { options: undefined },
     { options: [option(1, 'Halo')] },
     { options: [option(1, 'Halo'), option(2, '   ')] },
-  ])('rejects fewer than 2 options privately: %j', ({ options }) => {
-    expect(pick(options)).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: 'Give me at least 2 options to choose from.',
-        flags: MessageFlags.Ephemeral,
-      },
-    });
+  ])('rejects fewer than 2 options: %j', ({ options }) => {
+    expect(() => pick(options)).toThrow(
+      new CommandError('Give me at least 2 options to choose from.'),
+    );
   });
 });

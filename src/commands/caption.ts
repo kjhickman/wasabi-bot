@@ -2,11 +2,9 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
-  type APIInteractionResponseChannelMessageWithSource,
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
-import type { CommandResponse, SlashCommand } from './command.ts';
+import { CommandError, type CommandResponse, type SlashCommand } from './command.ts';
 
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 // Discord's default upload limit for bots, since the image is re-posted with the caption.
@@ -39,13 +37,13 @@ export const caption = {
         ? data.resolved?.attachments?.[option.value]
         : undefined;
     if (!image?.content_type || !IMAGE_TYPES.has(image.content_type)) {
-      return ephemeral('Upload a PNG, JPEG, WebP, or GIF image to caption.');
+      throw new CommandError('Upload a PNG, JPEG, WebP, or GIF image to caption.');
     }
     if (image.size > MAX_IMAGE_BYTES) {
-      return ephemeral('That image is too big. Upload one under 10 MB.');
+      throw new CommandError('That image is too big. Upload one under 10 MB.');
     }
     if (!env.OPENAI_API_KEY) {
-      return ephemeral('Captions are not configured yet.');
+      throw new CommandError('Captions are not configured yet.');
     }
 
     const downloadFailed = new AbortController();
@@ -58,7 +56,7 @@ export const caption = {
         () => '',
       ),
     ]);
-    if (!file || !text) return ephemeral("I couldn't think of a caption. Try again.");
+    if (!file || !text) throw new CommandError("I couldn't think of a caption. Try again.");
     return {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: { content: text.slice(0, MAX_MESSAGE_LENGTH), allowed_mentions: { parse: [] } },
@@ -94,11 +92,4 @@ async function write(url: string, apiKey: string, signal: AbortSignal) {
     { signal },
   );
   return response.output_text.trim();
-}
-
-function ephemeral(content: string): APIInteractionResponseChannelMessageWithSource {
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: { content, flags: MessageFlags.Ephemeral },
-  };
 }

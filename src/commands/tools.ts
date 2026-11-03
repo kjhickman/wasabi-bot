@@ -1,7 +1,6 @@
 import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
-  MessageFlags,
   type APIApplicationCommandInteractionDataBasicOption,
   type APIApplicationCommandOption,
   type APIAttachment,
@@ -10,6 +9,7 @@ import {
 import type { FunctionTool } from 'openai/resources/responses/responses';
 import type { Env } from '../env.ts';
 import { takeUsage, type Usage } from '../usage.ts';
+import { CommandError } from './command.ts';
 import { commands, getCommand, runCommand } from './index.ts';
 
 const JSON_TYPES: Partial<Record<ApplicationCommandOptionType, string>> = {
@@ -108,13 +108,12 @@ export async function runCommandTool(
       env,
       signal,
     );
-    const content = response.data.content ?? '';
-    if ((response.data.flags ?? 0) & MessageFlags.Ephemeral) return failure(content);
     succeeded = true;
     const files = command.textOnlyInChat ? [] : (response.files ?? []);
     const note = files.length ? '\nThe image is attached to your reply.' : '';
-    return { output: content + note, files };
+    return { output: (response.data.content ?? '') + note, files };
   } catch (error) {
+    if (error instanceof CommandError) return failure(error.message);
     console.error('Chat command failed', name, error instanceof Error ? error.message : error);
     return failure('the command failed.');
   } finally {

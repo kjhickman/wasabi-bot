@@ -2,12 +2,12 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
   type APIApplicationCommandInteractionDataOption,
   type APIAttachment,
   type APIChatInputApplicationCommandInteractionData,
 } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { CommandError } from '../src/commands/command.ts';
 import { edit, imagine } from '../src/commands/image.ts';
 import type { Env } from '../src/env.ts';
 
@@ -21,20 +21,13 @@ const imageOption: APIApplicationCommandInteractionDataOption = {
   name: 'image',
   value: '700',
 };
-const failure = ephemeral("I couldn't make that image. Try again.");
+const failure = new CommandError("I couldn't make that image. Try again.");
 
 let download: () => Response;
 let openai: () => Response;
 
 function prompt(value: string): APIApplicationCommandInteractionDataOption {
   return { type: ApplicationCommandOptionType.String, name: 'prompt', value };
-}
-
-function ephemeral(content: string) {
-  return {
-    type: InteractionResponseType.ChannelMessageWithSource,
-    data: { content, flags: MessageFlags.Ephemeral },
-  };
 }
 
 function data(
@@ -113,13 +106,15 @@ describe('/imagine', () => {
     ['no prompt', []],
     ['a blank prompt', [prompt('   ')]],
   ])('asks for a description when given %s', async (_, options) => {
-    expect(await runImagine(options)).toEqual(ephemeral('Describe the image you want.'));
+    await expect(runImagine(options)).rejects.toEqual(
+      new CommandError('Describe the image you want.'),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('handles a missing API key', async () => {
-    expect(await runImagine(undefined, {} as Env)).toEqual(
-      ephemeral('Images are not configured yet.'),
+    await expect(runImagine(undefined, {} as Env)).rejects.toEqual(
+      new CommandError('Images are not configured yet.'),
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -133,8 +128,8 @@ describe('/imagine', () => {
         { status: 400 },
       );
 
-    expect(await runImagine()).toEqual(
-      ephemeral("OpenAI's safety filter blocked that. Try a different description."),
+    await expect(runImagine()).rejects.toEqual(
+      new CommandError("OpenAI's safety filter blocked that. Try a different description."),
     );
   });
 
@@ -144,7 +139,7 @@ describe('/imagine', () => {
   ])('apologizes when %s', async (_, response) => {
     openai = response;
 
-    expect(await runImagine()).toEqual(failure);
+    await expect(runImagine()).rejects.toEqual(failure);
   });
 });
 
@@ -180,8 +175,8 @@ describe('/edit', () => {
       { '700': { ...attachment, content_type: 'application/pdf' } },
     ],
   ])('rejects %s without downloading anything', async (_, options, attachments) => {
-    expect(await runEdit(options, attachments)).toEqual(
-      ephemeral('Upload a PNG, JPEG, or WebP image to edit.'),
+    await expect(runEdit(options, attachments)).rejects.toEqual(
+      new CommandError('Upload a PNG, JPEG, or WebP image to edit.'),
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -189,20 +184,22 @@ describe('/edit', () => {
   it('rejects an image over 10 MB without downloading it', async () => {
     const big = { ...attachment, size: 10 * 1024 * 1024 + 1 };
 
-    expect(await runEdit(undefined, { '700': big })).toEqual(
-      ephemeral('That image is too big. Upload one under 10 MB.'),
+    await expect(runEdit(undefined, { '700': big })).rejects.toEqual(
+      new CommandError('That image is too big. Upload one under 10 MB.'),
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('asks how to change the image when there is no prompt', async () => {
-    expect(await runEdit([imageOption])).toEqual(ephemeral('Describe how to change the image.'));
+    await expect(runEdit([imageOption])).rejects.toEqual(
+      new CommandError('Describe how to change the image.'),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('handles a missing API key', async () => {
-    expect(await runEdit(undefined, undefined, {} as Env)).toEqual(
-      ephemeral('Images are not configured yet.'),
+    await expect(runEdit(undefined, undefined, {} as Env)).rejects.toEqual(
+      new CommandError('Images are not configured yet.'),
     );
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -210,7 +207,7 @@ describe('/edit', () => {
   it('apologizes without calling OpenAI when the download fails', async () => {
     download = () => new Response('Not found', { status: 404 });
 
-    expect(await runEdit()).toEqual(failure);
+    await expect(runEdit()).rejects.toEqual(failure);
     expect(openaiCalls()).toHaveLength(0);
   });
 });

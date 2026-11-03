@@ -2,11 +2,11 @@ import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
-  MessageFlags,
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { caption } from '../src/commands/caption.ts';
+import { CommandError } from '../src/commands/command.ts';
 import { imagine } from '../src/commands/image.ts';
 import { commands } from '../src/commands/index.ts';
 import { commandTool, commandTools, runCommandTool } from '../src/commands/tools.ts';
@@ -165,10 +165,9 @@ describe('runCommandTool', () => {
   });
 
   it('does not count an image the command failed to make', async () => {
-    vi.spyOn(imagine, 'execute').mockResolvedValue({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: "I couldn't make that image. Try again.", flags: MessageFlags.Ephemeral },
-    });
+    vi.spyOn(imagine, 'execute').mockRejectedValue(
+      new CommandError("I couldn't make that image. Try again."),
+    );
 
     await runCommandTool('imagine', JSON.stringify({ prompt: 'a frog' }), env, signal, user);
 
