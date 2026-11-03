@@ -11,6 +11,9 @@ import {
 } from 'discord-api-types/v10';
 
 const HANDSHAKE_TIMEOUT_MS = 10_000;
+// Closing with 1000 ends the Discord session; any other code keeps it resumable.
+const END_SESSION_CLOSE_CODE = 1000;
+export const RESUMABLE_CLOSE_CODE = 3000;
 const INTENTS =
   GatewayIntentBits.Guilds |
   GatewayIntentBits.GuildMembers |
@@ -94,8 +97,7 @@ export class GatewayConnection {
     return this.ready && this.alive;
   }
 
-  // Closing with 1000 ends the Discord session; any other code keeps it resumable.
-  close(code = 1000) {
+  close(code = END_SESSION_CLOSE_CODE) {
     if (this.stopped) return;
     this.stopped = true;
     clearTimeout(this.handshakeTimer);
@@ -111,7 +113,7 @@ export class GatewayConnection {
 
   private fail(code: number, resumable: boolean) {
     if (this.stopped) return;
-    this.close(resumable ? 3000 : 1000);
+    this.close(resumable ? RESUMABLE_CLOSE_CODE : END_SESSION_CLOSE_CODE);
     this.options.onClose(code, resumable);
   }
 

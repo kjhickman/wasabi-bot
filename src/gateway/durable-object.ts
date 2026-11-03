@@ -7,12 +7,22 @@ import {
 import { discordFetch } from '../discord.ts';
 import type { Env } from '../env.ts';
 import { migrate, prune } from '../storage.ts';
-import { FATAL_CLOSE_CODES, GatewayConnection, type Session } from './connection.ts';
+import {
+  FATAL_CLOSE_CODES,
+  GatewayConnection,
+  RESUMABLE_CLOSE_CODE,
+  type Session,
+} from './connection.ts';
 import { handleEvent } from './events.ts';
 import { GATEWAY_NAME } from './stub.ts';
 
 const WATCHDOG_MS = 30_000;
 const MAX_BACKOFF_MS = 5 * 60 * 1_000;
+const DISCOVERY_TIMEOUT_MS = 5_000;
+const MIN_RATE_LIMIT_WAIT_MS = 60_000;
+const SESSION_START_RESERVE = 5;
+// The first disconnect plus two failed resumes: start a fresh session instead.
+const FAILURES_BEFORE_NEW_SESSION = 3;
 
 interface Lifecycle {
   enabled: boolean;
@@ -134,10 +144,9 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   private retry() {
-    this.disconnect(3000);
+    this.disconnect(RESUMABLE_CLOSE_CODE);
     const failures = ++this.lifecycle.failures;
-    // The first disconnect plus two failed resumes: start a fresh session instead.
-    if (failures >= 3) this.lifecycle.session = null;
+    if (failures >= FAILURES_BEFORE_NEW_SESSION) this.lifecycle.session = null;
     const backoff = Math.min(MAX_BACKOFF_MS, this.retryBaseMs * 2 ** failures);
     this.lifecycle.retryAt = Math.max(this.lifecycle.retryAt, Date.now() + backoff);
     this.lifecycle.error ??= 'Gateway disconnected; reconnect scheduled.';
@@ -158,7 +167,7 @@ export class DiscordGateway extends DurableObject<Env> {
     try {
       const response = await discordFetch(Routes.gatewayBot(), {
         token,
-        signal: AbortSignal.timeout(5_000),
+        signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS),
       });
       if (stale()) return;
       if (response.status === 401 || response.status === 403) {
@@ -169,7 +178,8 @@ export class DiscordGateway extends DurableObject<Env> {
       if (response.status === 429) {
         const retryAfter = Number(response.headers.get('Retry-After'));
         this.lifecycle.retryAt =
-          Date.now() + Math.max(60_000, Number.isFinite(retryAfter) ? retryAfter * 1_000 : 0);
+          Date.now() +
+          Math.max(MIN_RATE_LIMIT_WAIT_MS, Number.isFinite(retryAfter) ? retryAfter * 1_000 : 0);
       }
       if (!response.ok) return this.retry();
 
@@ -181,7 +191,7 @@ export class DiscordGateway extends DurableObject<Env> {
         );
       }
       const { session, identifyAfter } = this.lifecycle;
-      if (!session && gateway.session_start_limit.remaining <= 5) {
+      if (!session && gateway.session_start_limit.remaining <= SESSION_START_RESERVE) {
         this.lifecycle.retryAt = Date.now() + gateway.session_start_limit.reset_after;
         this.lifecycle.error = 'Waiting for the Discord session-start allowance to reset.';
         return this.retry();
