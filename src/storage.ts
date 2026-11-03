@@ -3,16 +3,10 @@ import { USAGE_WINDOW_MS } from './usage.ts';
 const SEEN_TTL_MS = 15 * 60 * 1_000;
 
 export function migrate(sql: SqlStorage) {
+  // `seen` replaced `interactions`. Its claims aren't worth keeping: the first deploy with
+  // `seen` starts a fresh Gateway session, and Discord replays events only on a resume.
+  sql.exec('DROP TABLE IF EXISTS interactions');
   sql.exec('CREATE TABLE IF NOT EXISTS seen (id TEXT PRIMARY KEY, expires_at INTEGER NOT NULL)');
-  // `seen` was called `interactions` before it also held message IDs. Both can exist if a
-  // rollback recreated the old table, so merge rather than rename.
-  const legacy = sql
-    .exec("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'interactions'")
-    .toArray();
-  if (legacy.length) {
-    sql.exec('INSERT OR IGNORE INTO seen (id, expires_at) SELECT id, expires_at FROM interactions');
-    sql.exec('DROP TABLE interactions');
-  }
   sql.exec(
     'CREATE TABLE IF NOT EXISTS usage (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, user_id TEXT NOT NULL, at INTEGER NOT NULL)',
   );

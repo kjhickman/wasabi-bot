@@ -41,26 +41,14 @@ describe('prune', () => {
 });
 
 describe('migrate', () => {
-  it('keeps claims made before the table was renamed', () => {
+  it('drops the table that seen replaced', () => {
     const sql = emptySqlStorage();
     sql.exec('CREATE TABLE interactions (id TEXT PRIMARY KEY, expires_at INTEGER NOT NULL)');
-    sql.exec('INSERT INTO interactions (id, expires_at) VALUES (?, ?)', '500', now + MINUTE);
-
-    migrate(sql);
-    migrate(sql);
-
-    expect(claim(sql, '500', now)).toBe(false);
-  });
-
-  it('merges claims when a rollback recreated the old table', () => {
-    const sql = sqlStorage();
-    claim(sql, '500', now);
-    sql.exec('CREATE TABLE interactions (id TEXT PRIMARY KEY, expires_at INTEGER NOT NULL)');
-    sql.exec('INSERT INTO interactions (id, expires_at) VALUES (?, ?)', '501', now + MINUTE);
 
     migrate(sql);
 
-    expect(claim(sql, '500', now)).toBe(false);
-    expect(claim(sql, '501', now)).toBe(false);
+    const tables = sql.exec("SELECT name FROM sqlite_master WHERE type = 'table'").toArray();
+    expect(tables).not.toContainEqual({ name: 'interactions' });
+    expect(tables).toContainEqual({ name: 'seen' });
   });
 });
