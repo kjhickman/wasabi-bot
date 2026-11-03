@@ -302,6 +302,22 @@ describe('Gateway in workerd', () => {
     expect(state.urls[1]).toContain('resume.discord.gg');
   }, 15_000);
 
+  it('identifies again after a DO reset when the saved session has no bot user', async () => {
+    createRuntime();
+    await (await control('start')).text();
+    await connected();
+    await (await runtime!.dispatchFetch('https://bot.test/_test/legacy-session')).text();
+    await (await runtime!.dispatchFetch('https://bot.test/_test/crash')).text();
+    await reconcile();
+    await connected();
+    await (await fake('emit', message('500', 3))).text();
+    await vi.waitFor(async () => expect((await discordState()).replies).toHaveLength(1));
+
+    const state = await discordState();
+    expect(state.packets.filter((packet) => packet.op === 2)).toHaveLength(2);
+    expect(state.packets.some((packet) => packet.op === 6)).toBe(false);
+  }, 15_000);
+
   it('handles /conch directly and suppresses duplicate interaction side effects', async () => {
     createRuntime();
     await (await control('start')).text();

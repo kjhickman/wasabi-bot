@@ -1,3 +1,4 @@
+import type { APIUser } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { GatewayConnection, type Session } from '../src/gateway/connection.ts';
 
@@ -38,7 +39,13 @@ class FakeSocket extends EventTarget {
 }
 
 const HELLO = { op: 10, d: { heartbeat_interval: 45_000 } };
-const SESSION: Session = { sessionId: 'session-1', resumeGatewayUrl: 'wss://resume', sequence: 5 };
+const BOT = { id: '100', username: 'wasabibot' } as APIUser;
+const SESSION: Session = {
+  sessionId: 'session-1',
+  resumeGatewayUrl: 'wss://resume',
+  sequence: 5,
+  user: BOT,
+};
 
 function connect(session: Session | null = null) {
   const callbacks = { onIdentify: vi.fn(), onDispatch: vi.fn(), onClose: vi.fn() };
@@ -73,7 +80,7 @@ describe('GatewayConnection', () => {
       op: 0,
       t: 'READY',
       s: 1,
-      d: { session_id: 'session-1', resume_gateway_url: 'wss://resume' },
+      d: { session_id: 'session-1', resume_gateway_url: 'wss://resume', user: BOT },
     });
     socket.receive({ op: 0, t: 'MESSAGE_CREATE', s: 2, d: {} });
 

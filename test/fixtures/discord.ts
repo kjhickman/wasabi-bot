@@ -122,9 +122,6 @@ export class FakeDiscord extends DurableObject {
       return Response.json({ id: 'original' });
     }
     if (url.pathname.endsWith('/typing')) return new Response(null, { status: 204 });
-    if (decodeURIComponent(url.pathname) === '/api/v10/users/@me') {
-      return Response.json({ id: '100', username: 'wasabibot', global_name: null });
-    }
     if (url.pathname.endsWith('/messages')) {
       if (request.method === 'GET') return Response.json([]);
       const replies = this.ctx.storage.kv.get<unknown[]>('replies') ?? [];
@@ -184,7 +181,11 @@ export class FakeDiscord extends DurableObject {
             op: 0,
             t: 'READY',
             s: 1,
-            d: { session_id: sessionId, resume_gateway_url: 'wss://resume.discord.gg' },
+            d: {
+              session_id: sessionId,
+              resume_gateway_url: 'wss://resume.discord.gg',
+              user: { id: '100', username: 'wasabibot', global_name: null },
+            },
           }),
         );
         server.send(JSON.stringify({ op: 11 }));

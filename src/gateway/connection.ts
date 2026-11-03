@@ -4,6 +4,7 @@ import {
   GatewayIntentBits,
   GatewayOpcodes,
   PresenceUpdateStatus,
+  type APIUser,
   type GatewayDispatchPayload,
   type GatewayReceivePayload,
   type GatewaySendPayload,
@@ -40,6 +41,8 @@ export interface Session {
   sessionId: string;
   resumeGatewayUrl: string;
   sequence: number;
+  // The bot's own user.
+  user: APIUser;
 }
 
 interface Options {
@@ -143,6 +146,7 @@ export class GatewayConnection {
         sessionId: packet.d.session_id,
         resumeGatewayUrl: packet.d.resume_gateway_url,
         sequence: packet.s,
+        user: packet.d.user,
       };
     } else if (this.session) {
       this.session = { ...this.session, sequence: packet.s };

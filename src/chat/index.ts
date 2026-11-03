@@ -31,6 +31,7 @@ const TOOLS: Tool[] = [
 type Message = Pick<APIMessage, 'author' | 'content' | 'mentions'>;
 
 export interface ChatOptions {
+  bot: APIUser;
   token: string;
   env: Env;
   sql: SqlStorage;
@@ -43,15 +44,14 @@ interface Conversation extends ToolContext {
   typing(): Promise<unknown>;
 }
 
-export function addressesBot(message: GatewayMessageCreateDispatchData, token: string) {
-  const botId = botUserId(token);
+export function addressesBot(message: GatewayMessageCreateDispatchData, bot: APIUser) {
   const isDM = !message.guild_id;
-  return !message.author.bot && (isDM || message.mentions.some((user) => user.id === botId));
+  return !message.author.bot && (isDM || message.mentions.some((user) => user.id === bot.id));
 }
 
 export async function replyToMention(
   message: GatewayMessageCreateDispatchData,
-  { token, env, sql, signal = AbortSignal.timeout(REPLY_TIMEOUT_MS) }: ChatOptions,
+  { bot, token, env, sql, signal = AbortSignal.timeout(REPLY_TIMEOUT_MS) }: ChatOptions,
 ) {
   const dm = !message.guild_id;
   const messages = Routes.channelMessages(message.channel_id);
@@ -81,16 +81,13 @@ export async function replyToMention(
   let content = FAILURE_REPLY;
   let files: File[] = [];
   try {
-    const [, response, me] = await Promise.all([
+    const [, response] = await Promise.all([
       typing(),
       discordFetch(`${messages}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`, {
         signal,
         token,
       }),
-      discordFetch(Routes.user(), { signal, token }),
     ]);
-    if (!me.ok) throw new Error(`Discord returned ${me.status} for the bot user`);
-    const bot = await me.json<APIUser>();
     const history = response.ok ? (await response.json<APIMessage[]>()).reverse() : [];
     const image = [message, message.referenced_message, ...history.toReversed()]
       .flatMap((source) => source?.attachments ?? [])
@@ -198,9 +195,4 @@ function readable(message: Message) {
 
 function displayName(user: APIUser) {
   return user.global_name ?? user.username;
-}
-
-// A bot token starts with the bot's user ID in base64.
-function botUserId(token: string) {
-  return atob(token.split('.')[0]!);
 }

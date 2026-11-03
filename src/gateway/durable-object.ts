@@ -44,6 +44,8 @@ export class DiscordGateway extends DurableObject<Env> {
       identifyAfter: 0,
       error: null,
     };
+    // Sessions saved before they held the bot user can't tell chat who the bot is.
+    if (this.lifecycle.session && !this.lifecycle.session.user) this.lifecycle.session = null;
     migrate(ctx.storage.sql);
   }
 
@@ -204,15 +206,25 @@ export class DiscordGateway extends DurableObject<Env> {
       },
       onDispatch: (packet) => {
         if (!this.shouldRun()) return;
+        const { session } = connection;
         this.lastEvent = packet.t;
-        this.lifecycle.session = connection.session;
+        this.lifecycle.session = session;
         if (
           packet.t === GatewayDispatchEvents.Ready ||
           packet.t === GatewayDispatchEvents.Resumed
         ) {
           this.update({ failures: 0, retryAt: 0, error: null });
         }
-        this.ctx.waitUntil(handleEvent(packet, token, this.env, this.ctx.storage.sql));
+        if (session) {
+          this.ctx.waitUntil(
+            handleEvent(packet, {
+              bot: session.user,
+              token,
+              env: this.env,
+              sql: this.ctx.storage.sql,
+            }),
+          );
+        }
       },
       onClose: (code, resumable) => {
         if (!this.shouldRun()) return;
