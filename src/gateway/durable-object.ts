@@ -61,8 +61,7 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   async start() {
-    Object.assign(this.lifecycle, { enabled: true, retryAt: 0, failures: 0, error: null });
-    this.save();
+    this.update({ enabled: true, retryAt: 0, failures: 0, error: null });
     return this.ensureConnected();
   }
 
@@ -114,14 +113,13 @@ export class DiscordGateway extends DurableObject<Env> {
     this.ctx.storage.kv.put('lifecycle', this.lifecycle);
   }
 
-  private async halt(error: string | null) {
-    Object.assign(this.lifecycle, {
-      enabled: false,
-      session: null,
-      retryAt: 0,
-      error,
-    });
+  private update(changes: Partial<Lifecycle>) {
+    Object.assign(this.lifecycle, changes);
     this.save();
+  }
+
+  private async halt(error: string | null) {
+    this.update({ enabled: false, session: null, retryAt: 0, error });
     this.disconnect();
     await this.ctx.storage.deleteAlarm();
   }
@@ -202,8 +200,7 @@ export class DiscordGateway extends DurableObject<Env> {
       url,
       session,
       onIdentify: () => {
-        this.lifecycle.identifyAfter = Date.now() + this.identifyCooldownMs;
-        this.save();
+        this.update({ identifyAfter: Date.now() + this.identifyCooldownMs });
       },
       onDispatch: (packet) => {
         if (!this.shouldRun()) return;
@@ -213,8 +210,7 @@ export class DiscordGateway extends DurableObject<Env> {
           packet.t === GatewayDispatchEvents.Ready ||
           packet.t === GatewayDispatchEvents.Resumed
         ) {
-          Object.assign(this.lifecycle, { failures: 0, retryAt: 0, error: null });
-          this.save();
+          this.update({ failures: 0, retryAt: 0, error: null });
         }
         this.ctx.waitUntil(handleEvent(packet, token, this.env, this.ctx.storage.sql));
       },
