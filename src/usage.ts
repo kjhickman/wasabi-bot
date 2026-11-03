@@ -1,4 +1,4 @@
-const DAY_MS = 24 * 60 * 60 * 1_000;
+export const USAGE_WINDOW_MS = 24 * 60 * 60 * 1_000;
 const LIMITS = {
   image: { user: 50, bot: 100, label: 'images' },
   text: { user: 100, bot: 200, label: 'requests' },
@@ -7,22 +7,11 @@ const LIMITS = {
 export type Kind = keyof typeof LIMITS;
 export type Usage = { refund(): void } | { refused: string };
 
-export function createUsageTable(sql: SqlStorage) {
-  sql.exec(
-    'CREATE TABLE IF NOT EXISTS usage (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, user_id TEXT NOT NULL, at INTEGER NOT NULL)',
-  );
-  sql.exec('CREATE INDEX IF NOT EXISTS usage_kind_at ON usage (kind, at)');
-}
-
-export function pruneUsage(sql: SqlStorage, now = Date.now()) {
-  sql.exec('DELETE FROM usage WHERE at <= ?', now - DAY_MS);
-}
-
 // Counts uses over the last 24 hours, for the user and for everyone. The Durable Object
 // runs one event at a time, so the check and the insert can't interleave with another.
 export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Date.now()): Usage {
   const { user, bot, label } = LIMITS[kind];
-  const since = now - DAY_MS;
+  const since = now - USAGE_WINDOW_MS;
   const mine = sql
     .exec<{ count: number; oldest: number | null }>(
       'SELECT COUNT(*) AS count, MIN(at) AS oldest FROM usage WHERE kind = ? AND at > ? AND user_id = ?',
@@ -33,7 +22,7 @@ export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Dat
     .one();
   if (mine.count >= user) {
     return {
-      refused: `You've used all ${user} of your ${label} for today. Try again in ${wait(mine.oldest! + DAY_MS - now)}.`,
+      refused: `You've used all ${user} of your ${label} for today. Try again in ${wait(mine.oldest! + USAGE_WINDOW_MS - now)}.`,
     };
   }
   const everyone = sql
@@ -45,7 +34,7 @@ export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Dat
     .one();
   if (everyone.count >= bot) {
     return {
-      refused: `I've used all ${bot} of my ${label} for today across everyone. Try again in ${wait(everyone.oldest! + DAY_MS - now)}.`,
+      refused: `I've used all ${bot} of my ${label} for today across everyone. Try again in ${wait(everyone.oldest! + USAGE_WINDOW_MS - now)}.`,
     };
   }
   const { id } = sql

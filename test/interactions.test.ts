@@ -1,7 +1,7 @@
 import { InteractionResponseType, MessageFlags, type APIInteraction } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import type { Env } from '../src/env.ts';
-import { createInteractionsTable, handleInteraction } from '../src/gateway/interactions.ts';
+import { handleInteraction } from '../src/gateway/interactions.ts';
 import { takeUsage } from '../src/usage.ts';
 import { sqlStorage } from './fixtures/sql.ts';
 
@@ -47,7 +47,6 @@ function requests() {
 
 beforeEach(() => {
   sql = sqlStorage();
-  createInteractionsTable(sql);
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (url) =>
     String(url).endsWith('/v1/decisions')

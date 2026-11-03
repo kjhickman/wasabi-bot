@@ -9,11 +9,11 @@ import {
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import type { ResponseInputItem, Tool } from 'openai/resources/responses/responses';
-import { commandTools, runCommandTool } from './commands/tools.ts';
-import { discordFetch, MAX_MESSAGE_LENGTH, withFiles } from './discord.ts';
-import type { Env } from './env.ts';
-import { MODELS } from './openai.ts';
-import { takeUsage } from './usage.ts';
+import { commandTools, runCommandTool } from './tools.ts';
+import { discordFetch, MAX_MESSAGE_LENGTH, withFiles } from '../discord.ts';
+import type { Env } from '../env.ts';
+import { MODELS } from '../openai.ts';
+import { takeUsage } from '../usage.ts';
 
 const HISTORY_LIMIT = 50;
 const MAX_TOOL_ROUNDS = 3;

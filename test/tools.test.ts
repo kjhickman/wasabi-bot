@@ -9,7 +9,7 @@ import { caption } from '../src/commands/caption.ts';
 import { CommandError } from '../src/commands/command.ts';
 import { imagine } from '../src/commands/image.ts';
 import { commands } from '../src/commands/index.ts';
-import { commandTool, commandTools, runCommandTool } from '../src/commands/tools.ts';
+import { commandTool, commandTools, runCommandTool } from '../src/chat/tools.ts';
 import type { Env } from '../src/env.ts';
 import { takeUsage } from '../src/usage.ts';
 import { sqlStorage } from './fixtures/sql.ts';

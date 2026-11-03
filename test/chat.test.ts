@@ -1,7 +1,7 @@
 import { MessageFlags, type GatewayMessageCreateDispatchData } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
-import { addressesBot, replyToMention } from '../src/chat.ts';
-import { commandTools } from '../src/commands/tools.ts';
+import { addressesBot, replyToMention } from '../src/chat/index.ts';
+import { commandTools } from '../src/chat/tools.ts';
 import type { Env } from '../src/env.ts';
 import { takeUsage } from '../src/usage.ts';
 import { sqlStorage } from './fixtures/sql.ts';

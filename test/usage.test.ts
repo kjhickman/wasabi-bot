@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { pruneUsage, takeUsage, type Kind } from '../src/usage.ts';
+import { takeUsage, type Kind } from '../src/usage.ts';
 import { sqlStorage } from './fixtures/sql.ts';
 
 const MINUTE = 60 * 1_000;
@@ -64,18 +64,6 @@ describe('takeUsage', () => {
     fill(sql, 'image', 'kyle', 50, now - DAY);
 
     expect(takeUsage(sql, 'image', 'kyle', now)).toHaveProperty('refund');
-  });
-});
-
-describe('pruneUsage', () => {
-  it('deletes uses older than a day', () => {
-    const sql = sqlStorage();
-    fill(sql, 'text', 'kyle', 1, now - DAY);
-    fill(sql, 'text', 'kyle', 1, now - DAY + 1);
-
-    pruneUsage(sql, now);
-
-    expect(sql.exec('SELECT at FROM usage').toArray()).toEqual([{ at: now - DAY + 1 }]);
   });
 });
 

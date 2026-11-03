@@ -1,5 +1,6 @@
-import app, { gateway } from './app.ts';
+import app from './app.ts';
 import type { Env } from './env.ts';
+import { gateway } from './gateway/stub.ts';
 
 export { DiscordGateway } from './gateway/durable-object.ts';
 

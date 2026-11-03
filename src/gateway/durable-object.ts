@@ -4,18 +4,12 @@ import {
   Routes,
   type RESTGetAPIGatewayBotResult,
 } from 'discord-api-types/v10';
-import { GATEWAY_NAME } from '../app.ts';
-import { addressesBot, replyToMention } from '../chat.ts';
 import { discordFetch } from '../discord.ts';
 import type { Env } from '../env.ts';
-import { createUsageTable, pruneUsage } from '../usage.ts';
+import { migrate, prune } from '../storage.ts';
 import { FATAL_CLOSE_CODES, GatewayConnection, type Session } from './connection.ts';
-import {
-  claim,
-  createInteractionsTable,
-  handleInteraction,
-  pruneInteractions,
-} from './interactions.ts';
+import { handleEvent } from './events.ts';
+import { GATEWAY_NAME } from './stub.ts';
 
 const WATCHDOG_MS = 30_000;
 const MAX_BACKOFF_MS = 5 * 60 * 1_000;
@@ -50,8 +44,7 @@ export class DiscordGateway extends DurableObject<Env> {
       identifyAfter: 0,
       error: null,
     };
-    createInteractionsTable(ctx.storage.sql);
-    createUsageTable(ctx.storage.sql);
+    migrate(ctx.storage.sql);
   }
 
   status() {
@@ -109,8 +102,7 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   override async alarm() {
-    pruneInteractions(this.ctx.storage.sql);
-    pruneUsage(this.ctx.storage.sql);
+    prune(this.ctx.storage.sql);
     await this.ensureConnected();
   }
 
@@ -224,16 +216,7 @@ export class DiscordGateway extends DurableObject<Env> {
           Object.assign(this.lifecycle, { failures: 0, retryAt: 0, error: null });
           this.save();
         }
-        if (packet.t === GatewayDispatchEvents.InteractionCreate) {
-          this.ctx.waitUntil(handleInteraction(packet.d, this.env, this.ctx.storage.sql));
-        }
-        if (
-          packet.t === GatewayDispatchEvents.MessageCreate &&
-          addressesBot(packet.d, token) &&
-          claim(this.ctx.storage.sql, packet.d.id)
-        ) {
-          this.ctx.waitUntil(replyToMention(packet.d, token, this.env, this.ctx.storage.sql));
-        }
+        this.ctx.waitUntil(handleEvent(packet, token, this.env, this.ctx.storage.sql));
       },
       onClose: (code, resumable) => {
         if (!this.shouldRun()) return;

@@ -13,22 +13,12 @@ import { CommandError, reply, type CommandResponse } from '../commands/command.t
 import { getCommand, runCommand } from '../commands/index.ts';
 import { discordFetch, snowflakeTime, withFiles } from '../discord.ts';
 import type { Env } from '../env.ts';
+import { claim } from '../storage.ts';
 import { takeUsage } from '../usage.ts';
 
 const RESPONSE_WINDOW_MS = 3_000;
 const CALLBACK_BUDGET_MS = 750;
 const DEFERRED_BUDGET_MS = 120_000;
-const SEEN_TTL_MS = 15 * 60 * 1_000;
-
-export function createInteractionsTable(sql: SqlStorage) {
-  sql.exec(
-    'CREATE TABLE IF NOT EXISTS interactions (id TEXT PRIMARY KEY, expires_at INTEGER NOT NULL)',
-  );
-}
-
-export function pruneInteractions(sql: SqlStorage) {
-  sql.exec('DELETE FROM interactions WHERE expires_at <= ?', Date.now());
-}
 
 // Discord allows 3 seconds from creation (encoded in the snowflake ID) to reply. Each
 // interaction is claimed once so a replayed event never runs a command twice.
@@ -117,15 +107,4 @@ async function run(
 
 function ephemeral(content: string) {
   return reply({ content, flags: MessageFlags.Ephemeral });
-}
-
-export function claim(sql: SqlStorage, id: string) {
-  const inserted = sql
-    .exec(
-      'INSERT OR IGNORE INTO interactions (id, expires_at) VALUES (?, ?) RETURNING id',
-      id,
-      Date.now() + SEEN_TTL_MS,
-    )
-    .toArray();
-  return inserted.length > 0;
 }

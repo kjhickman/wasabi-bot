@@ -9,8 +9,8 @@ import {
 import type { FunctionTool } from 'openai/resources/responses/responses';
 import type { Env } from '../env.ts';
 import { takeUsage, type Usage } from '../usage.ts';
-import { CommandError } from './command.ts';
-import { commands, getCommand, runCommand } from './index.ts';
+import { CommandError } from '../commands/command.ts';
+import { commands, getCommand, runCommand } from '../commands/index.ts';
 
 const JSON_TYPES: Partial<Record<ApplicationCommandOptionType, string>> = {
   [ApplicationCommandOptionType.String]: 'string',

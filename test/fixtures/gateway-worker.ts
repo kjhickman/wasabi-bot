@@ -1,7 +1,7 @@
-import { gateway as gatewayStub } from '../../src/app.ts';
 import worker, { DiscordGateway } from '../../src/index.ts';
 import type { Env } from '../../src/env.ts';
 import type { GatewayConnection } from '../../src/gateway/connection.ts';
+import { gateway as gatewayStub } from '../../src/gateway/stub.ts';
 
 export class TestGateway extends DiscordGateway {
   // Shorter than production so tests don't sit through real backoffs; gateway.test.ts timings assume these.
