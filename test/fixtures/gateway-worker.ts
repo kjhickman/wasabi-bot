@@ -21,7 +21,6 @@ export class TestGateway extends DiscordGateway {
     return this.ctx.storage.getAlarm();
   }
 
-  // Make the saved session look like one from before sessions held the bot user.
   forgetSessionUser(): void {
     const lifecycle = this.ctx.storage.kv.get<{ session: Partial<Session> }>('lifecycle')!;
     delete lifecycle.session.user;

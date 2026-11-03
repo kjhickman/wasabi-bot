@@ -116,7 +116,6 @@ async function generate(messages: Message[], conversation: Conversation) {
   const { bot, dm, typing, env, signal } = conversation;
   if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not set');
   const instructions = systemPrompt(displayName(bot), dm);
-  // Each round gets its own timeout, so one slow request can't use up the whole reply's time.
   const client = new OpenAI({ apiKey: env.OPENAI_API_KEY, timeout: 30_000 });
   const input = messages.flatMap((message): ResponseInputItem[] => {
     const text = readable(message);

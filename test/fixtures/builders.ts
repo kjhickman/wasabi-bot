@@ -1,7 +1,6 @@
 import { DISCORD_EPOCH_MS } from '../../src/discord.ts';
 
-// A snowflake ID created at the given time. The increment keeps IDs from the same
-// millisecond unique.
+// The increment keeps IDs from the same millisecond unique.
 export function snowflake(createdAt = Date.now(), increment = 0) {
   return ((BigInt(createdAt - DISCORD_EPOCH_MS) << 22n) + BigInt(increment)).toString();
 }

@@ -21,8 +21,7 @@ const RESPONSE_WINDOW_MS = 3_000;
 const CALLBACK_BUDGET_MS = 750;
 const DEFERRED_BUDGET_MS = 120_000;
 
-// Discord allows 3 seconds from creation (encoded in the snowflake ID) to reply. Each
-// interaction is claimed once so a replayed event never runs a command twice.
+// Discord allows 3 seconds from creation (encoded in the snowflake ID) to reply.
 export async function handleInteraction(interaction: APIInteraction, env: Env, sql: SqlStorage) {
   if (interaction.type !== InteractionType.ApplicationCommand) return;
   const { data } = interaction;
@@ -56,7 +55,6 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
     return;
   }
 
-  // Resolves to whether the reply reached the user without an error.
   const respond = async () => {
     if (command?.deferred) {
       if (!(await callback({ type: InteractionResponseType.DeferredChannelMessageWithSource }))) {
@@ -90,7 +88,6 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
   if (!counted) use?.refund();
 }
 
-// A command's own errors are shown privately to the person who ran it.
 async function run(
   data: APIChatInputApplicationCommandInteractionData | APIMessageApplicationCommandInteractionData,
   env: Env,

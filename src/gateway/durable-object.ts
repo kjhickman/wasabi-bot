@@ -33,7 +33,6 @@ interface Lifecycle {
   error: string | null;
 }
 
-// Decides whether the single Gateway connection should run, and when to (re)connect.
 // Durable alarms drive every reconnect so recovery survives Durable Object restarts.
 export class DiscordGateway extends DurableObject<Env> {
   protected readonly identifyCooldownMs: number = 6_000;

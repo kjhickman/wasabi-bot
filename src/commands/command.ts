@@ -28,7 +28,6 @@ export interface SlashCommand {
   deferred?: boolean;
   // Commands that call OpenAI count toward a daily limit (see usage.ts).
   limit?: UsageKind;
-  // Chat sends only the command's text, not its files.
   textOnlyInChat?: boolean;
   execute(
     data: APIChatInputApplicationCommandInteractionData,
@@ -37,7 +36,6 @@ export interface SlashCommand {
   ): CommandResponse | Promise<CommandResponse>;
 }
 
-// Message commands are run from a message's Apps menu.
 export interface MessageCommand {
   definition: RESTPostAPIContextMenuApplicationCommandsJSONBody;
   // Discord doesn't allow descriptions on message commands, so this is only shown by /help.

@@ -42,7 +42,6 @@ export async function download(
   return new File([await response.arrayBuffer()], filename, { type: content_type ?? '' });
 }
 
-// When a snowflake ID was created, in milliseconds since the Unix epoch.
 export function snowflakeTime(id: string) {
   return Number(BigInt(id) >> 22n) + DISCORD_EPOCH_MS;
 }

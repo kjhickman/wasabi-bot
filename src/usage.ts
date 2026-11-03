@@ -7,8 +7,8 @@ const LIMITS = {
 export type UsageKind = keyof typeof LIMITS;
 export type Usage = { ok: true; refund(): void } | { ok: false; reason: string };
 
-// Counts uses over the last 24 hours, for the user and for everyone. The Durable Object
-// runs one event at a time, so the check and the insert can't interleave with another.
+// The Durable Object runs one event at a time, so the check and the insert can't interleave
+// with another.
 export function takeUsage(
   sql: SqlStorage,
   kind: UsageKind,
