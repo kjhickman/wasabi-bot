@@ -39,7 +39,7 @@ export class DiscordGateway extends DurableObject<Env> {
   protected readonly identifyCooldownMs: number = 6_000;
   protected readonly retryBaseMs: number = 1_000;
   private lifecycle: Lifecycle;
-  private connection: GatewayConnection | undefined;
+  protected connection: GatewayConnection | undefined;
   private connecting: Promise<void> | undefined;
   private generation = 0;
   private lastEvent: string | null = null;

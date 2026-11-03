@@ -1,6 +1,6 @@
 import worker, { DiscordGateway } from '../../src/index.ts';
 import type { Env } from '../../src/env.ts';
-import type { GatewayConnection, Session } from '../../src/gateway/connection.ts';
+import type { Session } from '../../src/gateway/connection.ts';
 import { gateway as gatewayStub } from '../../src/gateway/stub.ts';
 
 export class TestGateway extends DiscordGateway {
@@ -14,7 +14,7 @@ export class TestGateway extends DiscordGateway {
 
   // Kill the socket without the Durable Object hearing about it.
   zombie(): void {
-    (this as unknown as { connection: GatewayConnection }).connection.close(3010);
+    this.connection!.close(3010);
   }
 
   alarmTime() {
