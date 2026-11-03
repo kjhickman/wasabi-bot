@@ -5,13 +5,11 @@ import {
   MessageFlags,
   type APIChatInputApplicationCommandInteractionData,
   type APIInteractionResponseChannelMessageWithSource,
-  type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import type { ImagesResponse } from 'openai/resources/images';
-import type { Env } from '../env.ts';
 import { download } from './caption.ts';
-import type { CommandResponse } from './index.ts';
+import type { CommandResponse, SlashCommand } from './command.ts';
 
 const OUTPUT = {
   model: 'gpt-image-2.5-flare',
@@ -38,15 +36,11 @@ export const imagine = {
         max_length: MAX_PROMPT_LENGTH,
       },
     ],
-  } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
+  },
   deferred: true,
-  limit: 'image' as const,
+  limit: 'image',
 
-  async execute(
-    data: APIChatInputApplicationCommandInteractionData,
-    env: Env,
-    signal: AbortSignal,
-  ): Promise<CommandResponse> {
+  async execute(data, env, signal): Promise<CommandResponse> {
     const prompt = promptOption(data);
     if (!prompt) return ephemeral('Describe the image you want.');
     if (!env.OPENAI_API_KEY) return ephemeral('Images are not configured yet.');
@@ -54,7 +48,7 @@ export const imagine = {
     const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
     return respond(prompt, () => client.images.generate({ ...OUTPUT, prompt }, { signal }));
   },
-};
+} satisfies SlashCommand;
 
 export const edit = {
   definition: {
@@ -77,15 +71,11 @@ export const edit = {
         max_length: MAX_PROMPT_LENGTH,
       },
     ],
-  } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
+  },
   deferred: true,
-  limit: 'image' as const,
+  limit: 'image',
 
-  async execute(
-    data: APIChatInputApplicationCommandInteractionData,
-    env: Env,
-    signal: AbortSignal,
-  ): Promise<CommandResponse> {
+  async execute(data, env, signal): Promise<CommandResponse> {
     const option = data.options?.find((option) => option.name === 'image');
     const image =
       option?.type === ApplicationCommandOptionType.Attachment
@@ -108,7 +98,7 @@ export const edit = {
       return client.images.edit({ ...OUTPUT, image: file, prompt }, { signal });
     });
   },
-};
+} satisfies SlashCommand;
 
 function promptOption(data: APIChatInputApplicationCommandInteractionData) {
   const option = data.options?.find((option) => option.name === 'prompt');

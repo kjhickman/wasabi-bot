@@ -10,7 +10,7 @@ import {
 import type { FunctionTool } from 'openai/resources/responses/responses';
 import type { Env } from '../env.ts';
 import { takeUsage, type Usage } from '../usage.ts';
-import { commands, runCommand } from './index.ts';
+import { commands, getCommand, runCommand } from './index.ts';
 
 const JSON_TYPES: Partial<Record<ApplicationCommandOptionType, string>> = {
   [ApplicationCommandOptionType.String]: 'string',
@@ -58,16 +58,15 @@ export async function runCommandTool(
   image?: APIAttachment,
 ): Promise<{ output: string; files: File[] }> {
   const failure = (message: string) => ({ output: `Error: ${message}`, files: [] });
-  const command = commands.find((command) => command.definition.name === name);
+  const command = getCommand(name);
   if (!command || !commandTool(command.definition)) return failure('unknown command.');
-  const definition: Definition = command.definition;
 
   let use: Usage | undefined;
   let succeeded = false;
   try {
     const args = JSON.parse(json) as Record<string, Value>;
     const options: APIApplicationCommandInteractionDataBasicOption[] = [];
-    for (const option of definition.options ?? []) {
+    for (const option of command.definition.options ?? []) {
       if (isAttachment(option)) {
         if (image) {
           options.push({
@@ -94,7 +93,7 @@ export async function runCommandTool(
       } as APIApplicationCommandInteractionDataBasicOption);
     }
     // The chat reply already counts as a request, so only images count again here.
-    if ('limit' in command && command.limit === 'image') {
+    if (command.limit === 'image') {
       use = takeUsage(user.sql, 'image', user.id);
       if ('refused' in use) return failure(use.refused);
     }
@@ -112,7 +111,7 @@ export async function runCommandTool(
     const content = response.data.content ?? '';
     if ((response.data.flags ?? 0) & MessageFlags.Ephemeral) return failure(content);
     succeeded = true;
-    const files = 'textOnlyInChat' in command ? [] : (response.files ?? []);
+    const files = command.textOnlyInChat ? [] : (response.files ?? []);
     const note = files.length ? '\nThe image is attached to your reply.' : '';
     return { output: content + note, files };
   } catch (error) {

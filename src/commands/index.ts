@@ -3,14 +3,12 @@ import {
   InteractionResponseType,
   MessageFlags,
   type APIChatInputApplicationCommandInteractionData,
-  type APIInteractionResponseChannelMessageWithSource,
   type APIMessageApplicationCommandInteractionData,
-  type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import type { Env } from '../env.ts';
-import type { Kind } from '../usage.ts';
 import { caption } from './caption.ts';
 import { choose } from './choose.ts';
+import type { CommandResponse, MessageCommand, SlashCommand } from './command.ts';
 import { conch } from './conch.ts';
 import { flip } from './flip.ts';
 import { edit, imagine } from './image.ts';
@@ -22,9 +20,9 @@ const help = {
     name: 'help',
     description: "List the bot's commands.",
     type: ApplicationCommandType.ChatInput,
-  } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
+  },
 
-  execute(): APIInteractionResponseChannelMessageWithSource {
+  execute() {
     const lines = [
       ...commands.map(({ definition }) => `- \`/${definition.name}\`: ${definition.description}`),
       ...messageCommands.map(
@@ -37,14 +35,16 @@ const help = {
       data: { content: lines.join('\n') },
     };
   },
-};
+} satisfies SlashCommand;
 
-export const commands = [conch, choose, caption, imagine, edit, flip, help];
-// Message commands are run from a message's Apps menu.
-export const messageCommands = [mock];
+export const commands: SlashCommand[] = [conch, choose, caption, imagine, edit, flip, help];
+export const messageCommands: MessageCommand[] = [mock];
 
-// Slash commands only upload files when deferred, since their replies are sent as edits.
-export type CommandResponse = APIInteractionResponseChannelMessageWithSource & { files?: File[] };
+const commandsByName = new Map(commands.map((command) => [command.definition.name, command]));
+
+export function getCommand(name: string) {
+  return commandsByName.get(name);
+}
 
 export function withFiles(message: object, files: File[]) {
   const body = new FormData();
@@ -59,18 +59,6 @@ export function withFiles(message: object, files: File[]) {
   return body;
 }
 
-// Deferred commands may take longer than Discord's 3-second window, so they acknowledge
-// the interaction first and edit in their reply later.
-export function isDeferred(name: string) {
-  return commands.some((command) => command.definition.name === name && 'deferred' in command);
-}
-
-// Commands that call OpenAI count toward a daily limit (see usage.ts).
-export function limitOf(name: string): Kind | undefined {
-  const command = commands.find((command) => command.definition.name === name);
-  return command && 'limit' in command ? command.limit : undefined;
-}
-
 export async function runCommand(
   data: APIChatInputApplicationCommandInteractionData | APIMessageApplicationCommandInteractionData,
   env: Env,
@@ -80,7 +68,7 @@ export async function runCommand(
     const command = messageCommands.find((command) => command.definition.name === data.name);
     if (command) return command.execute(data);
   } else {
-    const command = commands.find((command) => command.definition.name === data.name);
+    const command = getCommand(data.name);
     if (command) return command.execute(data, env, signal);
   }
   return {

@@ -3,12 +3,10 @@ import {
   ApplicationCommandType,
   InteractionResponseType,
   MessageFlags,
-  type APIChatInputApplicationCommandInteractionData,
   type APIInteractionResponseChannelMessageWithSource,
-  type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
-import type { Env } from '../env.ts';
+import type { SlashCommand } from './command.ts';
 
 const UNSURE_ANSWERS = ['Yes', 'No', "I don't think so", 'Maybe', 'Try asking again'];
 
@@ -26,14 +24,10 @@ export const conch = {
         min_length: 1,
       },
     ],
-  } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
-  limit: 'text' as const,
+  },
+  limit: 'text',
 
-  async execute(
-    data: APIChatInputApplicationCommandInteractionData,
-    env: Env,
-    signal: AbortSignal,
-  ): Promise<APIInteractionResponseChannelMessageWithSource> {
+  async execute(data, env, signal) {
     const question = data.options?.find((option) => option.name === 'question');
     if (question?.type !== ApplicationCommandOptionType.String || !question.value.trim()) {
       return ephemeral('Ask the conch a yes/no question.');
@@ -52,7 +46,7 @@ export const conch = {
     }
     return ephemeral("The conch couldn't answer. Try again.");
   },
-};
+} satisfies SlashCommand;
 
 async function decide(question: string, apiKey: string, signal: AbortSignal) {
   const client = new OpenAI({ apiKey, maxRetries: 0 });

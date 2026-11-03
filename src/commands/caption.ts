@@ -3,13 +3,10 @@ import {
   ApplicationCommandType,
   InteractionResponseType,
   MessageFlags,
-  type APIChatInputApplicationCommandInteractionData,
   type APIInteractionResponseChannelMessageWithSource,
-  type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
-import type { Env } from '../env.ts';
-import type { CommandResponse } from './index.ts';
+import type { CommandResponse, SlashCommand } from './command.ts';
 
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 // Discord's default upload limit for bots, since the image is re-posted with the caption.
@@ -29,17 +26,13 @@ export const caption = {
         required: true,
       },
     ],
-  } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
+  },
   deferred: true,
-  limit: 'text' as const,
+  limit: 'text',
   // In chat the image is already in the conversation, so only the caption is sent.
   textOnlyInChat: true,
 
-  async execute(
-    data: APIChatInputApplicationCommandInteractionData,
-    env: Env,
-    signal: AbortSignal,
-  ): Promise<CommandResponse> {
+  async execute(data, env, signal): Promise<CommandResponse> {
     const option = data.options?.find((option) => option.name === 'image');
     const image =
       option?.type === ApplicationCommandOptionType.Attachment
@@ -72,7 +65,7 @@ export const caption = {
       files: [file],
     };
   },
-};
+} satisfies SlashCommand;
 
 // Slash command uploads are temporary, so keep a copy to re-post with the caption.
 export async function download(url: string, filename: string, type: string, signal: AbortSignal) {

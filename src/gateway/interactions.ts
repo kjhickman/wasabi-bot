@@ -8,7 +8,7 @@ import {
   type APIInteraction,
   type APIInteractionResponse,
 } from 'discord-api-types/v10';
-import { isDeferred, limitOf, runCommand, withFiles } from '../commands/index.ts';
+import { getCommand, runCommand, withFiles } from '../commands/index.ts';
 import type { Env } from '../env.ts';
 import { takeUsage } from '../usage.ts';
 
@@ -58,9 +58,9 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
     return sent.ok;
   };
 
-  const kind = limitOf(interaction.data.name);
+  const command = getCommand(interaction.data.name);
   const user = interaction.member?.user ?? interaction.user;
-  const use = kind && user ? takeUsage(sql, kind, user.id) : undefined;
+  const use = command?.limit && user ? takeUsage(sql, command.limit, user.id) : undefined;
   if (use && 'refused' in use) {
     await callback({
       type: InteractionResponseType.ChannelMessageWithSource,
@@ -72,7 +72,7 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
   // Only uses that reach the user without an error count toward the limit.
   let succeeded = false;
   try {
-    if (isDeferred(interaction.data.name)) {
+    if (command?.deferred) {
       if (!(await callback({ type: InteractionResponseType.DeferredChannelMessageWithSource }))) {
         return;
       }

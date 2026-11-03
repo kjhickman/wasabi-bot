@@ -4,10 +4,8 @@ import {
   InteractionResponseType,
   MessageFlags,
   type APIApplicationCommandStringOption,
-  type APIChatInputApplicationCommandInteractionData,
-  type APIInteractionResponseChannelMessageWithSource,
-  type RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
+import type { SlashCommand } from './command.ts';
 
 const MIN_OPTIONS = 2;
 const MAX_OPTIONS = 7;
@@ -25,11 +23,9 @@ export const choose = {
       min_length: 1,
       max_length: 100,
     })),
-  } satisfies RESTPostAPIChatInputApplicationCommandsJSONBody,
+  },
 
-  execute(
-    data: APIChatInputApplicationCommandInteractionData,
-  ): APIInteractionResponseChannelMessageWithSource {
+  execute(data) {
     const choices = (data.options ?? []).flatMap((option) =>
       option.type === ApplicationCommandOptionType.String && option.value.trim()
         ? [option.value.trim()]
@@ -54,4 +50,4 @@ export const choose = {
       },
     };
   },
-};
+} satisfies SlashCommand;
