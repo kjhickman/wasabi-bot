@@ -1,6 +1,7 @@
 import { ApplicationCommandOptionType, ApplicationCommandType } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import { attachmentOption, download, MAX_MESSAGE_LENGTH, MAX_UPLOAD_BYTES } from '../discord.ts';
+import { errorMessage } from '../errors.ts';
 import { MODELS } from '../openai.ts';
 import { CommandError, reply, type SlashCommand } from './command.ts';
 
@@ -41,12 +42,16 @@ export const caption = {
     // Slash command uploads are temporary, so keep a copy to re-post with the caption.
     const downloadFailed = new AbortController();
     const [file, text] = await Promise.all([
-      download(image, signal).catch(() => {
+      download(image, signal).catch((error: unknown) => {
+        console.error('Caption download failed', errorMessage(error));
         downloadFailed.abort();
         return undefined;
       }),
       write(image.url, env.OPENAI_API_KEY, AbortSignal.any([signal, downloadFailed.signal])).catch(
-        () => '',
+        (error: unknown) => {
+          if (!downloadFailed.signal.aborted) console.error('Caption failed', errorMessage(error));
+          return '';
+        },
       ),
     ]);
     if (!file || !text) throw new CommandError("I couldn't think of a caption. Try again.");

@@ -60,6 +60,7 @@ beforeEach(() => {
     String(input) === url ? download() : openai(init!),
   );
   vi.stubGlobal('fetch', fetchMock);
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -171,12 +172,17 @@ describe('/caption', () => {
       });
 
     await expect(run()).rejects.toEqual(failure);
+    expect(console.error).toHaveBeenCalledExactlyOnceWith(
+      'Caption download failed',
+      'Attachment download failed: 404',
+    );
   });
 
   it('handles an OpenAI error', async () => {
     openai = () => new Response('Unauthorized', { status: 401 });
 
     await expect(run()).rejects.toEqual(failure);
+    expect(console.error).toHaveBeenCalledWith('Caption failed', expect.any(String));
   });
 
   it('handles an empty caption', async () => {

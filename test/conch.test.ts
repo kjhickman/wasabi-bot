@@ -32,6 +32,7 @@ beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
   vi.spyOn(Math, 'random').mockReturnValue(0.5);
+  vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -123,6 +124,7 @@ describe('/conch', () => {
 
     await expect(ask(options)).rejects.toEqual(failure);
     expect(fetchMock).toHaveBeenCalledOnce();
+    expect(console.error).toHaveBeenCalledWith('Conch command failed', expect.any(String));
   });
 
   it('handles invalid JSON', async () => {

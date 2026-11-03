@@ -11,6 +11,7 @@ import type { ResponseInputItem, Tool } from 'openai/resources/responses/respons
 import { commandTools, runCommandTool, type ToolContext } from './tools.ts';
 import { discordFetch, MAX_MESSAGE_LENGTH, withFiles } from '../discord.ts';
 import type { Env } from '../env.ts';
+import { errorMessage } from '../errors.ts';
 import { MODELS } from '../openai.ts';
 import { takeUsage } from '../usage.ts';
 
@@ -106,7 +107,7 @@ export async function replyToMention(
     }));
   } catch (error) {
     use.refund();
-    console.error('Chat reply failed', error instanceof Error ? error.message : error);
+    console.error('Chat reply failed', errorMessage(error));
   }
   await send(content, files);
 }

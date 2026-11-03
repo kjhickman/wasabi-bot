@@ -8,6 +8,7 @@ import {
 } from 'discord-api-types/v10';
 import type { FunctionTool } from 'openai/resources/responses/responses';
 import type { Env } from '../env.ts';
+import { errorMessage } from '../errors.ts';
 import { takeUsage, type Usage } from '../usage.ts';
 import { CommandError } from '../commands/command.ts';
 import { commands, getCommand, runCommand } from '../commands/index.ts';
@@ -120,7 +121,7 @@ export async function runCommandTool(
   } catch (error) {
     if (use?.ok) use.refund();
     if (error instanceof CommandError) return failure(error.message);
-    console.error('Chat command failed', name, error instanceof Error ? error.message : error);
+    console.error('Chat command failed', name, errorMessage(error));
     return failure('the command failed.');
   }
 }

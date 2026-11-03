@@ -13,6 +13,7 @@ import { CommandError, reply, type CommandResponse } from '../commands/command.t
 import { getCommand, runCommand } from '../commands/index.ts';
 import { discordFetch, snowflakeTime, withFiles } from '../discord.ts';
 import type { Env } from '../env.ts';
+import { errorMessage } from '../errors.ts';
 import { claim } from '../storage.ts';
 import { takeUsage } from '../usage.ts';
 
@@ -82,8 +83,8 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
   };
 
   // Only uses that reach the user without an error count toward the limit.
-  const counted = await respond().catch(() => {
-    console.error('Gateway command failed');
+  const counted = await respond().catch((error: unknown) => {
+    console.error('Gateway command failed', data.name, errorMessage(error));
     return false;
   });
   if (!counted) use?.refund();

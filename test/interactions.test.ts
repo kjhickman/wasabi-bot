@@ -1,5 +1,6 @@
 import { InteractionResponseType, MessageFlags, type APIInteraction } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { conch as conchCommand } from '../src/commands/conch.ts';
 import type { Env } from '../src/env.ts';
 import { handleInteraction } from '../src/gateway/interactions.ts';
 import { takeUsage } from '../src/usage.ts';
@@ -79,6 +80,15 @@ describe('daily limits for slash commands', () => {
     await handleInteraction(conch({ user: { id: '200' } }), {} as Env, sql);
 
     expect(callbacks()[0].data.flags).toBe(MessageFlags.Ephemeral);
+    expect(requests()).toEqual([]);
+  });
+
+  it('logs and does not count a command that crashes', async () => {
+    vi.spyOn(conchCommand, 'execute').mockRejectedValue(new Error('boom'));
+
+    await handleInteraction(conch({ user: { id: '200' } }), env, sql);
+
+    expect(console.error).toHaveBeenCalledWith('Gateway command failed', 'conch', 'boom');
     expect(requests()).toEqual([]);
   });
 
