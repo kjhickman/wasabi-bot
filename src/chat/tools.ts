@@ -67,7 +67,9 @@ export async function runCommandTool(
 ): Promise<{ output: string; files: File[] }> {
   const failure = (message: string) => ({ output: `Error: ${message}`, files: [] });
   const command = getCommand(name);
-  if (!command || !commandTool(command.definition)) return failure('unknown command.');
+  if (!command || !commandTools.some((tool) => tool.name === name)) {
+    return failure('unknown command.');
+  }
 
   let use: Usage | undefined;
   try {

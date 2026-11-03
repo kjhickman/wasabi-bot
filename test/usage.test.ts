@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { takeUsage, type Kind, type Usage } from '../src/usage.ts';
+import { takeUsage, type UsageKind, type Usage } from '../src/usage.ts';
 import { sqlStorage } from './fixtures/sql.ts';
 
 const MINUTE = 60 * 1_000;
@@ -7,7 +7,7 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const now = Date.UTC(2026, 10, 2, 12);
 
-function fill(sql: SqlStorage, kind: Kind, userId: string, count: number, at = now) {
+function fill(sql: SqlStorage, kind: UsageKind, userId: string, count: number, at = now) {
   for (let i = 0; i < count; i++)
     expect(takeUsage(sql, kind, userId, at)).toMatchObject({ ok: true });
 }

@@ -8,7 +8,7 @@ import {
   type RESTPostAPIContextMenuApplicationCommandsJSONBody,
 } from 'discord-api-types/v10';
 import type { Env } from '../env.ts';
-import type { Kind } from '../usage.ts';
+import type { UsageKind } from '../usage.ts';
 
 // A failure to show the person who ran the command, such as bad input. It doesn't count
 // toward their daily limit.
@@ -27,7 +27,7 @@ export interface SlashCommand {
   // the interaction first and edit in their reply later.
   deferred?: boolean;
   // Commands that call OpenAI count toward a daily limit (see usage.ts).
-  limit?: Kind;
+  limit?: UsageKind;
   // Chat sends only the command's text, not its files.
   textOnlyInChat?: boolean;
   execute(

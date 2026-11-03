@@ -1,5 +1,5 @@
 import { GatewayDispatchEvents, type GatewayDispatchPayload } from 'discord-api-types/v10';
-import { addressesBot, replyToMention, type ChatOptions } from '../chat/index.ts';
+import { addressesBot, replyToMessage, type ChatOptions } from '../chat/index.ts';
 import { claim } from '../storage.ts';
 import { handleInteraction } from './interactions.ts';
 
@@ -14,6 +14,6 @@ export async function handleEvent(packet: GatewayDispatchPayload, context: ChatO
     addressesBot(packet.d, bot) &&
     claim(sql, packet.d.id)
   ) {
-    return replyToMention(packet.d, context);
+    return replyToMessage(packet.d, context);
   }
 }

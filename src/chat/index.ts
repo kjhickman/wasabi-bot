@@ -8,6 +8,7 @@ import {
 } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import type { ResponseInputItem, Tool } from 'openai/resources/responses/responses';
+import { systemPrompt } from './prompt.ts';
 import { commandTools, runCommandTool, type ToolContext } from './tools.ts';
 import { discordFetch, MAX_MESSAGE_LENGTH, withFiles } from '../discord.ts';
 import type { Env } from '../env.ts';
@@ -49,12 +50,12 @@ export function addressesBot(message: GatewayMessageCreateDispatchData, bot: API
   return !message.author.bot && (isDM || message.mentions.some((user) => user.id === bot.id));
 }
 
-export async function replyToMention(
+export async function replyToMessage(
   message: GatewayMessageCreateDispatchData,
   { bot, token, env, sql, signal = AbortSignal.timeout(REPLY_TIMEOUT_MS) }: ChatOptions,
 ) {
   const dm = !message.guild_id;
-  const messages = Routes.channelMessages(message.channel_id);
+  const messagesRoute = Routes.channelMessages(message.channel_id);
   const typing = () =>
     discordFetch(Routes.channelTyping(message.channel_id), { method: 'POST', token }).catch(
       () => undefined,
@@ -66,7 +67,7 @@ export async function replyToMention(
       allowed_mentions: { parse: [], replied_user: true },
       flags: MessageFlags.SuppressEmbeds,
     } satisfies RESTPostAPIChannelMessageJSONBody;
-    const sent = await discordFetch(messages, {
+    const sent = await discordFetch(messagesRoute, {
       method: 'POST',
       body: withFiles(body, files),
       token,
@@ -78,21 +79,20 @@ export async function replyToMention(
   const use = takeUsage(sql, 'text', userId);
   if (!use.ok) return send(use.reason);
 
-  let content = FAILURE_REPLY;
-  let files: File[] = [];
-  try {
+  const compose = async () => {
     const [, response] = await Promise.all([
       typing(),
-      discordFetch(`${messages}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`, {
+      discordFetch(`${messagesRoute}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`, {
         signal,
         token,
       }),
     ]);
-    const history = response.ok ? (await response.json<APIMessage[]>()).reverse() : [];
-    const image = [message, message.referenced_message, ...history.toReversed()]
+    // Newest first, as Discord lists them.
+    const recent = response.ok ? await response.json<APIMessage[]>() : [];
+    const image = [message, message.referenced_message, ...recent]
       .flatMap((source) => source?.attachments ?? [])
       .find((attachment) => attachment.content_type?.startsWith('image/'));
-    ({ content, files } = await generate([...history, message], {
+    return generate([...recent.toReversed(), message], {
       bot,
       dm,
       typing,
@@ -101,20 +101,21 @@ export async function replyToMention(
       userId,
       image,
       signal,
-    }));
-  } catch (error) {
+    });
+  };
+
+  const { content, files } = await compose().catch((error: unknown) => {
     use.refund();
     console.error('Chat reply failed', errorMessage(error));
-  }
+    return { content: FAILURE_REPLY, files: [] };
+  });
   await send(content, files);
 }
 
 async function generate(messages: Message[], conversation: Conversation) {
   const { bot, dm, typing, env, signal } = conversation;
   if (!env.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY is not set');
-  const [place, like, commands] = dm
-    ? ['a Discord DM', 'a friend texting', 'your own']
-    : ['a Discord channel', 'a regular member of the server', "this server's"];
+  const instructions = systemPrompt(displayName(bot), dm);
   // Each round gets its own timeout, so one slow request can't use up the whole reply's time.
   const client = new OpenAI({ apiKey: env.OPENAI_API_KEY, timeout: 30_000 });
   const input = messages.flatMap((message): ResponseInputItem[] => {
@@ -131,7 +132,7 @@ async function generate(messages: Message[], conversation: Conversation) {
     const response = await client.responses.create(
       {
         model: MODELS.text,
-        instructions: `You are ${displayName(bot)}, a bot chatting in ${place}. Be casual, friendly and concise, like ${like}: usually a sentence or two, and always under 1,500 characters. Each message from someone else starts with their name. Reply to the last message, using earlier messages as context. Write only your reply, without your name in front. Search the web when the last message needs current or recent information, and use the python tool for math or data you'd otherwise work out in your head. You can't share files or charts, but images your commands make are attached to your reply automatically. Your other tools are ${commands} slash commands. Use one when someone asks for it or it clearly fits the last message, instead of doing its job yourself (for example, don't make a random pick yourself when a command can). Only use commands for the last message, and report their results exactly.`,
+        instructions,
         input,
         tools: TOOLS,
         tool_choice: round < MAX_TOOL_ROUNDS ? 'auto' : 'none',

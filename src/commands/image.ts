@@ -6,7 +6,7 @@ import { errorMessage } from '../errors.ts';
 import { MODELS } from '../openai.ts';
 import { CommandError, reply, type SlashCommand } from './command.ts';
 
-const OUTPUT = {
+const IMAGE_OPTIONS = {
   model: MODELS.image,
   size: 'auto',
   quality: 'medium',
@@ -40,7 +40,7 @@ export const imagine = {
     if (!env.OPENAI_API_KEY) throw new CommandError('Images are not configured yet.');
 
     const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
-    return respond(prompt, () => client.images.generate({ ...OUTPUT, prompt }, { signal }));
+    return respond(prompt, () => client.images.generate({ ...IMAGE_OPTIONS, prompt }, { signal }));
   },
 } satisfies SlashCommand;
 
@@ -84,7 +84,7 @@ export const edit = {
     const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
     return respond(prompt, async () => {
       const file = await download(image, signal);
-      return client.images.edit({ ...OUTPUT, image: file, prompt }, { signal });
+      return client.images.edit({ ...IMAGE_OPTIONS, image: file, prompt }, { signal });
     });
   },
 } satisfies SlashCommand;

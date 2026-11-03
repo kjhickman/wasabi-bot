@@ -4,12 +4,17 @@ const LIMITS = {
   text: { user: 100, bot: 200, label: 'requests' },
 };
 
-export type Kind = keyof typeof LIMITS;
+export type UsageKind = keyof typeof LIMITS;
 export type Usage = { ok: true; refund(): void } | { ok: false; reason: string };
 
 // Counts uses over the last 24 hours, for the user and for everyone. The Durable Object
 // runs one event at a time, so the check and the insert can't interleave with another.
-export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Date.now()): Usage {
+export function takeUsage(
+  sql: SqlStorage,
+  kind: UsageKind,
+  userId: string,
+  now = Date.now(),
+): Usage {
   const { user, bot, label } = LIMITS[kind];
   const since = now - USAGE_WINDOW_MS;
   const mine = sql
@@ -23,7 +28,7 @@ export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Dat
   if (mine.count >= user) {
     return {
       ok: false,
-      reason: `You've used all ${user} of your ${label} for today. Try again in ${wait(mine.oldest! + USAGE_WINDOW_MS - now)}.`,
+      reason: `You've used all ${user} of your ${label} for today. Try again in ${formatDuration(mine.oldest! + USAGE_WINDOW_MS - now)}.`,
     };
   }
   const everyone = sql
@@ -36,7 +41,7 @@ export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Dat
   if (everyone.count >= bot) {
     return {
       ok: false,
-      reason: `I've used all ${bot} of my ${label} for today across everyone. Try again in ${wait(everyone.oldest! + USAGE_WINDOW_MS - now)}.`,
+      reason: `I've used all ${bot} of my ${label} for today across everyone. Try again in ${formatDuration(everyone.oldest! + USAGE_WINDOW_MS - now)}.`,
     };
   }
   const { id } = sql
@@ -50,7 +55,7 @@ export function takeUsage(sql: SqlStorage, kind: Kind, userId: string, now = Dat
   return { ok: true, refund: () => void sql.exec('DELETE FROM usage WHERE id = ?', id) };
 }
 
-function wait(ms: number) {
+function formatDuration(ms: number) {
   const minutes = Math.max(1, Math.ceil(ms / 60_000));
   const hours = Math.floor(minutes / 60);
   return hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`;

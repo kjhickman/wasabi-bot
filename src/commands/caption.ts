@@ -47,12 +47,14 @@ export const caption = {
         downloadFailed.abort();
         return undefined;
       }),
-      write(image.url, env.OPENAI_API_KEY, AbortSignal.any([signal, downloadFailed.signal])).catch(
-        (error: unknown) => {
-          if (!downloadFailed.signal.aborted) console.error('Caption failed', errorMessage(error));
-          return '';
-        },
-      ),
+      writeCaption(
+        image.url,
+        env.OPENAI_API_KEY,
+        AbortSignal.any([signal, downloadFailed.signal]),
+      ).catch((error: unknown) => {
+        if (!downloadFailed.signal.aborted) console.error('Caption failed', errorMessage(error));
+        return '';
+      }),
     ]);
     if (!file || !text) throw new CommandError("I couldn't think of a caption. Try again.");
     return reply({ content: text.slice(0, MAX_MESSAGE_LENGTH), allowed_mentions: { parse: [] } }, [
@@ -62,7 +64,7 @@ export const caption = {
 } satisfies SlashCommand;
 
 // OpenAI fetches the image itself, so the Durable Object never holds a base64 copy.
-async function write(url: string, apiKey: string, signal: AbortSignal) {
+async function writeCaption(url: string, apiKey: string, signal: AbortSignal) {
   const client = new OpenAI({ apiKey });
   const response = await client.responses.create(
     {
