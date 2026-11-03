@@ -512,6 +512,17 @@ describe('Gateway in workerd', () => {
     expect((await discordState()).packets.filter((packet) => packet.op === 2)).toHaveLength(1);
   }, 15_000);
 
+  it('re-arms the alarm when an alarm check fails', async () => {
+    createRuntime();
+    await (await control('start')).text();
+    await connected();
+
+    expect((await runtime!.dispatchFetch('https://bot.test/_test/fail-alarm')).status).toBe(204);
+    expect(
+      await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json(),
+    ).toBeGreaterThan(Date.now());
+  }, 15_000);
+
   it('invalidates a non-resumable session and respects the persisted Identify cooldown', async () => {
     createRuntime();
     await (await control('start')).text();

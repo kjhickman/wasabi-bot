@@ -5,7 +5,7 @@ A Discord Gateway bot running on Cloudflare Workers. See `README.md` for setup a
 ## Stack
 
 - TypeScript on Cloudflare Workers (`wrangler.jsonc`), with Hono for HTTP routes
-- A Durable Object (`DiscordGateway`, SQLite storage) holds the single Discord Gateway WebSocket. In prod, a once-a-minute cron makes sure it stays connected.
+- A Durable Object (`DiscordGateway`, SQLite storage) holds the single Discord Gateway WebSocket. A Durable Object alarm checks the connection every 30 seconds. In prod, a cron every 15 minutes restarts that alarm loop if it ever stops.
 - OpenAI handles chat replies when someone mentions the bot, and some slash commands use it too
 - `discord-api-types` for Discord types
 - Vite+ (`vp`) for dev, build, format, lint, and tests (Vitest). `tsrs` for type checking.

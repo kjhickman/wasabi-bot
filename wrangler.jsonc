@@ -34,7 +34,7 @@
         "GATEWAY_MODE": "prod",
       },
       "triggers": {
-        "crons": ["* * * * *"],
+        "crons": ["*/15 * * * *"],
       },
     },
   },

@@ -120,9 +120,15 @@ export class DiscordGateway extends DurableObject<Env> {
     return this.status();
   }
 
+  // Alarms stop retrying after six failures, so re-arm here instead of letting the loop die.
   override async alarm() {
-    prune(this.ctx.storage.sql);
-    await this.ensureConnected();
+    try {
+      prune(this.ctx.storage.sql);
+      await this.ensureConnected();
+    } catch (error) {
+      console.error('Gateway alarm failed:', error);
+      if (this.shouldRun()) await this.armAlarm();
+    }
   }
 
   private shouldRun() {

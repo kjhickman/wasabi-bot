@@ -21,6 +21,13 @@ export class TestGateway extends DiscordGateway {
     return this.ctx.storage.getAlarm();
   }
 
+  // Run the alarm with no alarm set and storage that makes pruning throw.
+  async failAlarm() {
+    await this.ctx.storage.deleteAlarm();
+    this.ctx.storage.sql.exec('DROP TABLE seen');
+    await this.alarm();
+  }
+
   forgetSessionUser(): void {
     const lifecycle = this.ctx.storage.kv.get<{ session: Partial<Session> }>('lifecycle')!;
     delete lifecycle.session.user;
@@ -37,6 +44,10 @@ export default {
       return new Response(null, { status: 204 });
     }
     if (path === '/_test/alarm') return Response.json(await gateway.alarmTime());
+    if (path === '/_test/fail-alarm') {
+      await gateway.failAlarm();
+      return new Response(null, { status: 204 });
+    }
     if (path === '/_test/zombie') {
       await gateway.zombie();
       return new Response(null, { status: 204 });
