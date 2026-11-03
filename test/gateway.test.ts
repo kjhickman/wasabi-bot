@@ -512,6 +512,31 @@ describe('Gateway in workerd', () => {
     expect((await discordState()).packets.filter((packet) => packet.op === 2)).toHaveLength(1);
   }, 15_000);
 
+  it('leaves a pending alarm in place when the scheduled check runs', async () => {
+    createRuntime();
+    await (await control('start')).text();
+    await connected();
+    const armed = await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json();
+    await reconcile();
+
+    expect(await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json()).toBe(armed);
+  }, 15_000);
+
+  it('re-arms the watchdog from a running alarm and keeps the connection', async () => {
+    createRuntime();
+    await (await control('start')).text();
+    await connected();
+    await (await runtime!.dispatchFetch('https://bot.test/_test/fire-alarm')).text();
+    await vi.waitFor(async () =>
+      expect(
+        await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json(),
+      ).toBeGreaterThan(Date.now() + 20_000),
+    );
+
+    expect((await status()).connected).toBe(true);
+    expect((await discordState()).connections).toBe(1);
+  }, 15_000);
+
   it('re-arms the alarm when an alarm check fails', async () => {
     createRuntime();
     await (await control('start')).text();

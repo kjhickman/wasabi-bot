@@ -21,6 +21,10 @@ export class TestGateway extends DiscordGateway {
     return this.ctx.storage.getAlarm();
   }
 
+  fireAlarm() {
+    return this.ctx.storage.setAlarm(Date.now());
+  }
+
   // Run the alarm with no alarm set and storage that makes pruning throw.
   async failAlarm() {
     await this.ctx.storage.deleteAlarm();
@@ -44,6 +48,10 @@ export default {
       return new Response(null, { status: 204 });
     }
     if (path === '/_test/alarm') return Response.json(await gateway.alarmTime());
+    if (path === '/_test/fire-alarm') {
+      await gateway.fireAlarm();
+      return new Response(null, { status: 204 });
+    }
     if (path === '/_test/fail-alarm') {
       await gateway.failAlarm();
       return new Response(null, { status: 204 });

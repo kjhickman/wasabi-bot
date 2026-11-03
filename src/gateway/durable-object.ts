@@ -193,10 +193,11 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   private async armAlarm() {
+    const current = await this.ctx.storage.getAlarm();
     const { retryAt } = this.lifecycle;
     let next = Date.now() + WATCHDOG_MS;
     if (retryAt > Date.now()) next = Math.min(next, retryAt);
-    await this.ctx.storage.setAlarm(next);
+    if (current === null || current > next) await this.ctx.storage.setAlarm(next);
   }
 
   private async attemptConnection(token: string) {
