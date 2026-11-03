@@ -9,6 +9,7 @@ interface Options {
   decisionDelay: number;
   responseDelay: number;
   resumeStatus: number;
+  commandsStatus: number;
 }
 
 export class FakeDiscord extends DurableObject {
@@ -26,6 +27,7 @@ export class FakeDiscord extends DurableObject {
       decisionDelay: 0,
       responseDelay: 0,
       resumeStatus: 101,
+      commandsStatus: 200,
     };
     if (url.pathname === '/configure') {
       this.ctx.storage.kv.put('options', {
@@ -45,6 +47,7 @@ export class FakeDiscord extends DurableObject {
         discoveries: this.ctx.storage.kv.get('discoveries') ?? 0,
         callbackTimes: this.ctx.storage.kv.get('callbackTimes') ?? [],
         closeCodes: this.ctx.storage.kv.get('closeCodes') ?? [],
+        commandSyncs: this.ctx.storage.kv.get('commandSyncs') ?? [],
         connections: [...this.sockets].filter((socket) => socket.readyState === WebSocket.OPEN)
           .length,
       });
@@ -83,6 +86,16 @@ export class FakeDiscord extends DurableObject {
           max_concurrency: 1,
         },
       });
+    }
+    if (url.pathname === '/api/v10/applications/@me') return Response.json({ id: '900' });
+    if (url.pathname === '/api/v10/applications/900/commands' && request.method === 'PUT') {
+      const syncs = this.ctx.storage.kv.get<unknown[]>('commandSyncs') ?? [];
+      syncs.push(await request.json());
+      this.ctx.storage.kv.put('commandSyncs', syncs);
+      if (options.commandsStatus !== 200) {
+        return new Response('Invalid Form Body', { status: options.commandsStatus });
+      }
+      return Response.json([]);
     }
     if (url.pathname.endsWith('/callback')) {
       const callbacks = this.ctx.storage.kv.get<unknown[]>('callbacks') ?? [];

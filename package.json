@@ -1,14 +1,13 @@
 {
-  "name": "discord-bot",
-  "version": "0.0.0",
+  "name": "wasabi-bot",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file=.env scripts/register-commands.ts && vp dev",
+    "dev": "vp dev",
     "check": "vp check && tsrs --noEmit",
     "test": "vp test run",
-    "deploy": "CLOUDFLARE_ENV=prod vp build && wrangler deploy --secrets-file .dev.vars.prod && node --env-file-if-exists=.env.prod scripts/register-commands.ts",
-    "gateway": "node --env-file=.env.prod scripts/gateway.ts",
+    "deploy": "CLOUDFLARE_ENV=prod vp build && wrangler deploy --secrets-file .dev.vars.prod",
     "postinstall": "wrangler types --include-env false"
   },
   "dependencies": {

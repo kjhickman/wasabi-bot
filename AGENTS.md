@@ -17,7 +17,6 @@ A Discord Gateway bot running on Cloudflare Workers. See `README.md` for setup a
 - `src/gateway/`: the Durable Object lifecycle, the WebSocket connection, and interaction handling
 - `src/chat.ts`: replies to mentions using OpenAI, with slash commands available as tools
 - `src/commands/`: slash and message commands, registered in `index.ts`
-- `scripts/`: syncs commands with Discord and runs the prod gateway control CLI
 - `test/`: Vitest tests and fixtures
 
 Before committing, run `npm run check` and `npm test`. After editing `wrangler.jsonc`, rerun `npm install` to regenerate the Worker types.
@@ -26,7 +25,7 @@ Before committing, run `npm run check` and `npm test`. After editing `wrangler.j
 
 Production is the `prod` env (Worker `discord-bot-prod`). Use `cf` or `npx wrangler` to inspect it:
 
-- `npm run gateway -- status`: shows the gateway's lifecycle state and its last error
+- `(. ./.env.prod && curl -fsS --max-time 10 -H "Authorization: Bearer $GATEWAY_CONTROL_TOKEN" "$GATEWAY_URL/gateway/status")`: shows the gateway's lifecycle state, its last error, and any command sync error
 - `npx wrangler tail --env prod`: streams live logs. Workers Logs keeps history; browse it in the Cloudflare dashboard for `discord-bot-prod`.
 - `npx wrangler deployments list --env prod` / `npx wrangler secret list --env prod`
 - `cf cli search "<task>"`: finds the right `cf` command. Then run `<command> --help`.

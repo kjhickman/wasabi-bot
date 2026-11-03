@@ -3,7 +3,9 @@ import {
   GatewayDispatchEvents,
   Routes,
   type RESTGetAPIGatewayBotResult,
+  type RESTGetCurrentApplicationResult,
 } from 'discord-api-types/v10';
+import { commands, messageCommands } from '../commands/index.ts';
 import { discordFetch } from '../discord.ts';
 import type { Env } from '../env.ts';
 import { migrate, prune } from '../storage.ts';
@@ -19,10 +21,14 @@ import { GATEWAY_NAME } from './stub.ts';
 const WATCHDOG_MS = 30_000;
 const MAX_BACKOFF_MS = 5 * 60 * 1_000;
 const DISCOVERY_TIMEOUT_MS = 5_000;
+const COMMAND_SYNC_TIMEOUT_MS = 10_000;
 const MIN_RATE_LIMIT_WAIT_MS = 60_000;
 const SESSION_START_RESERVE = 5;
 // The first disconnect plus two failed resumes: start a fresh session instead.
 const FAILURES_BEFORE_NEW_SESSION = 3;
+const COMMANDS = JSON.stringify(
+  [...commands, ...messageCommands].map((command) => command.definition),
+);
 
 interface Lifecycle {
   enabled: boolean;
@@ -42,6 +48,7 @@ export class DiscordGateway extends DurableObject<Env> {
   private connecting: Promise<void> | undefined;
   private generation = 0;
   private lastEvent: string | null = null;
+  private commandsError: string | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -68,6 +75,7 @@ export class DiscordGateway extends DurableObject<Env> {
       lastHeartbeatAck: this.connection?.lastAck ?? null,
       lastEvent: this.lastEvent,
       error,
+      commandsError: this.commandsError,
     };
   }
 
@@ -99,6 +107,7 @@ export class DiscordGateway extends DurableObject<Env> {
     this.save();
     await this.armAlarm();
     if (!this.shouldRun()) return this.status();
+    this.ctx.waitUntil(this.syncCommands(token));
     if (this.connection && !this.connection.alive) this.retry();
     if (this.connecting || this.connection || this.lifecycle.retryAt > Date.now()) {
       return this.status();
@@ -151,6 +160,30 @@ export class DiscordGateway extends DurableObject<Env> {
     this.lifecycle.error ??= 'Gateway disconnected; reconnect scheduled.';
     this.save();
     this.ctx.waitUntil(this.armAlarm());
+  }
+
+  // Runs on every check, but only calls Discord when this code's commands differ from the last sync.
+  private async syncCommands(token: string) {
+    if (this.ctx.storage.kv.get('commands') === COMMANDS) return;
+    try {
+      const signal = AbortSignal.timeout(COMMAND_SYNC_TIMEOUT_MS);
+      const application = await discordFetch(Routes.currentApplication(), { token, signal });
+      if (!application.ok) throw new Error(`HTTP ${application.status}`);
+      const { id } = await application.json<RESTGetCurrentApplicationResult>();
+      const response = await discordFetch(Routes.applicationCommands(id), {
+        token,
+        signal,
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: COMMANDS,
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      this.ctx.storage.kv.put('commands', COMMANDS);
+      this.commandsError = null;
+    } catch (error) {
+      this.commandsError = `Command sync failed: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(this.commandsError);
+    }
   }
 
   private async armAlarm() {

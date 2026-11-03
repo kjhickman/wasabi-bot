@@ -1,6 +1,7 @@
 import { Log, LogLevel, Miniflare } from 'miniflare';
 import { build } from 'vite-plus';
 import { afterEach, assert, beforeAll, describe, expect, it, vi } from 'vite-plus/test';
+import { commands, messageCommands } from '../src/commands/index.ts';
 import { snowflakeTime } from '../src/discord.ts';
 import { snowflake } from './fixtures/builders.ts';
 
@@ -23,6 +24,7 @@ interface DiscordState {
   connections: number;
   callbackTimes: number[];
   closeCodes: number[];
+  commandSyncs: unknown[];
 }
 
 interface Status {
@@ -31,6 +33,7 @@ interface Status {
   retryAt: string | null;
   error: string | null;
   lastEvent: string | null;
+  commandsError: string | null;
 }
 
 beforeAll(async () => {
@@ -248,6 +251,38 @@ describe('Gateway in workerd', () => {
       /bot-token|control-token|fake-session|openai-token/,
     );
   }, 15_000);
+
+  it('syncs commands once and skips unchanged commands after later checks and restarts', async () => {
+    createRuntime();
+    await (await control('start')).text();
+    await connected();
+    await vi.waitFor(async () => expect((await discordState()).commandSyncs).toHaveLength(1));
+    await reconcile();
+    await (await runtime!.dispatchFetch('https://bot.test/_test/crash')).text();
+    await reconcile();
+    await connected();
+
+    expect((await discordState()).commandSyncs).toEqual([
+      [...commands, ...messageCommands].map((command) => command.definition),
+    ]);
+    expect((await status()).commandsError).toBeNull();
+  }, 15_000);
+
+  it('reports a rejected command sync and retries it on the next check', async () => {
+    createRuntime();
+    await fake('configure', { commandsStatus: 400 });
+    await (await control('start')).text();
+    await vi.waitFor(async () =>
+      expect((await status()).commandsError).toBe(
+        'Command sync failed: HTTP 400: Invalid Form Body',
+      ),
+    );
+
+    await fake('configure', { commandsStatus: 200 });
+    await reconcile();
+    await vi.waitFor(async () => expect((await status()).commandsError).toBeNull());
+    expect((await discordState()).commandSyncs).toHaveLength(2);
+  });
 
   it('stops dev and does not let the scheduler or a restart re-enable it', async () => {
     createRuntime();
