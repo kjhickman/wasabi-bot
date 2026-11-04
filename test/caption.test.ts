@@ -173,8 +173,10 @@ describe('/caption', () => {
 
     await expect(run()).rejects.toEqual(failure);
     expect(console.error).toHaveBeenCalledExactlyOnceWith(
-      'Caption download failed',
-      'Attachment download failed: 404',
+      expect.objectContaining({
+        message: 'Caption download failed',
+        error: expect.objectContaining({ message: 'Attachment download failed: 404' }),
+      }),
     );
   });
 
@@ -182,7 +184,9 @@ describe('/caption', () => {
     openai = () => new Response('Unauthorized', { status: 401 });
 
     await expect(run()).rejects.toEqual(failure);
-    expect(console.error).toHaveBeenCalledWith('Caption failed', expect.any(String));
+    expect(console.error).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Caption failed', error: expect.anything() }),
+    );
   });
 
   it('handles an empty caption', async () => {

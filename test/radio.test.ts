@@ -179,8 +179,11 @@ describe('findStation', () => {
       new CommandError("I couldn't reach the station directory. Try again in a moment."),
     );
     expect(console.error).toHaveBeenCalledWith(
-      'Station lookup failed',
-      'Radio Browser returned HTTP 502',
+      expect.objectContaining({
+        message: 'Station lookup failed',
+        error: expect.objectContaining({ message: 'Radio Browser returned HTTP 502' }),
+        input: 'jazz',
+      }),
     );
   });
 });
@@ -413,9 +416,11 @@ describe('/radio autocomplete', () => {
       { type: InteractionResponseType.ApplicationCommandAutocompleteResult, data: { choices: [] } },
     ]);
     expect(console.error).toHaveBeenCalledWith(
-      'Autocomplete failed',
-      'radio',
-      'Radio Browser returned HTTP 502',
+      expect.objectContaining({
+        message: 'Autocomplete failed',
+        command: 'radio',
+        error: expect.objectContaining({ message: 'Radio Browser returned HTTP 502' }),
+      }),
     );
   });
 });

@@ -135,22 +135,22 @@ describe('GatewayConnection', () => {
 
     vi.advanceTimersByTime(45_000);
 
-    expect(onClose).toHaveBeenCalledExactlyOnceWith(4000, true);
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(4000, true, 'heartbeat not acknowledged');
     expect(socket.closedWith).toBe(3000);
     expect(connection.alive).toBe(false);
     expect(vi.getTimerCount()).toBe(0);
   });
 
   it.each([
-    [{ op: 7 }, true, 3000],
-    [{ op: 9, d: true }, true, 3000],
-    [{ op: 9, d: false }, false, 1000],
-  ] as const)('hands %j back to the caller', (packet, resumable, closedWith) => {
+    [{ op: 7 }, true, 3000, 'Discord asked to reconnect'],
+    [{ op: 9, d: true }, true, 3000, 'invalid session'],
+    [{ op: 9, d: false }, false, 1000, 'invalid session'],
+  ] as const)('hands %j back to the caller', (packet, resumable, closedWith, reason) => {
     const { socket, onClose } = connect();
 
     socket.receive(packet);
 
-    expect(onClose).toHaveBeenCalledExactlyOnceWith(4000, resumable);
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(4000, resumable, reason);
     expect(socket.closedWith).toBe(closedWith);
   });
 
@@ -164,7 +164,7 @@ describe('GatewayConnection', () => {
 
     socket.closeFromServer(code);
 
-    expect(onClose).toHaveBeenCalledExactlyOnceWith(code, resumable);
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(code, resumable, 'socket closed');
   });
 
   it('gives up on a handshake that never completes', () => {
@@ -172,7 +172,7 @@ describe('GatewayConnection', () => {
 
     vi.advanceTimersByTime(10_000);
 
-    expect(onClose).toHaveBeenCalledExactlyOnceWith(4000, true);
+    expect(onClose).toHaveBeenCalledExactlyOnceWith(4000, true, 'handshake timed out');
   });
 
   it('goes quiet after close()', () => {

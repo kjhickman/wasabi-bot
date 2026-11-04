@@ -9,6 +9,7 @@ import {
 import { commands, messageCommands } from '../commands/index.ts';
 import { discordFetch } from '../discord.ts';
 import type { Env } from '../env.ts';
+import { log } from '../log.ts';
 import { migrate, prune } from '../storage.ts';
 import {
   FATAL_CLOSE_CODES,
@@ -124,7 +125,10 @@ export class DiscordGateway extends DurableObject<Env> {
     await this.armAlarm();
     if (!this.shouldRun()) return this.status();
     this.ctx.waitUntil(this.syncCommands(token));
-    if (this.connection && !this.connection.alive) this.retry();
+    if (this.connection && !this.connection.alive) {
+      log.warn('Gateway connection died without closing');
+      this.retry();
+    }
     if (this.connecting || this.connection || this.lifecycle.retryAt > Date.now()) {
       return this.status();
     }
@@ -142,7 +146,7 @@ export class DiscordGateway extends DurableObject<Env> {
       prune(this.ctx.storage.sql);
       await this.ensureConnected();
     } catch (error) {
-      console.error('Gateway alarm failed:', error);
+      log.error('Gateway alarm failed', { error });
       if (this.shouldRun()) await this.armAlarm();
     }
   }
@@ -161,6 +165,8 @@ export class DiscordGateway extends DurableObject<Env> {
   }
 
   private async halt(error: string | null) {
+    if (error) log.error('Gateway halted', { reason: error });
+    else log.info('Gateway stopped');
     this.update({ enabled: false, session: null, retryAt: 0, error });
     this.disconnect();
     await this.ctx.storage.deleteAlarm();
@@ -204,7 +210,7 @@ export class DiscordGateway extends DurableObject<Env> {
       this.commandsError = null;
     } catch (error) {
       this.commandsError = `Command sync failed: ${error instanceof Error ? error.message : String(error)}`;
-      console.error(this.commandsError);
+      log.error('Command sync failed', { error });
     }
   }
 
@@ -236,7 +242,10 @@ export class DiscordGateway extends DurableObject<Env> {
           Date.now() +
           Math.max(MIN_RATE_LIMIT_WAIT_MS, Number.isFinite(retryAfter) ? retryAfter * 1_000 : 0);
       }
-      if (!response.ok) return this.retry();
+      if (!response.ok) {
+        log.warn('Gateway discovery failed', { status: response.status });
+        return this.retry();
+      }
 
       const gateway = await response.json<RESTGetAPIGatewayBotResult>();
       if (stale()) return;
@@ -249,6 +258,7 @@ export class DiscordGateway extends DurableObject<Env> {
       if (!session && gateway.session_start_limit.remaining <= SESSION_START_RESERVE) {
         this.lifecycle.retryAt = Date.now() + gateway.session_start_limit.reset_after;
         this.lifecycle.error = 'Waiting for the Discord session-start allowance to reset.';
+        log.warn('Gateway is out of session starts', { ...gateway.session_start_limit });
         return this.retry();
       }
       if (!session && identifyAfter > Date.now()) {
@@ -256,8 +266,10 @@ export class DiscordGateway extends DurableObject<Env> {
         return this.retry();
       }
       this.connection = this.open(token, session?.resumeGatewayUrl ?? gateway.url, session);
-    } catch {
-      if (!stale()) this.retry();
+    } catch (error) {
+      if (stale()) return;
+      log.warn('Gateway connection attempt failed', { error });
+      this.retry();
     }
   }
 
@@ -278,6 +290,9 @@ export class DiscordGateway extends DurableObject<Env> {
           packet.t === GatewayDispatchEvents.Ready ||
           packet.t === GatewayDispatchEvents.Resumed
         ) {
+          log.info(packet.t === GatewayDispatchEvents.Ready ? 'Gateway ready' : 'Gateway resumed', {
+            afterFailures: this.lifecycle.failures,
+          });
           this.update({ failures: 0, retryAt: 0, error: null });
         }
         if (session) {
@@ -291,7 +306,7 @@ export class DiscordGateway extends DurableObject<Env> {
           );
         }
       },
-      onClose: (code, resumable) => {
+      onClose: (code, resumable, reason) => {
         if (!this.shouldRun()) return;
         if (FATAL_CLOSE_CODES.has(code)) {
           void this.halt(
@@ -301,6 +316,8 @@ export class DiscordGateway extends DurableObject<Env> {
         }
         if (!resumable) this.lifecycle.session = null;
         this.retry();
+        const { failures, retryAt } = this.lifecycle;
+        log.warn('Gateway disconnected', { code, reason, resumable, failures, retryAt });
       },
     });
     return connection;

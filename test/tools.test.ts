@@ -400,8 +400,10 @@ describe('runTool', () => {
       files: [],
     });
     expect(console.error).toHaveBeenCalledWith(
-      'Chat radio search failed',
-      'Radio Browser returned HTTP 502',
+      expect.objectContaining({
+        message: 'Chat radio search failed',
+        error: expect.objectContaining({ message: 'Radio Browser returned HTTP 502' }),
+      }),
     );
   });
 

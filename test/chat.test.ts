@@ -10,7 +10,8 @@ import { chatTools } from '../src/chat/tools.ts';
 import { radio } from '../src/commands/radio.ts';
 import type { Env } from '../src/env.ts';
 import { takeUsage } from '../src/usage.ts';
-import { chooseArgs } from './fixtures/builders.ts';
+import { chooseArgs, snowflake } from './fixtures/builders.ts';
+import { spans } from './fixtures/cloudflare-workers.ts';
 import { sqlStorage } from './fixtures/sql.ts';
 
 const BOT_ID = '100';
@@ -81,6 +82,7 @@ function sentReply() {
 beforeEach(() => {
   fetchMock.mockReset();
   sql = sqlStorage();
+  spans.length = 0;
   historyResponse = Response.json([]);
   openai = () => openaiText('Halo!');
   fetchMock.mockImplementation(async (url, init) => {
@@ -375,8 +377,14 @@ describe('replyToMessage', () => {
     await replyToMessage(mention, { bot, token, env, sql });
 
     expect(console.error).toHaveBeenCalledWith(
-      'Chat reply failed',
-      'OpenAI returned no text (status incomplete: max_output_tokens; output: code_interpreter_call)',
+      expect.objectContaining({
+        message: 'Chat reply failed',
+        error: expect.objectContaining({
+          message:
+            'OpenAI returned no text (status incomplete: max_output_tokens; output: code_interpreter_call)',
+        }),
+        input: mention.content,
+      }),
     );
     expect(sentReply().content).toBe(
       "Sorry, I couldn't come up with a reply. Try again in a moment.",
@@ -587,5 +595,27 @@ describe('replyToMessage', () => {
       "Sorry, I couldn't come up with a reply. Try again in a moment.",
     );
     expect(console.error).toHaveBeenCalled();
+    expect(spans[0]!.attributes['outcome']).toBe('error');
+  });
+
+  it('traces the reply, including how old the message was when it arrived', async () => {
+    await replyToMessage(
+      { ...mention, id: snowflake(Date.now() - 2_000) },
+      { bot, token, env, sql },
+    );
+
+    expect(spans.map((span) => span.name)).toEqual(['chat', 'openai.response']);
+    expect(spans[0]!.attributes).toEqual({
+      messageId: expect.any(String),
+      channelId: '42',
+      guildId: '1',
+      userId: '200',
+      dm: false,
+      ageMs: expect.any(Number),
+      history: 0,
+      image: false,
+      outcome: 'ok',
+    });
+    expect(spans[0]!.attributes['ageMs']).toBeGreaterThanOrEqual(2_000);
   });
 });

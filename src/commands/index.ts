@@ -1,5 +1,8 @@
+import { tracing } from 'cloudflare:workers';
 import {
+  ApplicationCommandOptionType,
   ApplicationCommandType,
+  type APIApplicationCommandInteractionDataOption,
   type APIChatInputApplicationCommandInteractionData,
   type APIMessageApplicationCommandInteractionData,
 } from 'discord-api-types/v10';
@@ -49,8 +52,44 @@ export function getCommand(name: string) {
   return commandsByName.get(name);
 }
 
-export async function runCommand(
-  data: APIChatInputApplicationCommandInteractionData | APIMessageApplicationCommandInteractionData,
+type CommandData =
+  | APIChatInputApplicationCommandInteractionData
+  | APIMessageApplicationCommandInteractionData;
+
+// Each use of a command, from a slash command or from chat, gets a span named for it.
+export function runCommand(
+  data: CommandData,
+  env: Env,
+  signal: AbortSignal,
+  invocation: Invocation,
+): Promise<CommandResponse> {
+  return tracing.enterSpan(commandName(data), async (span) => {
+    try {
+      const response = await dispatch(data, env, signal, invocation);
+      span.setAttribute('outcome', 'ok');
+      return response;
+    } catch (error) {
+      span.setAttribute('outcome', error instanceof CommandError ? 'command_error' : 'error');
+      throw error;
+    }
+  });
+}
+
+// How a command is named in spans: the way someone uses it, like `/radio play` or `Mock`.
+export function commandName(data: {
+  type: ApplicationCommandType;
+  name: string;
+  options?: APIApplicationCommandInteractionDataOption[];
+}) {
+  if (data.type !== ApplicationCommandType.ChatInput) return data.name;
+  const [subcommand] = data.options ?? [];
+  return subcommand?.type === ApplicationCommandOptionType.Subcommand
+    ? `/${data.name} ${subcommand.name}`
+    : `/${data.name}`;
+}
+
+async function dispatch(
+  data: CommandData,
   env: Env,
   signal: AbortSignal,
   invocation: Invocation,

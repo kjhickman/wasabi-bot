@@ -1,3 +1,4 @@
+import { tracing } from 'cloudflare:workers';
 import {
   MessageFlags,
   Routes,
@@ -10,10 +11,16 @@ import OpenAI from 'openai';
 import type { ResponseInputItem, Tool } from 'openai/resources/responses/responses';
 import { systemPrompt } from './prompt.ts';
 import { chatTools, commandLabel, runTool, type ToolContext } from './tools.ts';
-import { discordFetch, MAX_MESSAGE_LENGTH, withFiles } from '../discord.ts';
+import {
+  discordFetch,
+  MAX_MESSAGE_LENGTH,
+  responseDetails,
+  snowflakeTime,
+  withFiles,
+} from '../discord.ts';
 import type { Env } from '../env.ts';
-import { errorMessage } from '../errors.ts';
-import { MODELS } from '../openai.ts';
+import { log, preview } from '../log.ts';
+import { createResponse, MODELS } from '../openai.ts';
 import { takeUsage } from '../usage.ts';
 
 const HISTORY_LIMIT = 50;
@@ -50,11 +57,24 @@ export function addressesBot(message: GatewayMessageCreateDispatchData, bot: API
   return !message.author.bot && (isDM || message.mentions.some((user) => user.id === bot.id));
 }
 
-export async function replyToMessage(
+// Each reply gets a span, from receiving the message to posting the reply.
+export function replyToMessage(message: GatewayMessageCreateDispatchData, options: ChatOptions) {
+  return tracing.enterSpan('chat', (span) => reply(message, options, span));
+}
+
+async function reply(
   message: GatewayMessageCreateDispatchData,
   { bot, token, env, sql, signal = AbortSignal.timeout(REPLY_TIMEOUT_MS) }: ChatOptions,
+  span: Span,
 ) {
   const dm = !message.guild_id;
+  const context = {
+    messageId: message.id,
+    channelId: message.channel_id,
+    guildId: message.guild_id,
+    userId: message.author.id,
+  };
+  span.setAttributes({ ...context, dm, ageMs: Date.now() - snowflakeTime(message.id) });
   const messagesRoute = Routes.channelMessages(message.channel_id);
   const typing = () =>
     discordFetch(Routes.channelTyping(message.channel_id), { method: 'POST', token }).catch(
@@ -72,12 +92,19 @@ export async function replyToMessage(
       body: withFiles(body, files),
       token,
     });
-    if (!sent.ok) console.error('Discord chat reply failed', sent.status);
+    if (!sent.ok) {
+      log.error('Discord refused the chat reply', { ...context, ...(await responseDetails(sent)) });
+    }
+    return sent.ok;
   };
 
   const userId = message.author.id;
   const use = takeUsage(sql, 'text', userId);
-  if (!use.ok) return send(use.reason);
+  if (!use.ok) {
+    span.setAttribute('outcome', 'limited');
+    await send(use.reason);
+    return;
+  }
 
   const compose = async () => {
     const [, response] = await Promise.all([
@@ -87,11 +114,15 @@ export async function replyToMessage(
         token,
       }),
     ]);
+    if (!response.ok) {
+      log.warn('Chat history unavailable', { ...context, ...(await responseDetails(response)) });
+    }
     // Newest first, as Discord lists them.
     const recent = response.ok ? await response.json<APIMessage[]>() : [];
     const image = [message, message.referenced_message, ...recent]
       .flatMap((source) => source?.attachments ?? [])
       .find((attachment) => attachment.content_type?.startsWith('image/'));
+    span.setAttributes({ history: recent.length, image: image !== undefined });
     return generate([...recent.toReversed(), message], {
       bot,
       dm,
@@ -105,12 +136,13 @@ export async function replyToMessage(
     });
   };
 
-  const { content, files } = await compose().catch((error: unknown) => {
+  const composed = await compose().catch((error: unknown) => {
     use.refund();
-    console.error('Chat reply failed', errorMessage(error));
-    return { content: FAILURE_REPLY, files: [] };
+    log.error('Chat reply failed', { ...context, error, input: preview(message.content) });
+    return undefined;
   });
-  await send(content, files);
+  const sent = await send(composed?.content ?? FAILURE_REPLY, composed?.files);
+  span.setAttribute('outcome', composed && sent ? 'ok' : 'error');
 }
 
 async function generate(messages: Message[], conversation: Conversation) {
@@ -132,7 +164,8 @@ async function generate(messages: Message[], conversation: Conversation) {
   let lastResult: string | undefined;
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-    const response = await client.responses.create(
+    const response = await createResponse(
+      client,
       {
         model: MODELS.text,
         instructions,
@@ -142,7 +175,7 @@ async function generate(messages: Message[], conversation: Conversation) {
         reasoning: { effort: 'none' },
         max_output_tokens: 500,
       },
-      { signal },
+      signal,
     );
     const calls = response.output.filter((item) => item.type === 'function_call');
     if (!calls.length) {

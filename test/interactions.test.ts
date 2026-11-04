@@ -5,6 +5,7 @@ import type { Env } from '../src/env.ts';
 import { handleInteraction } from '../src/gateway/interactions.ts';
 import { takeUsage } from '../src/usage.ts';
 import { snowflake } from './fixtures/builders.ts';
+import { spans } from './fixtures/cloudflare-workers.ts';
 import { sqlStorage } from './fixtures/sql.ts';
 
 const env = { OPENAI_API_KEY: 'test-key' } as Env;
@@ -48,6 +49,7 @@ function requests() {
 
 beforeEach(() => {
   sql = sqlStorage();
+  spans.length = 0;
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (url) =>
     String(url).endsWith('/v1/decisions')
@@ -81,6 +83,10 @@ describe('daily limits for slash commands', () => {
 
     expect(callbacks()[0].data.flags).toBe(MessageFlags.Ephemeral);
     expect(requests()).toEqual([]);
+    expect(spans.map((span) => span.attributes['outcome'])).toEqual([
+      'command_error',
+      'command_error',
+    ]);
   });
 
   it('logs and does not count a command that crashes', async () => {
@@ -88,8 +94,17 @@ describe('daily limits for slash commands', () => {
 
     await handleInteraction(conch({ user: { id: '200' } }), env, sql);
 
-    expect(console.error).toHaveBeenCalledWith('Gateway command failed', 'conch', 'boom');
+    expect(console.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Command failed',
+        command: '/conch',
+        userId: '200',
+        error: expect.objectContaining({ message: 'boom' }),
+        input: JSON.stringify([{ type: 3, name: 'question', value: 'Is the sky blue?' }]),
+      }),
+    );
     expect(requests()).toEqual([]);
+    expect(spans.map((span) => span.attributes['outcome'])).toEqual(['error', 'error']);
   });
 
   it('edits a deferred command’s error into its reply without counting it', async () => {
@@ -119,5 +134,45 @@ describe('daily limits for slash commands', () => {
       },
     ]);
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('openai'))).toBe(false);
+  });
+});
+
+describe('tracing', () => {
+  it('spans the interaction and, inside it, the command', async () => {
+    await handleInteraction(conch({ guild_id: '300', member: { user: { id: '200' } } }), env, sql);
+
+    expect(spans).toEqual([
+      {
+        name: 'interaction /conch',
+        attributes: {
+          command: '/conch',
+          interactionId: expect.any(String),
+          guildId: '300',
+          userId: '200',
+          ageMs: expect.any(Number),
+          deferred: false,
+          outcome: 'ok',
+        },
+      },
+      { name: '/conch', attributes: { outcome: 'ok' } },
+    ]);
+  });
+
+  it('warns about an interaction that arrived too late to answer', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const late = { ...conch({ user: { id: '200' } }), id: snowflake(Date.now() - 3_500) };
+
+    await handleInteraction(late, env, sql);
+
+    expect(callbacks()).toEqual([]);
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Interaction arrived too late to answer', userId: '200' }),
+    );
+    expect(spans).toEqual([
+      expect.objectContaining({
+        attributes: expect.objectContaining({ outcome: 'expired', ageMs: expect.any(Number) }),
+      }),
+    ]);
+    expect(spans[0]!.attributes['ageMs']).toBeGreaterThanOrEqual(3_500);
   });
 });

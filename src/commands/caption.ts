@@ -1,8 +1,8 @@
 import { ApplicationCommandOptionType, ApplicationCommandType } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import { attachmentOption, download, MAX_MESSAGE_LENGTH, MAX_UPLOAD_BYTES } from '../discord.ts';
-import { errorMessage } from '../errors.ts';
-import { MODELS } from '../openai.ts';
+import { log } from '../log.ts';
+import { createResponse, MODELS } from '../openai.ts';
 import { CommandError, reply, type SlashCommand } from './command.ts';
 
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
@@ -43,7 +43,7 @@ export const caption = {
     const downloadFailed = new AbortController();
     const [file, text] = await Promise.all([
       download(image, signal).catch((error: unknown) => {
-        console.error('Caption download failed', errorMessage(error));
+        log.error('Caption download failed', { error });
         downloadFailed.abort();
         return undefined;
       }),
@@ -52,7 +52,7 @@ export const caption = {
         env.OPENAI_API_KEY,
         AbortSignal.any([signal, downloadFailed.signal]),
       ).catch((error: unknown) => {
-        if (!downloadFailed.signal.aborted) console.error('Caption failed', errorMessage(error));
+        if (!downloadFailed.signal.aborted) log.error('Caption failed', { error });
         return '';
       }),
     ]);
@@ -66,7 +66,8 @@ export const caption = {
 // OpenAI fetches the image itself, so the Durable Object never holds a base64 copy.
 async function writeCaption(url: string, apiKey: string, signal: AbortSignal) {
   const client = new OpenAI({ apiKey });
-  const response = await client.responses.create(
+  const response = await createResponse(
+    client,
     {
       model: MODELS.text,
       instructions:
@@ -80,7 +81,7 @@ async function writeCaption(url: string, apiKey: string, signal: AbortSignal) {
       reasoning: { effort: 'low' },
       max_output_tokens: 1_000,
     },
-    { signal },
+    signal,
   );
   return response.output_text.trim();
 }

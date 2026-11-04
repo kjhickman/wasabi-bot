@@ -20,6 +20,11 @@ export function discordFetch(
   return fetch(`${RouteBases.api}${route}`, { ...init, headers, redirect: 'manual' });
 }
 
+// For logs: why Discord refused a request, like `{"message": "Unknown interaction", "code": 10062}`.
+export async function responseDetails(response: Response) {
+  return { status: response.status, body: (await response.text()).slice(0, 500) };
+}
+
 export function withFiles(message: object, files: File[]) {
   const body = new FormData();
   body.set(

@@ -55,7 +55,8 @@ interface Options {
   session: Session | null;
   onIdentify(): void;
   onDispatch(packet: GatewayDispatchPayload): void;
-  onClose(code: number, resumable: boolean): void;
+  // The reason is for logs.
+  onClose(code: number, resumable: boolean, reason: string): void;
 }
 
 // A single Gateway WebSocket. It never reconnects by itself: when it fails it closes,
@@ -82,10 +83,14 @@ export class GatewayConnection {
       this.receive(JSON.parse(event.data as string)),
     );
     this.socket.addEventListener('close', (event) =>
-      this.fail(event.code, !NON_RESUMABLE_CLOSE_CODES.has(event.code)),
+      this.fail(
+        event.code,
+        !NON_RESUMABLE_CLOSE_CODES.has(event.code),
+        event.reason || 'socket closed',
+      ),
     );
     this.handshakeTimer = setTimeout(
-      () => this.fail(GatewayCloseCodes.UnknownError, true),
+      () => this.fail(GatewayCloseCodes.UnknownError, true, 'handshake timed out'),
       HANDSHAKE_TIMEOUT_MS,
     );
   }
@@ -117,10 +122,10 @@ export class GatewayConnection {
     this.send({ op: GatewayOpcodes.VoiceStateUpdate, d: data });
   }
 
-  private fail(code: number, resumable: boolean) {
+  private fail(code: number, resumable: boolean, reason: string) {
     if (this.stopped) return;
     this.close(resumable ? RESUMABLE_CLOSE_CODE : END_SESSION_CLOSE_CODE);
-    this.options.onClose(code, resumable);
+    this.options.onClose(code, resumable, reason);
   }
 
   private receive(packet: GatewayReceivePayload) {
@@ -140,9 +145,9 @@ export class GatewayConnection {
         this.lastAck = Date.now();
         return;
       case GatewayOpcodes.Reconnect:
-        return this.fail(GatewayCloseCodes.UnknownError, true);
+        return this.fail(GatewayCloseCodes.UnknownError, true, 'Discord asked to reconnect');
       case GatewayOpcodes.InvalidSession:
-        return this.fail(GatewayCloseCodes.UnknownError, packet.d);
+        return this.fail(GatewayCloseCodes.UnknownError, packet.d, 'invalid session');
       case GatewayOpcodes.Dispatch:
         return this.dispatch(packet);
     }
@@ -189,7 +194,9 @@ export class GatewayConnection {
   // An unacknowledged heartbeat means the connection is a zombie.
   private scheduleHeartbeat(interval: number, delay: number) {
     this.heartbeatTimer = setTimeout(() => {
-      if (!this.acked) return this.fail(GatewayCloseCodes.UnknownError, true);
+      if (!this.acked) {
+        return this.fail(GatewayCloseCodes.UnknownError, true, 'heartbeat not acknowledged');
+      }
       this.acked = false;
       this.sendHeartbeat();
       this.scheduleHeartbeat(interval, interval);

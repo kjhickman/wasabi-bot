@@ -1,7 +1,7 @@
 import { ApplicationCommandOptionType, ApplicationCommandType } from 'discord-api-types/v10';
 import OpenAI from 'openai';
 import { stringOption } from '../discord.ts';
-import { errorMessage } from '../errors.ts';
+import { log, preview } from '../log.ts';
 import { MODELS } from '../openai.ts';
 import { CommandError, reply, type SlashCommand } from './command.ts';
 
@@ -37,7 +37,7 @@ export const conch = {
     try {
       choice = await decide(question, env.OPENAI_API_KEY, signal);
     } catch (error) {
-      console.error('Conch command failed', errorMessage(error));
+      log.error('Conch command failed', { error, input: preview(question) });
     }
     if (choice === 'yes') return reply({ content: 'Yes' });
     if (choice === 'no') return reply({ content: 'No' });

@@ -124,7 +124,9 @@ describe('/conch', () => {
 
     await expect(ask(options)).rejects.toEqual(failure);
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(console.error).toHaveBeenCalledWith('Conch command failed', expect.any(String));
+    expect(console.error).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Conch command failed', input: 'Is the sky blue?' }),
+    );
   });
 
   it('handles invalid JSON', async () => {

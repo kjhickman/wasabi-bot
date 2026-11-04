@@ -1,6 +1,6 @@
 import type { APIApplicationCommandOptionChoice } from 'discord-api-types/v10';
 import { CommandError } from '../commands/command.ts';
-import { errorMessage } from '../errors.ts';
+import { log, preview } from '../log.ts';
 import type { Station } from './player.ts';
 
 // Radio Browser is a free, community-run station directory. It asks apps to identify themselves.
@@ -60,7 +60,7 @@ export async function findStation(input: string, signal: AbortSignal): Promise<S
   } catch (error) {
     // /radio looks stations up within Discord's 3-second window, so a slow directory
     // still needs an answer.
-    console.error('Station lookup failed', errorMessage(error));
+    log.error('Station lookup failed', { error, input: preview(input) });
     throw new CommandError("I couldn't reach the station directory. Try again in a moment.");
   }
   if (!station?.ok) throw new CommandError(`I couldn't find a station called "${input}".`);

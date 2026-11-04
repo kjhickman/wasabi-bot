@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import type { Env } from '../src/env.ts';
 import { RadioCallback, RadioPlayer } from '../src/radio/player.ts';
 
-vi.mock('cloudflare:workers', () => {
+vi.mock('cloudflare:workers', async (importOriginal) => {
   class Base {
     ctx: unknown;
     env: unknown;
@@ -11,7 +11,7 @@ vi.mock('cloudflare:workers', () => {
       this.env = env;
     }
   }
-  return { DurableObject: Base, WorkerEntrypoint: Base };
+  return { ...(await importOriginal<object>()), DurableObject: Base, WorkerEntrypoint: Base };
 });
 
 const STATION = { name: '101 SMOOTH JAZZ', url: 'http://jking.cdnstream1.com/b22139_128mp3' };
@@ -180,7 +180,7 @@ describe('RadioPlayer', () => {
 
   it.each([
     ['exits', undefined, 'exited'],
-    ['is killed', KILLED, KILLED.message],
+    ['is killed', KILLED, expect.objectContaining({ message: KILLED.message })],
   ])(
     'leaves the channel and logs it when its container %s on its own',
     async (_, error, logged) => {
@@ -192,8 +192,11 @@ describe('RadioPlayer', () => {
       expect(gatewayStub.updateVoiceState).toHaveBeenCalledExactlyOnceWith(LEAVE);
       expect(alarm).toBeNull();
       expect(console.error).toHaveBeenCalledExactlyOnceWith(
-        'Radio container stopped unexpectedly',
-        logged,
+        expect.objectContaining({
+          message: 'Radio container stopped unexpectedly',
+          guildId: '300',
+          error: logged,
+        }),
       );
     },
   );

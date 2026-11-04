@@ -1,4 +1,4 @@
-import { DurableObject, WorkerEntrypoint } from 'cloudflare:workers';
+import { DurableObject, tracing, WorkerEntrypoint } from 'cloudflare:workers';
 import {
   GatewayDispatchEvents,
   GatewayOpcodes,
@@ -7,7 +7,7 @@ import {
   type GatewayVoiceStateUpdateDispatch,
 } from 'discord-api-types/v10';
 import type { Env } from '../env.ts';
-import { errorMessage } from '../errors.ts';
+import { log } from '../log.ts';
 import { gateway } from '../gateway/stub.ts';
 
 const PORT = 8080;
@@ -53,7 +53,7 @@ export class RadioPlayer extends DurableObject<Env> {
     try {
       await this.boot(guildId);
     } catch (error) {
-      console.error('Radio container failed to start', errorMessage(error));
+      log.error('Radio container failed to start', { guildId, error });
       await this.shutDown(guildId);
       return START_FAILED;
     }
@@ -62,7 +62,7 @@ export class RadioPlayer extends DurableObject<Env> {
       { guildId, channelId, url: station.url },
       PLAY_TIMEOUT_MS,
     ).catch((error: unknown) => {
-      console.error('Radio play request failed', errorMessage(error));
+      log.error('Radio play request failed', { guildId, error });
       return undefined;
     });
     // The container explains failures it expects, like a dead stream.
@@ -91,7 +91,7 @@ export class RadioPlayer extends DurableObject<Env> {
       this.save({ ...session, channelId: packet.d.channel_id });
     }
     await this.request('/voice', packet).catch((error: unknown) =>
-      console.error('Radio voice event failed', errorMessage(error)),
+      log.error('Radio voice event failed', { guildId: packet.d.guild_id, error }),
     );
   }
 
@@ -100,7 +100,7 @@ export class RadioPlayer extends DurableObject<Env> {
     try {
       await this.check();
     } catch (error) {
-      console.error('Radio watchdog failed', errorMessage(error));
+      log.error('Radio watchdog failed', { guildId: this.session?.guildId, error });
       if (this.session) await this.ctx.storage.setAlarm(Date.now() + WATCHDOG_MS);
     }
   }
@@ -134,8 +134,13 @@ export class RadioPlayer extends DurableObject<Env> {
   }
 
   private async startContainer(guildId: string) {
+    if (this.ctx.container!.running) return;
+    // Its own span, since a cold start is often the slowest part of /radio play.
+    await tracing.enterSpan('radio.boot', () => this.launch(guildId));
+  }
+
+  private async launch(guildId: string) {
     const container = this.ctx.container!;
-    if (container.running) return;
     // Intercepts last until the container stops, so each new container gets its own.
     await container.interceptOutboundHttp(
       CALLBACK_HOST,
@@ -174,7 +179,7 @@ export class RadioPlayer extends DurableObject<Env> {
     this.ctx.waitUntil(
       container.monitor().then(
         () => this.containerExited('exited'),
-        (error: unknown) => this.containerExited(errorMessage(error)),
+        (error: unknown) => this.containerExited(error),
       ),
     );
   }
@@ -184,7 +189,7 @@ export class RadioPlayer extends DurableObject<Env> {
   private async containerExited(reason: unknown) {
     const session = this.session;
     if (!session) return;
-    console.error('Radio container stopped unexpectedly', reason);
+    log.error('Radio container stopped unexpectedly', { guildId: session.guildId, error: reason });
     await this.shutDown(session.guildId);
   }
 

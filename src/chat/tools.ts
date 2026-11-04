@@ -8,7 +8,7 @@ import {
 } from 'discord-api-types/v10';
 import type { FunctionTool } from 'openai/resources/responses/responses';
 import type { Env } from '../env.ts';
-import { errorMessage } from '../errors.ts';
+import { log, preview } from '../log.ts';
 import { takeUsage, type Usage } from '../usage.ts';
 import { CommandError } from '../commands/command.ts';
 import { commands, runCommand } from '../commands/index.ts';
@@ -120,7 +120,7 @@ export async function runTool(name: string, json: string, context: ToolContext) 
     const output = stations.length ? JSON.stringify(stations) : `No stations matched "${query}".`;
     return { output, files: [] };
   } catch (error) {
-    console.error('Chat radio search failed', errorMessage(error));
+    log.error('Chat radio search failed', { error, input: preview(json) });
     return { output: 'Error: the station search failed.', files: [] };
   }
 }
@@ -200,7 +200,7 @@ export async function runCommandTool(
   } catch (error) {
     if (use?.ok) use.refund();
     if (error instanceof CommandError) return failure(error.message);
-    console.error('Chat command failed', name, errorMessage(error));
+    log.error('Chat command failed', { command: name, error, input: preview(json) });
     return failure('the command failed.');
   }
 }

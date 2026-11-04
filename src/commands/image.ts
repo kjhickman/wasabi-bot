@@ -2,7 +2,7 @@ import { ApplicationCommandOptionType, ApplicationCommandType } from 'discord-ap
 import OpenAI from 'openai';
 import type { ImagesResponse } from 'openai/resources/images';
 import { attachmentOption, download, MAX_UPLOAD_BYTES, stringOption } from '../discord.ts';
-import { errorMessage } from '../errors.ts';
+import { log, preview } from '../log.ts';
 import { MODELS } from '../openai.ts';
 import { CommandError, reply, type SlashCommand } from './command.ts';
 
@@ -101,7 +101,7 @@ async function respond(prompt: string, create: () => Promise<ImagesResponse>) {
     if (error instanceof OpenAI.APIError && error.code === 'moderation_blocked') {
       throw new CommandError("OpenAI's safety filter blocked that. Try a different description.");
     }
-    console.error('Image command failed', errorMessage(error));
+    log.error('Image command failed', { error, input: preview(prompt) });
     throw new CommandError("I couldn't make that image. Try again.");
   }
 }
