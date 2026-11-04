@@ -23,6 +23,7 @@ const JSON_TYPES: Partial<Record<ApplicationCommandOptionType, string>> = {
 const DISCORD_MAX_LENGTH = 6_000;
 const IMAGE_NOTE =
   'It uses the image attached to the last message, else the one on the message it replies to, else the most recent image in the channel.';
+const REPLY_WITH_RESULT = 'reply_with_result';
 
 type Definition = RESTPostAPIChatInputApplicationCommandsJSONBody;
 type Value = string | number | boolean | null;
@@ -59,8 +60,15 @@ function tool({ name, description, options: all }: Entry): FunctionTool | undefi
     strict: true,
     parameters: {
       type: 'object',
-      properties: Object.fromEntries(options.map((option) => [option.name, parameter(option)])),
-      required: options.map((option) => option.name),
+      properties: {
+        ...Object.fromEntries(options.map((option) => [option.name, parameter(option)])),
+        [REPLY_WITH_RESULT]: {
+          type: 'boolean',
+          description:
+            "True to send the command's result as your whole reply, as is. False if you need to do more after it, like comment on the result or use another tool.",
+        },
+      },
+      required: [...options.map((option) => option.name), REPLY_WITH_RESULT],
       additionalProperties: false,
     },
   };
@@ -84,7 +92,7 @@ const radioSearch: FunctionTool = {
   type: 'function',
   name: 'radio_search',
   description:
-    'Search internet radio stations by name or genre, most played first. When someone asks for a kind of music, search, pick the best match, and play it by passing its id as the station to radio_play.',
+    'Search internet radio stations by name or genre, most played first. radio_play already takes a station name or genre and plays the most played match, so search only when someone wants to see the options, or radio_play could not find what they asked for. To play a result, pass its id as the station to radio_play.',
   strict: true,
   parameters: {
     type: 'object',
@@ -104,7 +112,17 @@ export function commandLabel(name: string) {
   return [entry.command.definition.name, entry.subcommand].filter(Boolean).join(' ');
 }
 
-export async function runTool(name: string, json: string, context: ToolContext) {
+interface ToolResult {
+  output: string;
+  files: File[];
+  reply?: string;
+}
+
+export async function runTool(
+  name: string,
+  json: string,
+  context: ToolContext,
+): Promise<ToolResult> {
   if (name !== radioSearch.name) return runCommandTool(name, json, context);
   try {
     const query = (JSON.parse(json) as { query: string }).query.trim();
@@ -130,7 +148,7 @@ export async function runCommandTool(
   name: string,
   json: string,
   { env, sql, userId, guildId, image, signal }: ToolContext,
-): Promise<{ output: string; files: File[] }> {
+): Promise<ToolResult> {
   const failure = (message: string) => ({ output: `Error: ${message}`, files: [] });
   const entry = offered.find((entry) => entry.name === name);
   if (!entry) return failure('unknown command.');
@@ -186,7 +204,12 @@ export async function runCommandTool(
     );
     const files = command.textOnlyInChat ? [] : (response.files ?? []);
     const note = files.length ? '\nThe image is attached to your reply.' : '';
-    return { output: (response.data.content ?? '') + note, files };
+    const content = response.data.content ?? '';
+    return {
+      output: content + note,
+      files,
+      ...(args[REPLY_WITH_RESULT] === true && { reply: content }),
+    };
   } catch (error) {
     if (use?.ok) use.refund();
     if (error instanceof CommandError) return failure(error.message);

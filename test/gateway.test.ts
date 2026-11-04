@@ -485,6 +485,7 @@ describe('Gateway in workerd', () => {
     createRuntime();
     await (await control('start')).text();
     await connected();
+    const armed = await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json();
     await (await fake('disconnect', { code: 4000 })).text();
     await vi.waitFor(
       async () =>
@@ -494,6 +495,9 @@ describe('Gateway in workerd', () => {
     await connected();
 
     expect((await discordState()).packets.filter((packet) => packet.op === 2)).toHaveLength(1);
+    expect(await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json()).not.toBe(
+      armed,
+    );
   }, 15_000);
 
   it('recovers through the watchdog when a closed socket never reports its close', async () => {
@@ -591,7 +595,7 @@ describe('Gateway in workerd', () => {
 
     const state = await discordState();
     expect(state.urls.filter((url) => new URL(url).hostname === 'resume.discord.gg')).toHaveLength(
-      2,
+      3,
     );
     expect(new URL(state.urls.at(-1)!).hostname).toBe('gateway.discord.gg');
     expect((await status()).error).toBeNull();
@@ -613,10 +617,11 @@ describe('Gateway in workerd', () => {
     expect((await discordState()).discoveries).toBe(1);
   });
 
-  it('preserves the session when Discord requests a reconnect', async () => {
+  it('resumes the session without a backoff when Discord requests a reconnect', async () => {
     createRuntime();
     await (await control('start')).text();
     await connected();
+    const armed = await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json();
     await (await fake('emit', { op: 7 })).text();
     await vi.waitFor(async () => expect((await status()).lastEvent).toBe('RESUMED'), {
       timeout: 8_000,
@@ -624,8 +629,12 @@ describe('Gateway in workerd', () => {
 
     const state = await discordState();
     expect(state.packets.filter((packet) => packet.op === 2)).toHaveLength(1);
+    expect(state.packets.find((packet) => packet.op === 6)!.d).toMatchObject({
+      session_id: 'fake-session-1',
+    });
     expect(state.closeCodes).toContain(3000);
     expect(state.closeCodes).not.toContain(1000);
+    expect(await (await runtime!.dispatchFetch('https://bot.test/_test/alarm')).json()).toBe(armed);
   }, 15_000);
 
   it('starts the Identify cooldown at transmission, even after a slow handshake', async () => {

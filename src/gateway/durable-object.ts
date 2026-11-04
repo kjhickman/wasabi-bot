@@ -324,6 +324,12 @@ export class DiscordGateway extends DurableObject<Env> {
         const { failures, retryAt } = this.lifecycle;
         log.warn('Gateway disconnected', { code, reason, resumable, failures, retryAt });
       },
+      onReconnect: () => {
+        if (!this.shouldRun()) return;
+        log.info("Gateway reconnecting at Discord's request");
+        this.disconnect(RESUMABLE_CLOSE_CODE);
+        this.ctx.waitUntil(this.ensureConnected());
+      },
     });
     return connection;
   }

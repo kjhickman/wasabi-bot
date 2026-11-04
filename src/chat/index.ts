@@ -105,13 +105,11 @@ async function reply(
   }
 
   const compose = async () => {
-    const [, response] = await Promise.all([
-      typing(),
-      discordFetch(`${messagesRoute}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`, {
-        signal,
-        token,
-      }),
-    ]);
+    void typing();
+    const response = await discordFetch(
+      `${messagesRoute}?before=${message.id}&limit=${HISTORY_LIMIT - 1}`,
+      { signal, token },
+    );
     if (!response.ok) {
       log.warn('Chat history unavailable', { ...context, ...(await responseDetails(response)) });
     }
@@ -187,10 +185,12 @@ async function generate(messages: Message[], conversation: Conversation) {
       return { content: withNote(text, used), files };
     }
 
-    void typing();
-    const keepTyping = setInterval(() => void typing(), TYPING_INTERVAL_MS);
-    const outputs = await Promise.all(
-      calls.map(async (call): Promise<ResponseInputItem> => {
+    let typed = typing();
+    const keepTyping = setInterval(() => {
+      typed = typing();
+    }, TYPING_INTERVAL_MS);
+    const results = await Promise.all(
+      calls.map(async (call) => {
         const label = commandLabel(call.name);
         if (label) used.add(label);
         const deadline = AbortSignal.any([signal, AbortSignal.timeout(COMMAND_TIMEOUT_MS)]);
@@ -200,9 +200,19 @@ async function generate(messages: Message[], conversation: Conversation) {
         });
         files.push(...result.files);
         if (label) lastResult = result.output;
-        return { type: 'function_call_output', call_id: call.call_id, output: result.output };
+        return { ...result, callId: call.call_id };
       }),
     ).finally(() => clearInterval(keepTyping));
+    if (results.every((result) => result.reply !== undefined)) {
+      // A typing request that lands after the reply would show the bot typing again.
+      await typed;
+      return { content: withNote(results.map((result) => result.reply).join('\n'), used), files };
+    }
+    const outputs = results.map(({ callId, output }): ResponseInputItem => ({
+      type: 'function_call_output',
+      call_id: callId,
+      output,
+    }));
     const toolCalls = response.output.filter(
       (item) =>
         item.type === 'function_call' ||

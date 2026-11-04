@@ -255,6 +255,74 @@ describe('replyToMessage', () => {
     );
   });
 
+  it('sends a command’s result as the reply, without asking OpenAI again, when the model says to', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    let typing = 0;
+    let typed = 0;
+    let typedBeforeReply = 0;
+    const otherwise = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url, init) => {
+      const path = String(url);
+      if (path.endsWith('/typing')) {
+        typing++;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        typed++;
+        return new Response(null, { status: 204 });
+      }
+      if (path.endsWith('/channels/42/messages') && init?.method === 'POST') {
+        typedBeforeReply = typed;
+      }
+      return otherwise(url, init);
+    });
+    openai = () => openaiCalls(['choose', { ...chooseArgs, reply_with_result: true }]);
+
+    await replyToMessage(mention, { bot, token, env, sql });
+
+    expect(openaiRequests()).toHaveLength(1);
+    expect(sentReply().content).toBe(
+      'Choosing between: WoW, Overwatch\nI choose **Overwatch**!\n-# used /choose',
+    );
+    expect(typedBeforeReply).toBe(typing);
+  });
+
+  it('sends an image a command makes as the reply when the model says to', async () => {
+    openai = () => openaiCalls(['imagine', { prompt: 'a frog in a hat', reply_with_result: true }]);
+
+    await replyToMessage(mention, { bot, token, env, sql });
+
+    expect(openaiRequests()).toHaveLength(1);
+    expect(sentReply()).toMatchObject({
+      content: '> a frog in a hat\n-# used /imagine',
+      attachments: [{ id: 0, filename: 'image.png' }],
+    });
+  });
+
+  it.each([
+    [
+      'another command in the round needs it',
+      [
+        ['choose', { ...chooseArgs, reply_with_result: true }],
+        ['conch', { question: 'Is Overwatch good?', reply_with_result: false }],
+      ],
+    ],
+    ['the command fails', [['choose', { ...chooseArgs, option2: ' ', reply_with_result: true }]]],
+    ['it searched for a station', [['radio_search', { query: 'jazz' }]]],
+  ] as [string, [string, object][]][])('asks OpenAI again when %s', async (_, round) => {
+    const otherwise = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url, init) =>
+      String(url).includes('radio-browser.info') ? Response.json([]) : otherwise(url, init),
+    );
+    openai = (request) =>
+      request.input.some((item) => item.type === 'function_call_output')
+        ? openaiText('Done')
+        : openaiCalls(...round);
+
+    await replyToMessage(mention, { bot, token, env, sql });
+
+    expect(openaiRequests()).toHaveLength(2);
+    expect(sentReply().content).toMatch(/^Done/);
+  });
+
   it('searches for a station, then plays its pick in the server it was asked in', async () => {
     const rock = {
       stationuuid: 'rock-1',

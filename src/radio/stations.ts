@@ -48,9 +48,7 @@ export async function findStation(input: string, signal: AbortSignal): Promise<S
   }
   let station: { ok: boolean; name: string; url: string } | undefined;
   try {
-    const id = STATION_ID.test(input)
-      ? input
-      : (await search({ name: input }, 1, signal))[0]?.stationuuid;
+    const id = STATION_ID.test(input) ? input : (await mostPlayed(input, signal))?.stationuuid;
     // Radio Browser counts a play each time an app asks for a station's URL this way.
     if (id) station = await radioBrowser(`/url/${id}`, signal);
   } catch (error) {
@@ -59,6 +57,14 @@ export async function findStation(input: string, signal: AbortSignal): Promise<S
   }
   if (!station?.ok) throw new CommandError(`I couldn't find a station called "${input}".`);
   return { name: station.name.trim() || 'Unnamed station', url: station.url };
+}
+
+async function mostPlayed(query: string, signal: AbortSignal) {
+  const matches = await Promise.all([
+    search({ name: query }, 1, signal),
+    search({ tag: query }, 1, signal),
+  ]);
+  return matches.flat().toSorted((a, b) => b.clickcount - a.clickcount)[0];
 }
 
 export async function stationChoices(

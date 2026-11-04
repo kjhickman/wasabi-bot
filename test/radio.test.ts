@@ -127,13 +127,23 @@ describe('findStation', () => {
       url: JAZZ_STREAM,
     });
 
-    const [search] = requested('/json/stations/search');
-    expect(Object.fromEntries(search!.searchParams)).toEqual({
-      name: 'jazz',
-      limit: '1',
-      hidebroken: 'true',
-      order: 'clickcount',
-      reverse: 'true',
+    const options = { limit: '1', hidebroken: 'true', order: 'clickcount', reverse: 'true' };
+    expect(
+      requested('/json/stations/search').map((url) => Object.fromEntries(url.searchParams)),
+    ).toEqual([
+      { name: 'jazz', ...options },
+      { tag: 'jazz', ...options },
+    ]);
+    expect(requested(`/json/url/${JAZZ.stationuuid}`)).toHaveLength(1);
+  });
+
+  it('plays the most played station for a genre', async () => {
+    stations = [{ ...JAZZ, stationuuid: 'named-jazz', clickcount: 10 }];
+    tagged = [{ ...JAZZ, clickcount: 90 }];
+
+    expect(await findStation('jazz', signal)).toEqual({
+      name: '101 SMOOTH JAZZ',
+      url: JAZZ_STREAM,
     });
     expect(requested(`/json/url/${JAZZ.stationuuid}`)).toHaveLength(1);
   });
@@ -273,6 +283,22 @@ describe('/radio', () => {
     expect(response.data).toEqual({ content: PLAYING, allowed_mentions: { parse: [] } });
   });
 
+  it('looks up the voice channel and the station at the same time', async () => {
+    const otherwise = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    fetchMock.mockImplementation(async (input, init) => {
+      if (new URL(String(input)).pathname === '/api/v10/guilds/300/voice-states/200') await held;
+      return otherwise(input, init);
+    });
+
+    const playing = radio.execute(playCommand('jazz'), env, signal, invocation);
+    await vi.waitFor(() => expect(requested(`/json/url/${JAZZ.stationuuid}`)).toHaveLength(1));
+    release();
+
+    expect((await playing).data.content).toBe(PLAYING);
+  });
+
   it('escapes markdown in station names', async () => {
     streamName = '*Smooth* Jazz_FM';
 
@@ -307,7 +333,7 @@ describe('/radio', () => {
 
     const response = await radio.execute(command('stop'), env, signal, invocation);
 
-    expect(defer).toHaveBeenCalledOnce();
+    expect(defer).not.toHaveBeenCalled();
     expect(response.data.content).toBe(content);
   });
 
@@ -352,7 +378,7 @@ describe('/radio in Discord', () => {
     ]);
   });
 
-  it('still stops when Discord is slow to accept "thinking"', async () => {
+  it('stops and replies without "thinking", even when Discord is slow to accept the reply', async () => {
     stop.mockResolvedValue(true);
     const otherwise = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation((input, init) =>
@@ -371,7 +397,13 @@ describe('/radio in Discord', () => {
     );
 
     expect(stop).toHaveBeenCalledOnce();
-    expect(edits()).toEqual([{ content: 'Stopped the radio.', attachments: [] }]);
+    expect(callbacks()).toEqual([
+      {
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: { content: 'Stopped the radio.' },
+      },
+    ]);
+    expect(edits()).toEqual([]);
   });
 });
 

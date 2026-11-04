@@ -55,6 +55,7 @@ interface Options {
   onIdentify(): void;
   onDispatch(packet: GatewayDispatchPayload): void;
   onClose(code: number, resumable: boolean, reason: string): void;
+  onReconnect(): void;
 }
 
 export class GatewayConnection {
@@ -140,7 +141,8 @@ export class GatewayConnection {
         this.lastAck = Date.now();
         return;
       case GatewayOpcodes.Reconnect:
-        return this.fail(GatewayCloseCodes.UnknownError, true, 'Discord asked to reconnect');
+        this.close(RESUMABLE_CLOSE_CODE);
+        return this.options.onReconnect();
       case GatewayOpcodes.InvalidSession:
         return this.fail(GatewayCloseCodes.UnknownError, packet.d, 'invalid session');
       case GatewayOpcodes.Dispatch:

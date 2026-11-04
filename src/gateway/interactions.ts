@@ -134,14 +134,11 @@ async function answer(
   };
 
   const respond = async (): Promise<Outcome> => {
-    let deferred = false;
-    const acknowledge = async () => {
-      deferred ||= await callback({
+    let acknowledgment: Promise<boolean> | undefined;
+    const acknowledge = () =>
+      (acknowledgment ??= callback({
         type: InteractionResponseType.DeferredChannelMessageWithSource,
-      });
-      return deferred;
-    };
-    if (command?.deferred && !(await acknowledge())) return 'error';
+      }));
     const invocation: Invocation = {
       guildId: interaction.guild_id,
       userId: user?.id,
@@ -150,16 +147,33 @@ async function answer(
       },
     };
 
-    const commandBudget = deadline - Date.now() - CALLBACK_BUDGET_MS;
-    const signal = deferred
-      ? AbortSignal.timeout(DEFERRED_BUDGET_MS)
-      : commandBudget > 0
-        ? AbortSignal.timeout(commandBudget)
-        : AbortSignal.abort();
-    const { response, failed } = await run(data, env, signal, invocation);
+    const refused = new AbortController();
+    const acknowledged = command?.deferred ? acknowledge() : Promise.resolve(true);
+    void acknowledged.then(
+      (ok) => {
+        if (!ok) refused.abort();
+      },
+      () => refused.abort(),
+    );
+    const budget = command?.deferred
+      ? DEFERRED_BUDGET_MS
+      : deadline - Date.now() - CALLBACK_BUDGET_MS;
+    const signal = AbortSignal.any([
+      refused.signal,
+      budget > 0 ? AbortSignal.timeout(budget) : AbortSignal.abort(),
+    ]);
+    const [ok, result] = await Promise.all([
+      acknowledged,
+      run(data, env, signal, invocation).catch((error: unknown) => {
+        if (refused.signal.aborted) return undefined;
+        throw error;
+      }),
+    ]);
+    if (!ok || !result) return 'error';
+    const deferred = acknowledgment !== undefined;
     span.setAttribute('deferred', deferred);
-    const sent = deferred ? await edit(response) : await callback(response);
-    return !sent ? 'error' : failed ? 'command_error' : 'ok';
+    const sent = deferred ? await edit(result.response) : await callback(result.response);
+    return !sent ? 'error' : result.failed ? 'command_error' : 'ok';
   };
 
   const outcome = await respond().catch((error: unknown): Outcome => {

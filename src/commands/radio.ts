@@ -26,7 +26,7 @@ export const radio = {
           {
             type: ApplicationCommandOptionType.String,
             name: 'station',
-            description: 'A station name or stream URL',
+            description: 'A station name, genre, or stream URL',
             required: true,
             autocomplete: true,
           },
@@ -53,14 +53,15 @@ export const radio = {
     }
     const player = env.RADIO_PLAYER.getByName(guildId);
     if (subcommand.name === 'stop') {
-      await defer?.();
       const stopped = await player.stop();
       return reply({ content: stopped ? 'Stopped the radio.' : "The radio isn't playing." });
     }
 
     const input = subcommandOptions(data.options).find((option) => option.name === 'station');
-    const channelId = await voiceChannel(env, guildId, userId, signal);
-    const station = await findStation(String(input?.value ?? '').trim(), signal);
+    const [channelId, station] = await Promise.all([
+      voiceChannel(env, guildId, userId, signal),
+      findStation(String(input?.value ?? '').trim(), signal),
+    ]);
     await defer?.();
     const reason = await player.play(guildId, channelId, station);
     if (reason) throw new CommandError(reason);

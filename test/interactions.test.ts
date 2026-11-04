@@ -1,5 +1,7 @@
 import { InteractionResponseType, MessageFlags, type APIInteraction } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { caption as captionCommand } from '../src/commands/caption.ts';
+import { reply } from '../src/commands/command.ts';
 import { conch as conchCommand } from '../src/commands/conch.ts';
 import type { Env } from '../src/env.ts';
 import { handleInteraction } from '../src/gateway/interactions.ts';
@@ -117,6 +119,48 @@ describe('daily limits for slash commands', () => {
       { content: 'Upload a PNG, JPEG, WebP, or GIF image to caption.', attachments: [] },
     ]);
     expect(requests()).toEqual([]);
+  });
+
+  it('starts a deferred command without waiting for Discord to accept "thinking"', async () => {
+    let accept!: () => void;
+    fetchMock.mockImplementation(async (url) => {
+      if (!String(url).endsWith('/callback')) return Response.json({ id: 'original' });
+      await new Promise<void>((resolve) => (accept = resolve));
+      return new Response(null, { status: 204 });
+    });
+    const execute = vi.spyOn(captionCommand, 'execute').mockResolvedValue(reply({ content: 'Ha' }));
+
+    const handled = handleInteraction(
+      interaction({ user: { id: '200' } }, { name: 'caption' }),
+      env,
+      sql,
+    );
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledOnce());
+    expect(edits()).toEqual([]);
+    accept();
+    await handled;
+
+    expect(edits()).toEqual([{ content: 'Ha', attachments: [] }]);
+    expect(requests()).toEqual([{ user_id: '200' }]);
+  });
+
+  it('stops a deferred command, without counting it, when Discord refuses "thinking"', async () => {
+    fetchMock.mockImplementation(async () => new Response('Unknown interaction', { status: 404 }));
+    const execute = vi
+      .spyOn(captionCommand, 'execute')
+      .mockImplementation(
+        (_data, _env, signal) =>
+          new Promise((_resolve, reject) =>
+            signal.addEventListener('abort', () => reject(signal.reason)),
+          ),
+      );
+
+    await handleInteraction(interaction({ user: { id: '200' } }, { name: 'caption' }), env, sql);
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(edits()).toEqual([]);
+    expect(requests()).toEqual([]);
+    expect(spans[0]!.attributes['outcome']).toBe('error');
   });
 
   it('refuses privately over the limit without running the command', async () => {

@@ -26,6 +26,7 @@ import { sqlStorage } from './fixtures/sql.ts';
 
 const env = {} as Env;
 const signal = new AbortController().signal;
+const replyFlag = { type: 'boolean', description: expect.any(String) };
 let context: ToolContext;
 function definition(extra: object) {
   return {
@@ -89,7 +90,10 @@ describe('commandTools', () => {
         name: 'test_add',
         description: 'Add a thing.',
         parameters: expect.objectContaining({
-          properties: { what: { type: 'string', description: 'What to add' } },
+          properties: {
+            what: { type: 'string', description: 'What to add' },
+            reply_with_result: replyFlag,
+          },
         }),
       }),
       expect.objectContaining({ name: 'test_clear', description: 'Clear it.' }),
@@ -109,7 +113,12 @@ describe('commandTools', () => {
       description:
         'Get a funny meme caption for an image. It uses the image attached to the last message, else the one on the message it replies to, else the most recent image in the channel.',
       strict: true,
-      parameters: { type: 'object', properties: {}, required: [], additionalProperties: false },
+      parameters: {
+        type: 'object',
+        properties: { reply_with_result: replyFlag },
+        required: ['reply_with_result'],
+        additionalProperties: false,
+      },
     });
   });
 
@@ -122,8 +131,11 @@ describe('commandTools', () => {
       strict: true,
       parameters: {
         type: 'object',
-        properties: { prompt: { type: 'string', description: 'How to change the image' } },
-        required: ['prompt'],
+        properties: {
+          prompt: { type: 'string', description: 'How to change the image' },
+          reply_with_result: replyFlag,
+        },
+        required: ['prompt', 'reply_with_result'],
         additionalProperties: false,
       },
     });
@@ -161,8 +173,9 @@ describe('commandTools', () => {
         sides: { type: 'integer', description: 'Sides', minimum: 2, maximum: 100 },
         color: { type: ['string', 'null'], description: 'Color', enum: ['red', 'blue', null] },
         secret: { type: ['boolean', 'null'], description: 'Secret' },
+        reply_with_result: replyFlag,
       },
-      required: ['sides', 'color', 'secret'],
+      required: ['sides', 'color', 'secret', 'reply_with_result'],
       additionalProperties: false,
     });
   });
@@ -242,6 +255,49 @@ describe('runCommandTool', () => {
       files: [file],
     });
     expect(imageUses()).toBe(1);
+  });
+
+  it('hands back the command’s own text as the reply when the model asks for it', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    const file = new File(['png'], 'image.png', { type: 'image/png' });
+    vi.spyOn(imagine, 'execute').mockResolvedValue({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: { content: '> a frog' },
+      files: [file],
+    });
+
+    expect(
+      await runCommandTool(
+        'choose',
+        JSON.stringify({ ...chooseArgs, reply_with_result: true }),
+        context,
+      ),
+    ).toEqual({
+      output: 'Choosing between: WoW, Overwatch\nI choose **Overwatch**!',
+      files: [],
+      reply: 'Choosing between: WoW, Overwatch\nI choose **Overwatch**!',
+    });
+    expect(
+      await runCommandTool(
+        'imagine',
+        JSON.stringify({ prompt: 'a frog', reply_with_result: true }),
+        context,
+      ),
+    ).toEqual({
+      output: '> a frog\nThe image is attached to your reply.',
+      files: [file],
+      reply: '> a frog',
+    });
+  });
+
+  it('returns no reply for a command that fails, so the model can respond to the error', async () => {
+    expect(
+      await runCommandTool(
+        'choose',
+        JSON.stringify({ ...chooseArgs, option2: ' ', reply_with_result: true }),
+        context,
+      ),
+    ).toEqual({ output: 'Error: Give me at least 2 options to choose from.', files: [] });
   });
 
   it('does not count an image the command failed to make', async () => {

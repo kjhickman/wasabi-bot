@@ -48,7 +48,12 @@ const SESSION: Session = {
 };
 
 function connect(session: Session | null = null) {
-  const callbacks = { onIdentify: vi.fn(), onDispatch: vi.fn(), onClose: vi.fn() };
+  const callbacks = {
+    onIdentify: vi.fn(),
+    onDispatch: vi.fn(),
+    onClose: vi.fn(),
+    onReconnect: vi.fn(),
+  };
   const connection = new GatewayConnection({
     token: 'bot-token',
     url: 'wss://gateway.discord.gg',
@@ -141,16 +146,31 @@ describe('GatewayConnection', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('closes resumably and asks the caller to reconnect when Discord sends RECONNECT', () => {
+    const { connection, socket, onClose, onReconnect } = connect(SESSION);
+    socket.receive(HELLO);
+
+    socket.receive({ op: 7 });
+    socket.closeFromServer(1006);
+
+    expect(onReconnect).toHaveBeenCalledOnce();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(socket.closedWith).toBe(3000);
+    expect(connection.alive).toBe(false);
+    expect(connection.session).toEqual(SESSION);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it.each([
-    [{ op: 7 }, true, 3000, 'Discord asked to reconnect'],
     [{ op: 9, d: true }, true, 3000, 'invalid session'],
     [{ op: 9, d: false }, false, 1000, 'invalid session'],
   ] as const)('hands %j back to the caller', (packet, resumable, closedWith, reason) => {
-    const { socket, onClose } = connect();
+    const { socket, onClose, onReconnect } = connect();
 
     socket.receive(packet);
 
     expect(onClose).toHaveBeenCalledExactlyOnceWith(4000, resumable, reason);
+    expect(onReconnect).not.toHaveBeenCalled();
     expect(socket.closedWith).toBe(closedWith);
   });
 
