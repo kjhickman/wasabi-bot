@@ -1,8 +1,19 @@
-import { GatewayDispatchEvents, type GatewayDispatchPayload } from 'discord-api-types/v10';
+import {
+  GatewayDispatchEvents,
+  type APIUser,
+  type GatewayDispatchPayload,
+} from 'discord-api-types/v10';
 import { addressesBot, replyToMessage, type ChatOptions } from '../chat/index.ts';
 import { claim } from '../storage.ts';
 import { handleInteraction } from './interactions.ts';
 import { clearVoiceStates, replaceVoiceStates, saveVoiceState } from './voice-states.ts';
+
+export function asksBot(packet: GatewayDispatchPayload, bot: APIUser) {
+  return (
+    packet.t === GatewayDispatchEvents.InteractionCreate ||
+    (packet.t === GatewayDispatchEvents.MessageCreate && addressesBot(packet.d, bot))
+  );
+}
 
 export async function handleEvent(packet: GatewayDispatchPayload, context: ChatOptions) {
   const { bot, env, sql } = context;

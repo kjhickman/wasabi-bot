@@ -2,6 +2,8 @@ import { DurableObject } from 'cloudflare:workers';
 import {
   GatewayDispatchEvents,
   Routes,
+  type APIUser,
+  type GatewayDispatchPayload,
   type GatewayVoiceStateUpdateData,
   type RESTGetAPIGatewayBotResult,
   type RESTGetCurrentApplicationResult,
@@ -17,8 +19,8 @@ import {
   RESUMABLE_CLOSE_CODE,
   type Session,
 } from './connection.ts';
-import { handleEvent } from './events.ts';
-import { GATEWAY_NAME } from './stub.ts';
+import { asksBot, handleEvent } from './events.ts';
+import { gateway, GATEWAY_NAME } from './stub.ts';
 import { countListeners } from './voice-states.ts';
 
 const WATCHDOG_MS = 30_000;
@@ -99,6 +101,13 @@ export class DiscordGateway extends DurableObject<Env> {
   listeners(guildId: string, channelId: string) {
     const botId = this.lifecycle.session?.user.id ?? '';
     return countListeners(this.ctx.storage.sql, guildId, channelId, botId);
+  }
+
+  // Socket events aren't requests, so their spans would belong to whichever request this
+  // object is running and get cut off when it ends. Commands and chat come back in through
+  // this method instead, each as its own request.
+  async dispatch(packet: GatewayDispatchPayload, bot: APIUser) {
+    await handleEvent(packet, this.eventContext(bot));
   }
 
   async ensureConnected() {
@@ -208,6 +217,11 @@ export class DiscordGateway extends DurableObject<Env> {
     }
   }
 
+  private eventContext(bot: APIUser) {
+    const token = this.env.DISCORD_BOT_TOKEN ?? '';
+    return { bot, token, env: this.env, sql: this.ctx.storage.sql };
+  }
+
   private async armAlarm() {
     const current = await this.ctx.storage.getAlarm();
     const { retryAt } = this.lifecycle;
@@ -291,12 +305,9 @@ export class DiscordGateway extends DurableObject<Env> {
         }
         if (session) {
           this.ctx.waitUntil(
-            handleEvent(packet, {
-              bot: session.user,
-              token,
-              env: this.env,
-              sql: this.ctx.storage.sql,
-            }),
+            asksBot(packet, session.user)
+              ? gateway(this.env).dispatch(packet, session.user)
+              : handleEvent(packet, this.eventContext(session.user)),
           );
         }
       },
