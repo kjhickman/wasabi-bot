@@ -20,6 +20,7 @@ import { takeUsage } from '../usage.ts';
 
 const RESPONSE_WINDOW_MS = 3_000;
 const CALLBACK_BUDGET_MS = 750;
+const CALLBACK_TIMEOUT_MS = 10_000;
 const DEFERRED_BUDGET_MS = 120_000;
 
 // Discord allows 3 seconds from creation (encoded in the snowflake ID) to reply.
@@ -34,13 +35,14 @@ export async function handleInteraction(interaction: APIInteraction, env: Env, s
   if (deadline <= Date.now() || !claim(sql, interaction.id)) return;
 
   const callback = async (response: APIInteractionResponse) => {
-    const callbackBudget = Math.min(CALLBACK_BUDGET_MS, deadline - Date.now() - 50);
-    if (callbackBudget <= 0) return false;
+    if (deadline - Date.now() <= 50) return false;
     const sent = await discordFetch(Routes.interactionCallback(interaction.id, interaction.token), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(response),
-      signal: AbortSignal.timeout(callbackBudget),
+      // Discord rejects a reply that misses the window, but can take longer than the window
+      // to accept one, so only cut off a request that hangs.
+      signal: AbortSignal.timeout(CALLBACK_TIMEOUT_MS),
     });
     if (!sent.ok) console.error('Discord interaction callback failed', sent.status);
     return sent.ok;

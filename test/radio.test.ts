@@ -348,6 +348,28 @@ describe('/radio in Discord', () => {
       { content: PLAYING, allowed_mentions: { parse: [] }, attachments: [] },
     ]);
   });
+
+  it('still stops when Discord is slow to accept "thinking"', async () => {
+    stop.mockResolvedValue(true);
+    const otherwise = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((input, init) =>
+      String(input).endsWith('/callback')
+        ? new Promise((resolve, reject) => {
+            setTimeout(() => resolve(new Response(null, { status: 204 })), 1_000);
+            init?.signal?.addEventListener('abort', () => reject(init.signal!.reason));
+          })
+        : otherwise(input, init),
+    );
+
+    await handleInteraction(
+      interaction(InteractionType.ApplicationCommand, command('stop')),
+      env,
+      sqlStorage(),
+    );
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(edits()).toEqual([{ content: 'Stopped the radio.', attachments: [] }]);
+  });
 });
 
 describe('/radio autocomplete', () => {
