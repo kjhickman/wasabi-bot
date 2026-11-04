@@ -15,10 +15,26 @@
       "type": "durable-object",
       "storage": "sqlite",
     },
+    "RadioPlayer": {
+      "type": "durable-object",
+      "storage": "sqlite",
+    },
   },
   "durable_objects": {
-    "bindings": [{ "name": "DISCORD_GATEWAY", "class_name": "DiscordGateway" }],
+    "bindings": [
+      { "name": "DISCORD_GATEWAY", "class_name": "DiscordGateway" },
+      { "name": "RADIO_PLAYER", "class_name": "RadioPlayer" },
+    ],
   },
+  // Each guild playing the radio runs one container.
+  "containers": [
+    {
+      "class_name": "RadioPlayer",
+      "image": "./voice/Dockerfile",
+      "instance_type": "basic",
+      "max_instances": 5,
+    },
+  ],
   "vars": {
     "GATEWAY_MODE": "dev",
   },
@@ -27,9 +43,20 @@
       "name": "discord-bot-prod",
       "workers_dev": true,
       "durable_objects": {
-        "bindings": [{ "name": "DISCORD_GATEWAY", "class_name": "DiscordGateway" }],
+        "bindings": [
+          { "name": "DISCORD_GATEWAY", "class_name": "DiscordGateway" },
+          { "name": "RADIO_PLAYER", "class_name": "RadioPlayer" },
+        ],
         "code_update_strategy": { "mode": "immediate" },
       },
+      "containers": [
+        {
+          "class_name": "RadioPlayer",
+          "image": "./voice/Dockerfile",
+          "instance_type": "basic",
+          "max_instances": 5,
+        },
+      ],
       "vars": {
         "GATEWAY_MODE": "prod",
       },

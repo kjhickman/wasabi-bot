@@ -9,7 +9,7 @@ import {
 import OpenAI from 'openai';
 import type { ResponseInputItem, Tool } from 'openai/resources/responses/responses';
 import { systemPrompt } from './prompt.ts';
-import { commandTools, runCommandTool, type ToolContext } from './tools.ts';
+import { chatTools, commandLabel, runTool, type ToolContext } from './tools.ts';
 import { discordFetch, MAX_MESSAGE_LENGTH, withFiles } from '../discord.ts';
 import type { Env } from '../env.ts';
 import { errorMessage } from '../errors.ts';
@@ -24,7 +24,7 @@ const REPLY_TIMEOUT_MS = 180_000;
 const TYPING_INTERVAL_MS = 8_000;
 const FAILURE_REPLY = "Sorry, I couldn't come up with a reply. Try again in a moment.";
 const TOOLS: Tool[] = [
-  ...commandTools,
+  ...chatTools,
   { type: 'web_search' },
   { type: 'code_interpreter', container: { type: 'auto' } },
 ];
@@ -99,6 +99,7 @@ export async function replyToMessage(
       env,
       sql,
       userId,
+      guildId: message.guild_id,
       image,
       signal,
     });
@@ -126,6 +127,9 @@ async function generate(messages: Message[], conversation: Conversation) {
   });
   const used = new Set<string>();
   const files: File[] = [];
+  // The model sometimes says nothing after a command that did the job, like starting the
+  // radio, so the command's own result stands in for its reply.
+  let lastResult: string | undefined;
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const response = await client.responses.create(
@@ -142,7 +146,7 @@ async function generate(messages: Message[], conversation: Conversation) {
     );
     const calls = response.output.filter((item) => item.type === 'function_call');
     if (!calls.length) {
-      const text = response.output_text.trim();
+      const text = response.output_text.trim() || (files.length ? '' : (lastResult ?? ''));
       if (!text && !files.length) {
         const reason = response.incomplete_details?.reason;
         const output = response.output.map((item) => item.type).join(', ') || 'nothing';
@@ -157,13 +161,16 @@ async function generate(messages: Message[], conversation: Conversation) {
     const keepTyping = setInterval(() => void typing(), TYPING_INTERVAL_MS);
     const outputs = await Promise.all(
       calls.map(async (call): Promise<ResponseInputItem> => {
-        used.add(call.name);
+        const label = commandLabel(call.name);
+        if (label) used.add(label);
         const deadline = AbortSignal.any([signal, AbortSignal.timeout(COMMAND_TIMEOUT_MS)]);
-        const result = await runCommandTool(call.name, call.arguments, {
+        const result = await runTool(call.name, call.arguments, {
           ...conversation,
           signal: deadline,
         });
         files.push(...result.files);
+        // Only commands' results are written for people; the station search returns JSON.
+        if (label) lastResult = result.output;
         return { type: 'function_call_output', call_id: call.call_id, output: result.output };
       }),
     ).finally(() => clearInterval(keepTyping));

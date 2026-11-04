@@ -7,13 +7,14 @@ import type { Env } from '../src/env.ts';
 
 const env = {} as Env;
 const signal = new AbortController().signal;
+const invocation = { guildId: '300', userId: '200' };
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
 describe('runCommand', () => {
-  it('passes the interaction data, env, and deadline to the matching command', async () => {
+  it('passes the interaction data, env, deadline, and invocation to the matching command', async () => {
     const data = { id: '1', type: ApplicationCommandType.ChatInput, name: 'conch' } as const;
     const response = {
       type: InteractionResponseType.ChannelMessageWithSource,
@@ -21,14 +22,14 @@ describe('runCommand', () => {
     } as const;
     const execute = vi.spyOn(conch, 'execute').mockResolvedValue(response);
 
-    expect(await runCommand(data, env, signal)).toBe(response);
-    expect(execute).toHaveBeenCalledExactlyOnceWith(data, env, signal);
+    expect(await runCommand(data, env, signal, invocation)).toBe(response);
+    expect(execute).toHaveBeenCalledExactlyOnceWith(data, env, signal, invocation);
   });
 
   it('rejects an unknown command', async () => {
     const data = { id: '1', type: ApplicationCommandType.ChatInput, name: 'unknown' } as const;
 
-    await expect(runCommand(data, env, signal)).rejects.toEqual(
+    await expect(runCommand(data, env, signal, invocation)).rejects.toEqual(
       new CommandError('Unknown command.'),
     );
   });
@@ -37,7 +38,7 @@ describe('runCommand', () => {
 describe('/help', () => {
   it('lists every slash and message command with its description', async () => {
     const data = { id: '1', type: ApplicationCommandType.ChatInput, name: 'help' } as const;
-    const { content } = (await runCommand(data, env, signal)).data;
+    const { content } = (await runCommand(data, env, signal, invocation)).data;
 
     for (const { definition } of commands) {
       expect(content).toContain(`\`/${definition.name}\`: ${definition.description}`);

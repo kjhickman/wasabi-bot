@@ -10,6 +10,7 @@ import {
   CommandError,
   reply,
   type CommandResponse,
+  type Invocation,
   type MessageCommand,
   type SlashCommand,
 } from './command.ts';
@@ -17,6 +18,7 @@ import { conch } from './conch.ts';
 import { flip } from './flip.ts';
 import { edit, imagine } from './image.ts';
 import { mock } from './mock.ts';
+import { radio } from './radio.ts';
 
 // Lives here rather than in its own file, since it needs the command list.
 const help = {
@@ -38,7 +40,7 @@ const help = {
   },
 } satisfies SlashCommand;
 
-export const commands: SlashCommand[] = [conch, choose, caption, imagine, edit, flip, help];
+export const commands: SlashCommand[] = [conch, choose, caption, imagine, edit, flip, radio, help];
 export const messageCommands: MessageCommand[] = [mock];
 
 const commandsByName = new Map(commands.map((command) => [command.definition.name, command]));
@@ -51,13 +53,14 @@ export async function runCommand(
   data: APIChatInputApplicationCommandInteractionData | APIMessageApplicationCommandInteractionData,
   env: Env,
   signal: AbortSignal,
+  invocation: Invocation,
 ): Promise<CommandResponse> {
   if (data.type === ApplicationCommandType.Message) {
     const command = messageCommands.find((command) => command.definition.name === data.name);
     if (command) return command.execute(data);
   } else {
     const command = getCommand(data.name);
-    if (command) return command.execute(data, env, signal);
+    if (command) return command.execute(data, env, signal, invocation);
   }
   throw new CommandError('Unknown command.');
 }

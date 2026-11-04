@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "check": "vp check && tsrs --noEmit",
+    "check": "vp check && tsrs --noEmit && tsrs --noEmit -p voice",
     "test": "vp test run",
     "deploy": "CLOUDFLARE_ENV=prod vp build && wrangler deploy --secrets-file .dev.vars.prod",
-    "postinstall": "wrangler types --include-env false"
+    "postinstall": "wrangler types --include-env false && npm ci --prefix voice --no-audit --no-fund"
   },
   "dependencies": {
     "hono": "4.13.13",

@@ -9,7 +9,16 @@ import { caption } from '../src/commands/caption.ts';
 import { CommandError } from '../src/commands/command.ts';
 import { imagine } from '../src/commands/image.ts';
 import { commands } from '../src/commands/index.ts';
-import { commandTool, commandTools, runCommandTool, type ToolContext } from '../src/chat/tools.ts';
+import { radio } from '../src/commands/radio.ts';
+import {
+  chatTools,
+  commandLabel,
+  commandTools,
+  offers,
+  runCommandTool,
+  runTool,
+  type ToolContext,
+} from '../src/chat/tools.ts';
 import type { Env } from '../src/env.ts';
 import { takeUsage } from '../src/usage.ts';
 import { chooseArgs } from './fixtures/builders.ts';
@@ -41,10 +50,56 @@ afterEach(() => {
 });
 
 describe('commandTools', () => {
-  it('offers every command as a tool', () => {
+  it('offers every command as a tool, and each /radio subcommand as its own', () => {
     expect(commandTools.map((tool) => tool.name)).toEqual(
-      commands.map((command) => command.definition.name),
+      commands.flatMap(({ definition: { name } }) =>
+        name === 'radio' ? ['radio_play', 'radio_stop'] : [name],
+      ),
     );
+  });
+
+  it('builds a subcommand’s tool from its own description and options', () => {
+    expect(
+      offers(
+        definition({
+          options: [
+            {
+              type: ApplicationCommandOptionType.Subcommand,
+              name: 'add',
+              description: 'Add a thing.',
+              options: [
+                {
+                  type: ApplicationCommandOptionType.String,
+                  name: 'what',
+                  description: 'What to add',
+                  required: true,
+                },
+              ],
+            },
+            {
+              type: ApplicationCommandOptionType.Subcommand,
+              name: 'clear',
+              description: 'Clear it.',
+            },
+          ],
+        }),
+      ).map((entry) => entry.tool),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'test_add',
+        description: 'Add a thing.',
+        parameters: expect.objectContaining({
+          properties: { what: { type: 'string', description: 'What to add' } },
+        }),
+      }),
+      expect.objectContaining({ name: 'test_clear', description: 'Clear it.' }),
+    ]);
+  });
+
+  it('labels tools as the slash command someone would type', () => {
+    expect(commandLabel('radio_play')).toBe('radio play');
+    expect(commandLabel('choose')).toBe('choose');
+    expect(commandLabel('radio_search')).toBeUndefined();
   });
 
   it('leaves image options out of the schema and describes where the image comes from', () => {
@@ -75,7 +130,7 @@ describe('commandTools', () => {
   });
 
   it('maps choices and number limits, and allows null for optional options', () => {
-    const tool = commandTool(
+    const [entry] = offers(
       definition({
         options: [
           {
@@ -100,7 +155,7 @@ describe('commandTools', () => {
       }),
     );
 
-    expect(tool!.parameters).toEqual({
+    expect(entry!.tool.parameters).toEqual({
       type: 'object',
       properties: {
         sides: { type: 'integer', description: 'Sides', minimum: 2, maximum: 100 },
@@ -119,15 +174,15 @@ describe('commandTools', () => {
       { options: [{ type: ApplicationCommandOptionType.User, name: 'who', description: 'Who' }] },
     ],
     [
-      'has subcommands',
+      'has subcommand groups',
       {
         options: [
-          { type: ApplicationCommandOptionType.Subcommand, name: 'add', description: 'Add' },
+          { type: ApplicationCommandOptionType.SubcommandGroup, name: 'tags', description: 'Tags' },
         ],
       },
     ],
   ])('leaves out a command that %s', (_, extra) => {
-    expect(commandTool(definition(extra))).toBeUndefined();
+    expect(offers(definition(extra))).toEqual([]);
   });
 });
 
@@ -139,6 +194,39 @@ describe('runCommandTool', () => {
       output: 'Choosing between: WoW, Overwatch\nI choose **Overwatch**!',
       files: [],
     });
+  });
+
+  it('runs a subcommand for the server the conversation is in', async () => {
+    const execute = vi.spyOn(radio, 'execute').mockResolvedValue({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: { content: 'Playing **Classic Rock 109** in <#400>.' },
+    });
+
+    const result = await runCommandTool('radio_play', JSON.stringify({ station: 'classic rock' }), {
+      ...context,
+      guildId: '300',
+    });
+
+    expect(result).toEqual({ output: 'Playing **Classic Rock 109** in <#400>.', files: [] });
+    expect(execute).toHaveBeenCalledExactlyOnceWith(
+      {
+        id: '0',
+        type: ApplicationCommandType.ChatInput,
+        name: 'radio',
+        options: [
+          {
+            type: ApplicationCommandOptionType.Subcommand,
+            name: 'play',
+            options: [
+              { name: 'station', type: ApplicationCommandOptionType.String, value: 'classic rock' },
+            ],
+          },
+        ],
+      },
+      env,
+      signal,
+      { guildId: '300', userId: '200' },
+    );
   });
 
   it('passes on the files a command makes and tells the model they are attached', async () => {
@@ -239,6 +327,90 @@ describe('runCommandTool', () => {
       },
       env,
       signal,
+      { guildId: undefined, userId: '200' },
     );
+  });
+});
+
+describe('runTool', () => {
+  const ROCK = {
+    stationuuid: 'rock-1',
+    name: 'Classic Rock 109',
+    codec: 'MP3',
+    bitrate: 128,
+    countrycode: 'US',
+    tags: 'classic rock,rock',
+    votes: 5_000,
+    clickcount: 80,
+  };
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    fetchMock.mockReset().mockImplementation(async () => Response.json([ROCK]));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('offers the model a radio search alongside the commands', () => {
+    expect(chatTools.map((tool) => tool.name)).toEqual([
+      ...commandTools.map((tool) => tool.name),
+      'radio_search',
+    ]);
+  });
+
+  it('searches radio stations for the model', async () => {
+    const { output, files } = await runTool(
+      'radio_search',
+      JSON.stringify({ query: ' classic rock ' }),
+      context,
+    );
+
+    expect(JSON.parse(output)).toEqual([
+      {
+        id: 'rock-1',
+        name: 'Classic Rock 109',
+        country: 'US',
+        quality: 'MP3 128 kbps',
+        tags: ['classic rock', 'rock'],
+        votes: 5_000,
+      },
+    ]);
+    expect(files).toEqual([]);
+    expect(new URL(String(fetchMock.mock.calls[0]![0])).searchParams.get('name')).toBe(
+      'classic rock',
+    );
+  });
+
+  it('says when no station matches', async () => {
+    fetchMock.mockImplementation(async () => Response.json([]));
+
+    expect(
+      await runTool('radio_search', JSON.stringify({ query: 'polka metal' }), context),
+    ).toEqual({ output: 'No stations matched "polka metal".', files: [] });
+  });
+
+  it('reports a search that fails', async () => {
+    fetchMock.mockImplementation(async () => new Response('Down', { status: 502 }));
+
+    expect(await runTool('radio_search', JSON.stringify({ query: 'jazz' }), context)).toEqual({
+      output: 'Error: the station search failed.',
+      files: [],
+    });
+    expect(console.error).toHaveBeenCalledWith(
+      'Chat radio search failed',
+      'Radio Browser returned HTTP 502',
+    );
+  });
+
+  it('runs anything else as a command', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.9);
+
+    expect(await runTool('choose', JSON.stringify(chooseArgs), context)).toEqual({
+      output: 'Choosing between: WoW, Overwatch\nI choose **Overwatch**!',
+      files: [],
+    });
   });
 });

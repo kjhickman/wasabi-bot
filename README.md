@@ -6,6 +6,8 @@ A Discord Gateway bot on Cloudflare Workers.
 
 Test the bot locally; there is no deployed dev environment. Fill `.dev.vars` (from `.dev.vars.example`) with the **dev application's** settings, then run `npm run dev`. It starts the Worker, connects to Discord, and syncs the dev application's slash commands when they've changed. Stop it with Ctrl-C.
 
+`/radio` runs each guild's voice connection in a container, so `npm run dev` and `npm run deploy` need Docker running (Docker Desktop or Colima). The first run builds the image, which takes a minute. For a few minutes after a deploy that changes the image, `/radio play` may say the radio couldn't start while Cloudflare rolls the image out.
+
 ## Commands
 
 | Command          | Purpose                                                        |

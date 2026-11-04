@@ -1,11 +1,13 @@
 import {
+  InteractionResponseType,
   MessageFlags,
   type APIUser,
   type GatewayMessageCreateDispatchData,
 } from 'discord-api-types/v10';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { addressesBot, replyToMessage } from '../src/chat/index.ts';
-import { commandTools } from '../src/chat/tools.ts';
+import { chatTools } from '../src/chat/tools.ts';
+import { radio } from '../src/commands/radio.ts';
 import type { Env } from '../src/env.ts';
 import { takeUsage } from '../src/usage.ts';
 import { chooseArgs } from './fixtures/builders.ts';
@@ -146,7 +148,7 @@ describe('replyToMessage', () => {
       ],
     });
     expect(request!.tools.map((tool) => tool.name ?? tool.type)).toEqual([
-      ...commandTools.map((tool) => tool.name),
+      ...chatTools.map((tool) => tool.name),
       'web_search',
       'code_interpreter',
     ]);
@@ -251,6 +253,58 @@ describe('replyToMessage', () => {
     );
   });
 
+  it('searches for a station, then plays its pick in the server it was asked in', async () => {
+    const rock = {
+      stationuuid: 'rock-1',
+      name: 'Classic Rock 109',
+      codec: 'MP3',
+      bitrate: 128,
+      countrycode: 'US',
+      tags: 'classic rock',
+      votes: 5_000,
+      clickcount: 80,
+    };
+    const otherwise = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (url, init) =>
+      String(url).includes('radio-browser.info') ? Response.json([rock]) : otherwise(url, init),
+    );
+    const execute = vi.spyOn(radio, 'execute').mockResolvedValue({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: { content: 'Playing **Classic Rock 109** in <#400>.' },
+    });
+    const rounds = [
+      () => openaiCalls(['radio_search', { query: 'classic rock' }]),
+      () => openaiCalls(['radio_play', { station: 'rock-1' }]),
+      () => openaiText('Cranking up Classic Rock 109!'),
+    ];
+    openai = () => rounds.shift()!();
+
+    await replyToMessage(
+      { ...mention, content: `<@${BOT_ID}> find me a good classic rock station` },
+      { bot, token, env, sql },
+    );
+
+    const [, second] = openaiRequests();
+    expect(JSON.parse(second!.input.at(-1)!.output!)).toEqual([
+      expect.objectContaining({ id: 'rock-1', name: 'Classic Rock 109', votes: 5_000 }),
+    ]);
+    expect(execute).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        name: 'radio',
+        options: [
+          expect.objectContaining({
+            name: 'play',
+            options: [expect.objectContaining({ value: 'rock-1' })],
+          }),
+        ],
+      }),
+      env,
+      expect.any(AbortSignal),
+      { guildId: '1', userId: '200' },
+    );
+    expect(sentReply().content).toBe('Cranking up Classic Rock 109!\n-# used /radio play');
+  });
+
   it('attaches images that commands make to the reply', async () => {
     openai = (request) =>
       request.input.some((item) => item.type === 'function_call_output')
@@ -275,6 +329,24 @@ describe('replyToMessage', () => {
     const file = sentForm().get('files[0]') as File;
     expect(file.type).toBe('image/png');
     expect(await file.text()).toBe('png');
+  });
+
+  it("replies with the command's result when the model adds no text after it", async () => {
+    vi.spyOn(radio, 'execute').mockResolvedValue({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: { content: 'Playing **Classic Rock 109** in <#400>.' },
+    });
+    openai = (request) =>
+      request.input.some((item) => item.type === 'function_call_output')
+        ? openaiText('')
+        : openaiCalls(['radio_play', { station: 'rock-1' }]);
+
+    await replyToMessage(mention, { bot, token, env, sql });
+
+    expect(sentReply().content).toBe(
+      'Playing **Classic Rock 109** in <#400>.\n-# used /radio play',
+    );
+    expect(console.error).not.toHaveBeenCalled();
   });
 
   it('still sends images when the model adds no text', async () => {

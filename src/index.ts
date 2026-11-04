@@ -3,6 +3,7 @@ import type { Env } from './env.ts';
 import { gateway } from './gateway/stub.ts';
 
 export { DiscordGateway } from './gateway/durable-object.ts';
+export { RadioCallback, RadioPlayer } from './radio/player.ts';
 
 export default {
   fetch: app.fetch,

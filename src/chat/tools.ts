@@ -11,7 +11,8 @@ import type { Env } from '../env.ts';
 import { errorMessage } from '../errors.ts';
 import { takeUsage, type Usage } from '../usage.ts';
 import { CommandError } from '../commands/command.ts';
-import { commands, getCommand, runCommand } from '../commands/index.ts';
+import { commands, runCommand } from '../commands/index.ts';
+import { searchStations } from '../radio/stations.ts';
 
 const JSON_TYPES: Partial<Record<ApplicationCommandOptionType, string>> = {
   [ApplicationCommandOptionType.String]: 'string',
@@ -26,18 +27,37 @@ const IMAGE_NOTE =
 type Definition = RESTPostAPIChatInputApplicationCommandsJSONBody;
 type Value = string | number | boolean | null;
 
-// Chat can't offer commands limited to some members, or options that only Discord can
-// fill in (users, channels, roles, subcommands). Chat fills attachment options itself
-// with the image the conversation is about.
-export function commandTool(definition: Definition): FunctionTool | undefined {
-  const options = (definition.options ?? []).filter((option) => !isAttachment(option));
-  if (definition.default_member_permissions != null) return undefined;
+// A tool runs a command, or one of its subcommands.
+interface Entry {
+  name: string;
+  description: string;
+  options: APIApplicationCommandOption[];
+  subcommand?: string;
+}
+
+// A command with subcommands offers one tool per subcommand, named like `radio_play`.
+function entries(definition: Definition): Entry[] {
+  const { name, description, options = [] } = definition;
+  const subcommands = options.filter(
+    (option) => option.type === ApplicationCommandOptionType.Subcommand,
+  );
+  if (!subcommands.length) return [{ name, description, options }];
+  return subcommands.map((subcommand) => ({
+    name: `${name}_${subcommand.name}`,
+    description: subcommand.description,
+    options: subcommand.options ?? [],
+    subcommand: subcommand.name,
+  }));
+}
+
+function tool({ name, description, options: all }: Entry): FunctionTool | undefined {
+  const options = all.filter((option) => !isAttachment(option));
   if (!options.every((option) => JSON_TYPES[option.type])) return undefined;
-  const usesImage = options.length < (definition.options?.length ?? 0);
+  const usesImage = options.length < all.length;
   return {
     type: 'function',
-    name: definition.name,
-    description: usesImage ? `${definition.description} ${IMAGE_NOTE}` : definition.description,
+    name,
+    description: usesImage ? `${description} ${IMAGE_NOTE}` : description,
     strict: true,
     parameters: {
       type: 'object',
@@ -48,12 +68,69 @@ export function commandTool(definition: Definition): FunctionTool | undefined {
   };
 }
 
-export const commandTools = commands.flatMap((command) => commandTool(command.definition) ?? []);
+// Chat can't offer commands limited to some members, or options that only Discord can
+// fill in (users, channels, roles, subcommand groups). Chat fills attachment options
+// itself with the image the conversation is about.
+export function offers(definition: Definition) {
+  if (definition.default_member_permissions != null) return [];
+  return entries(definition).flatMap((entry) => {
+    const offer = tool(entry);
+    return offer ? [{ ...entry, tool: offer }] : [];
+  });
+}
+
+const offered = commands.flatMap((command) =>
+  offers(command.definition).map((entry) => ({ ...entry, command })),
+);
+
+export const commandTools = offered.map((entry) => entry.tool);
+
+// Only chat has this: people browse stations with /radio play's autocomplete instead.
+const radioSearch: FunctionTool = {
+  type: 'function',
+  name: 'radio_search',
+  description:
+    'Search internet radio stations by name or genre, most played first. When someone asks for a kind of music, search, pick the best match, and play it by passing its id as the station to radio_play.',
+  strict: true,
+  parameters: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'A station name or genre, like "classic rock"' },
+    },
+    required: ['query'],
+    additionalProperties: false,
+  },
+};
+
+export const chatTools = [...commandTools, radioSearch];
+
+// How the reply's "used" note shows a command's tool: as the slash command someone would
+// type. Other tools aren't noted.
+export function commandLabel(name: string) {
+  const entry = offered.find((entry) => entry.name === name);
+  if (!entry) return undefined;
+  return [entry.command.definition.name, entry.subcommand].filter(Boolean).join(' ');
+}
+
+export async function runTool(name: string, json: string, context: ToolContext) {
+  if (name !== radioSearch.name) return runCommandTool(name, json, context);
+  try {
+    const query = (JSON.parse(json) as { query: string }).query.trim();
+    const stations = await searchStations(query, context.signal);
+    const output = stations.length ? JSON.stringify(stations) : `No stations matched "${query}".`;
+    return { output, files: [] };
+  } catch (error) {
+    console.error('Chat radio search failed', errorMessage(error));
+    return { output: 'Error: the station search failed.', files: [] };
+  }
+}
 
 export interface ToolContext {
   env: Env;
   sql: SqlStorage;
   userId: string;
+  // Missing in DMs.
+  guildId?: string | undefined;
   image?: APIAttachment | undefined;
   signal: AbortSignal;
 }
@@ -61,19 +138,18 @@ export interface ToolContext {
 export async function runCommandTool(
   name: string,
   json: string,
-  { env, sql, userId, image, signal }: ToolContext,
+  { env, sql, userId, guildId, image, signal }: ToolContext,
 ): Promise<{ output: string; files: File[] }> {
   const failure = (message: string) => ({ output: `Error: ${message}`, files: [] });
-  const command = getCommand(name);
-  if (!command || !commandTools.some((tool) => tool.name === name)) {
-    return failure('unknown command.');
-  }
+  const entry = offered.find((entry) => entry.name === name);
+  if (!entry) return failure('unknown command.');
+  const { command } = entry;
 
   let use: Usage | undefined;
   try {
     const args = JSON.parse(json) as Record<string, Value>;
     const options: APIApplicationCommandInteractionDataBasicOption[] = [];
-    for (const option of command.definition.options ?? []) {
+    for (const option of entry.options) {
       if (isAttachment(option)) {
         if (image) {
           options.push({
@@ -108,12 +184,15 @@ export async function runCommandTool(
       {
         id: '0',
         type: ApplicationCommandType.ChatInput,
-        name,
-        options,
+        name: command.definition.name,
+        options: entry.subcommand
+          ? [{ type: ApplicationCommandOptionType.Subcommand, name: entry.subcommand, options }]
+          : options,
         ...(image && { resolved: { attachments: { [image.id]: image } } }),
       },
       env,
       signal,
+      { guildId, userId },
     );
     const files = command.textOnlyInChat ? [] : (response.files ?? []);
     const note = files.length ? '\nThe image is attached to your reply.' : '';

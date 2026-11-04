@@ -2,6 +2,7 @@ import { DurableObject } from 'cloudflare:workers';
 import {
   GatewayDispatchEvents,
   Routes,
+  type GatewayVoiceStateUpdateData,
   type RESTGetAPIGatewayBotResult,
   type RESTGetCurrentApplicationResult,
 } from 'discord-api-types/v10';
@@ -17,6 +18,7 @@ import {
 } from './connection.ts';
 import { handleEvent } from './events.ts';
 import { GATEWAY_NAME } from './stub.ts';
+import { countListeners } from './voice-states.ts';
 
 const WATCHDOG_MS = 30_000;
 const MAX_BACKOFF_MS = 5 * 60 * 1_000;
@@ -87,6 +89,20 @@ export class DiscordGateway extends DurableObject<Env> {
   async stop() {
     await this.halt(null);
     return this.status();
+  }
+
+  // The radio joins and leaves voice channels through this connection. Returns whether it
+  // was sent.
+  updateVoiceState(data: GatewayVoiceStateUpdateData) {
+    if (!this.connection?.connected) return false;
+    this.connection.updateVoiceState(data);
+    return true;
+  }
+
+  // How many people other than the bot are in a voice channel.
+  listeners(guildId: string, channelId: string) {
+    const botId = this.lifecycle.session?.user.id ?? '';
+    return countListeners(this.ctx.storage.sql, guildId, channelId, botId);
   }
 
   async ensureConnected() {

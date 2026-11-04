@@ -8,6 +8,7 @@ import {
   type GatewayDispatchPayload,
   type GatewayReceivePayload,
   type GatewaySendPayload,
+  type GatewayVoiceStateUpdateData,
 } from 'discord-api-types/v10';
 
 const HANDSHAKE_TIMEOUT_MS = 10_000;
@@ -109,6 +110,11 @@ export class GatewayConnection {
     } else if (this.socket.readyState === WebSocket.OPEN) {
       this.socket.close(code, 'Gateway stopped');
     }
+  }
+
+  // Joins, moves, or leaves a voice channel.
+  updateVoiceState(data: GatewayVoiceStateUpdateData) {
+    this.send({ op: GatewayOpcodes.VoiceStateUpdate, d: data });
   }
 
   private fail(code: number, resumable: boolean) {

@@ -6,6 +6,7 @@ A Discord Gateway bot running on Cloudflare Workers. See `README.md` for setup a
 
 - TypeScript on Cloudflare Workers (`wrangler.jsonc`), with Hono for HTTP routes
 - A Durable Object (`DiscordGateway`, SQLite storage) holds the single Discord Gateway WebSocket. A Durable Object alarm checks the connection every 30 seconds. In prod, a cron every 15 minutes restarts that alarm loop if it ever stops.
+- `/radio` plays internet radio in voice channels. Each guild that's playing gets a `RadioPlayer` Durable Object, which starts a Cloudflare Container (Node, `@discordjs/voice`, ffmpeg) for the voice connection and stream. The container's voice joins and leaves go through `DiscordGateway`'s connection. Stations come from Radio Browser.
 - OpenAI handles chat replies when someone mentions the bot, and some slash commands use it too
 - `discord-api-types` for Discord types
 - Vite+ (`vp`) for dev, build, format, lint, and tests (Vitest). `tsrs` for type checking.
@@ -17,9 +18,11 @@ A Discord Gateway bot running on Cloudflare Workers. See `README.md` for setup a
 - `src/gateway/`: the Durable Object lifecycle, the WebSocket connection, and interaction handling
 - `src/chat.ts`: replies to mentions using OpenAI, with slash commands available as tools
 - `src/commands/`: slash and message commands, registered in `index.ts`
+- `src/radio/`: the `RadioPlayer` Durable Object, the callback its container uses to reach the Gateway, and Radio Browser lookups
+- `voice/`: the radio's container image and its server, which holds the voice connection and streams the station. It has its own `package.json`; `npm install` at the root installs it too.
 - `test/`: Vitest tests and fixtures
 
-Before committing, run `npm run check` and `npm test`. After editing `wrangler.jsonc`, rerun `npm install` to regenerate the Worker types.
+Before committing, run `npm run check` and `npm test`. After editing `wrangler.jsonc`, rerun `npm install` to regenerate the Worker types. `npm run dev` and `npm run deploy` build the container image, so Docker must be running.
 
 ## Investigating issues
 

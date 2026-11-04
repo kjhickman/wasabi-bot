@@ -11,6 +11,9 @@ export function migrate(sql: SqlStorage) {
     'CREATE TABLE IF NOT EXISTS usage (id INTEGER PRIMARY KEY, kind TEXT NOT NULL, user_id TEXT NOT NULL, at INTEGER NOT NULL)',
   );
   sql.exec('CREATE INDEX IF NOT EXISTS usage_kind_at ON usage (kind, at)');
+  sql.exec(
+    'CREATE TABLE IF NOT EXISTS voice_states (guild_id TEXT NOT NULL, user_id TEXT NOT NULL, channel_id TEXT NOT NULL, PRIMARY KEY (guild_id, user_id))',
+  );
 }
 
 export function prune(sql: SqlStorage, now = Date.now()) {

@@ -104,6 +104,17 @@ describe('GatewayConnection', () => {
     ]);
   });
 
+  it('sends voice state updates', () => {
+    const { connection, socket } = connect(SESSION);
+    socket.receive(HELLO);
+    socket.sent = [];
+    const data = { guild_id: '300', channel_id: '400', self_mute: false, self_deaf: true };
+
+    connection.updateVoiceState(data);
+
+    expect(socket.sent).toEqual([{ op: 4, d: data }]);
+  });
+
   it('heartbeats with the last sequence and treats a missed ACK as a zombie', () => {
     const { connection, socket, onClose } = connect(SESSION);
     socket.receive(HELLO);
