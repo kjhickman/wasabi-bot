@@ -45,7 +45,6 @@ export interface Session {
   sessionId: string;
   resumeGatewayUrl: string;
   sequence: number;
-  // The bot's own user.
   user: APIUser;
 }
 
@@ -55,12 +54,9 @@ interface Options {
   session: Session | null;
   onIdentify(): void;
   onDispatch(packet: GatewayDispatchPayload): void;
-  // The reason is for logs.
   onClose(code: number, resumable: boolean, reason: string): void;
 }
 
-// A single Gateway WebSocket. It never reconnects by itself: when it fails it closes,
-// reports `onClose` once, and leaves recovery to the Durable Object.
 export class GatewayConnection {
   session: Session | null;
   lastAck: number | null = null;
@@ -117,7 +113,6 @@ export class GatewayConnection {
     }
   }
 
-  // Joins, moves, or leaves a voice channel.
   updateVoiceState(data: GatewayVoiceStateUpdateData) {
     this.send({ op: GatewayOpcodes.VoiceStateUpdate, d: data });
   }
@@ -191,7 +186,6 @@ export class GatewayConnection {
     });
   }
 
-  // An unacknowledged heartbeat means the connection is a zombie.
   private scheduleHeartbeat(interval: number, delay: number) {
     this.heartbeatTimer = setTimeout(() => {
       if (!this.acked) {

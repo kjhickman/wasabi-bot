@@ -315,7 +315,6 @@ describe('runCommandTool', () => {
       output: 'Me when the build passes',
       files: [],
     });
-    // The chat reply already counted as the request.
     expect(context.sql.exec('SELECT * FROM usage').toArray()).toEqual([]);
     expect(execute).toHaveBeenCalledExactlyOnceWith(
       {

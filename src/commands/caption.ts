@@ -23,7 +23,6 @@ export const caption = {
   },
   deferred: true,
   limit: 'text',
-  // In chat the image is already in the conversation, so only the caption is sent.
   textOnlyInChat: true,
 
   async execute(data, env, signal) {
@@ -31,7 +30,6 @@ export const caption = {
     if (!image?.content_type || !IMAGE_TYPES.has(image.content_type)) {
       throw new CommandError('Upload a PNG, JPEG, WebP, or GIF image to caption.');
     }
-    // The image is re-posted with the caption, so it has to fit Discord's upload limit.
     if (image.size > MAX_UPLOAD_BYTES) {
       throw new CommandError('That image is too big. Upload one under 10 MB.');
     }
@@ -63,7 +61,6 @@ export const caption = {
   },
 } satisfies SlashCommand;
 
-// OpenAI fetches the image itself, so the Durable Object never holds a base64 copy.
 async function writeCaption(url: string, apiKey: string, signal: AbortSignal) {
   const client = new OpenAI({ apiKey });
   const response = await createResponse(

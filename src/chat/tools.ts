@@ -27,7 +27,6 @@ const IMAGE_NOTE =
 type Definition = RESTPostAPIChatInputApplicationCommandsJSONBody;
 type Value = string | number | boolean | null;
 
-// A tool runs a command, or one of its subcommands.
 interface Entry {
   name: string;
   description: string;
@@ -35,7 +34,6 @@ interface Entry {
   subcommand?: string;
 }
 
-// A command with subcommands offers one tool per subcommand, named like `radio_play`.
 function entries(definition: Definition): Entry[] {
   const { name, description, options = [] } = definition;
   const subcommands = options.filter(
@@ -68,9 +66,6 @@ function tool({ name, description, options: all }: Entry): FunctionTool | undefi
   };
 }
 
-// Chat can't offer commands limited to some members, or options that only Discord can
-// fill in (users, channels, roles, subcommand groups). Chat fills attachment options
-// itself with the image the conversation is about.
 export function offers(definition: Definition) {
   if (definition.default_member_permissions != null) return [];
   return entries(definition).flatMap((entry) => {
@@ -85,7 +80,6 @@ const offered = commands.flatMap((command) =>
 
 export const commandTools = offered.map((entry) => entry.tool);
 
-// Only chat has this: people browse stations with /radio play's autocomplete instead.
 const radioSearch: FunctionTool = {
   type: 'function',
   name: 'radio_search',
@@ -104,8 +98,6 @@ const radioSearch: FunctionTool = {
 
 export const chatTools = [...commandTools, radioSearch];
 
-// How the reply's "used" note shows a command's tool: as the slash command someone would
-// type. Other tools aren't noted.
 export function commandLabel(name: string) {
   const entry = offered.find((entry) => entry.name === name);
   if (!entry) return undefined;
@@ -129,7 +121,6 @@ export interface ToolContext {
   env: Env;
   sql: SqlStorage;
   userId: string;
-  // Missing in DMs.
   guildId?: string | undefined;
   image?: APIAttachment | undefined;
   signal: AbortSignal;
@@ -175,7 +166,6 @@ export async function runCommandTool(
         value,
       } as APIApplicationCommandInteractionDataBasicOption);
     }
-    // The chat reply already counts as a request, so only images count again here.
     if (command.limit === 'image') {
       use = takeUsage(sql, 'image', userId);
       if (!use.ok) return failure(use.reason);

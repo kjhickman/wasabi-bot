@@ -7,7 +7,6 @@ import {
 
 // Nitro members can send 4,000 characters, but bots are limited to 2,000.
 export const MAX_MESSAGE_LENGTH = 2_000;
-// Discord's default upload limit for bots.
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const DISCORD_EPOCH_MS = 1_420_070_400_000;
 
@@ -20,7 +19,6 @@ export function discordFetch(
   return fetch(`${RouteBases.api}${route}`, { ...init, headers, redirect: 'manual' });
 }
 
-// For logs: why Discord refused a request, like `{"message": "Unknown interaction", "code": 10062}`.
 export async function responseDetails(response: Response) {
   return { status: response.status, body: (await response.text()).slice(0, 500) };
 }

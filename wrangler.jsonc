@@ -26,7 +26,6 @@
       { "name": "RADIO_PLAYER", "class_name": "RadioPlayer" },
     ],
   },
-  // Each guild playing the radio runs one container.
   "containers": [
     {
       "class_name": "RadioPlayer",

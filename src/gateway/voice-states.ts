@@ -1,10 +1,8 @@
 import type { GatewayVoiceState } from 'discord-api-types/v10';
 
-// Who is in which voice channel, kept from Gateway events so the radio knows when its
-// channel has emptied. Discord has no endpoint that lists a channel's members.
+// Discord has no endpoint that lists a voice channel's members, so they're tracked from Gateway events.
 type VoiceState = Pick<GatewayVoiceState, 'user_id' | 'channel_id'>;
 
-// A new session sends every guild again, so start over.
 export function clearVoiceStates(sql: SqlStorage) {
   sql.exec('DELETE FROM voice_states');
 }

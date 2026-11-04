@@ -4,7 +4,7 @@ import type { Session } from '../../src/gateway/connection.ts';
 import { gateway as gatewayStub } from '../../src/gateway/stub.ts';
 
 export class TestGateway extends DiscordGateway {
-  // Shorter than production so tests don't sit through real backoffs; gateway.test.ts timings assume these.
+  // gateway.test.ts timings assume these.
   protected override readonly identifyCooldownMs = 1_000;
   protected override readonly retryBaseMs = 100;
 
@@ -12,7 +12,6 @@ export class TestGateway extends DiscordGateway {
     this.ctx.abort('Test Gateway restart');
   }
 
-  // Kill the socket without the Durable Object hearing about it.
   zombie(): void {
     this.connection!.close(3010);
   }
@@ -25,7 +24,6 @@ export class TestGateway extends DiscordGateway {
     return this.ctx.storage.setAlarm(Date.now());
   }
 
-  // Run the alarm with no alarm set and storage that makes pruning throw.
   async failAlarm() {
     await this.ctx.storage.deleteAlarm();
     this.ctx.storage.sql.exec('DROP TABLE seen');

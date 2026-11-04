@@ -21,7 +21,6 @@ export function prune(sql: SqlStorage, now = Date.now()) {
   sql.exec('DELETE FROM usage WHERE at <= ?', now - USAGE_WINDOW_MS);
 }
 
-// Claims an interaction or message ID once, so a replayed Gateway event never runs twice.
 export function claim(sql: SqlStorage, id: string, now = Date.now()) {
   const inserted = sql
     .exec(

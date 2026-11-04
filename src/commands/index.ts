@@ -23,7 +23,6 @@ import { edit, imagine } from './image.ts';
 import { mock } from './mock.ts';
 import { radio } from './radio.ts';
 
-// Lives here rather than in its own file, since it needs the command list.
 const help = {
   definition: {
     name: 'help',
@@ -56,7 +55,6 @@ type CommandData =
   | APIChatInputApplicationCommandInteractionData
   | APIMessageApplicationCommandInteractionData;
 
-// Each use of a command, from a slash command or from chat, gets a span named for it.
 export function runCommand(
   data: CommandData,
   env: Env,
@@ -75,7 +73,6 @@ export function runCommand(
   });
 }
 
-// How a command is named in spans: the way someone uses it, like `/radio play` or `Mock`.
 export function commandName(data: {
   type: ApplicationCommandType;
   name: string;

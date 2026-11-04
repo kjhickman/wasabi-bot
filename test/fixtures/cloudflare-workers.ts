@@ -1,5 +1,3 @@
-// Stands in for the runtime's `cloudflare:workers` in unit tests, which run in Node, and
-// records each span so tests can check what it was named and given.
 class FakeSpan {
   name: string;
   attributes: Record<string, string | number | boolean> = {};

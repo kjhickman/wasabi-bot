@@ -3,7 +3,6 @@ import { CommandError } from '../commands/command.ts';
 import { log, preview } from '../log.ts';
 import type { Station } from './player.ts';
 
-// Radio Browser is a free, community-run station directory. It asks apps to identify themselves.
 const API_URL = 'https://all.api.radio-browser.info/json';
 const HEADERS = { 'User-Agent': 'wasabi-bot/0.1' };
 const STATION_ID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
@@ -18,10 +17,8 @@ interface ApiStation {
   codec: string;
   bitrate: number;
   countrycode: string;
-  // Comma-separated genres and descriptions, like "classic rock,rock,80s".
   tags: string;
   votes: number;
-  // Plays in the last day.
   clickcount: number;
 }
 
@@ -43,7 +40,6 @@ async function search(by: { name: string } | { tag: string }, limit: number, sig
   return (await radioBrowser<ApiStation[]>(`/stations/search?${params}`, signal)) ?? [];
 }
 
-// Takes what autocomplete fills in (a station ID), a stream URL, or a station name.
 export async function findStation(input: string, signal: AbortSignal): Promise<Station> {
   if (/^https?:\/\//i.test(input)) {
     const url = URL.parse(input);
@@ -58,8 +54,6 @@ export async function findStation(input: string, signal: AbortSignal): Promise<S
     // Radio Browser counts a play each time an app asks for a station's URL this way.
     if (id) station = await radioBrowser(`/url/${id}`, signal);
   } catch (error) {
-    // /radio looks stations up within Discord's 3-second window, so a slow directory
-    // still needs an answer.
     log.error('Station lookup failed', { error, input: preview(input) });
     throw new CommandError("I couldn't reach the station directory. Try again in a moment.");
   }
@@ -75,8 +69,6 @@ export async function stationChoices(
   return stations.map((station) => ({ name: label(station), value: station.stationuuid }));
 }
 
-// For the chat model to choose from: stations whose name or genre matches, most played
-// first, each with the ID that plays it.
 export async function searchStations(query: string, signal: AbortSignal) {
   const matches = await Promise.all([
     search({ name: query }, MAX_RESULTS, signal),

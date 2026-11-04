@@ -10,7 +10,6 @@ export interface Env {
   OPENAI_API_KEY?: string;
 }
 
-// Types `ctx.exports`, which the radio uses to hand its container a callback.
 declare global {
   namespace Cloudflare {
     interface GlobalProps {

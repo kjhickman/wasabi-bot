@@ -4,7 +4,6 @@ import { parseEnv } from 'node:util';
 import { cloudflare } from '@cloudflare/vite-plugin';
 import { defineConfig, type Plugin, type ViteDevServer } from 'vite-plus';
 
-// Local dev has no cron, so connect the Gateway as soon as the dev server is listening.
 const startGateway: Plugin = {
   name: 'start-gateway',
   apply: 'serve',

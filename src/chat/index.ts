@@ -27,7 +27,6 @@ const HISTORY_LIMIT = 50;
 const MAX_TOOL_ROUNDS = 3;
 const COMMAND_TIMEOUT_MS = 120_000;
 const REPLY_TIMEOUT_MS = 180_000;
-// Discord shows "typing…" for about 10 seconds.
 const TYPING_INTERVAL_MS = 8_000;
 const FAILURE_REPLY = "Sorry, I couldn't come up with a reply. Try again in a moment.";
 const TOOLS: Tool[] = [
@@ -57,7 +56,6 @@ export function addressesBot(message: GatewayMessageCreateDispatchData, bot: API
   return !message.author.bot && (isDM || message.mentions.some((user) => user.id === bot.id));
 }
 
-// Each reply gets a span, from receiving the message to posting the reply.
 export function replyToMessage(message: GatewayMessageCreateDispatchData, options: ChatOptions) {
   return tracing.enterSpan('chat', (span) => reply(message, options, span));
 }
@@ -117,7 +115,6 @@ async function reply(
     if (!response.ok) {
       log.warn('Chat history unavailable', { ...context, ...(await responseDetails(response)) });
     }
-    // Newest first, as Discord lists them.
     const recent = response.ok ? await response.json<APIMessage[]>() : [];
     const image = [message, message.referenced_message, ...recent]
       .flatMap((source) => source?.attachments ?? [])
@@ -202,7 +199,6 @@ async function generate(messages: Message[], conversation: Conversation) {
           signal: deadline,
         });
         files.push(...result.files);
-        // Only commands' results are written for people; the station search returns JSON.
         if (label) lastResult = result.output;
         return { type: 'function_call_output', call_id: call.call_id, output: result.output };
       }),

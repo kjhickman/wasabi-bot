@@ -51,7 +51,6 @@ export const conch = {
 } satisfies SlashCommand;
 
 async function decide(question: string, apiKey: string, signal: AbortSignal) {
-  // /conch answers within Discord's 3-second response window, which leaves no time to retry.
   const client = new OpenAI({ apiKey, maxRetries: 0 });
   const decision = await client.decisions.create(
     {

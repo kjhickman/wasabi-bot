@@ -11,16 +11,12 @@ import { log } from '../log.ts';
 import { gateway } from '../gateway/stub.ts';
 
 const PORT = 8080;
-// The container reaches its Durable Object through requests to this host.
 const CALLBACK_HOST = 'player.internal';
 const WATCHDOG_MS = 30_000;
 const START_TIMEOUT_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 5_000;
-// Joining voice and waiting for the stream's first audio.
 const PLAY_TIMEOUT_MS = 60_000;
-// Stops the container if the watchdog alarm ever stops running.
 const INACTIVITY_TIMEOUT_MS = 2 * 60 * 1_000;
-// A backstop in case the record of who is listening drifts.
 const MAX_SESSION_MS = 12 * 60 * 60 * 1_000;
 const START_FAILED =
   "The radio couldn't start. If the bot was just updated, try again in a minute.";
@@ -37,8 +33,6 @@ interface Session {
   startedAt: number;
 }
 
-// One per guild. Owns the container that holds the guild's voice connection and streams
-// the station, and leaves once nobody is listening.
 export class RadioPlayer extends DurableObject<Env> {
   private booting: Promise<void> | undefined;
 
@@ -48,7 +42,6 @@ export class RadioPlayer extends DurableObject<Env> {
     if (ctx.container?.running) void ctx.blockConcurrencyWhile(() => this.watch());
   }
 
-  // Returns why the radio couldn't play, if it couldn't.
   async play(guildId: string, channelId: string, station: Station): Promise<string | undefined> {
     try {
       await this.boot(guildId);
@@ -65,7 +58,6 @@ export class RadioPlayer extends DurableObject<Env> {
       log.error('Radio play request failed', { guildId, error });
       return undefined;
     });
-    // The container explains failures it expects, like a dead stream.
     const reason = response?.ok ? (await response.json<{ error?: string }>()).error : PLAY_FAILED;
     if (reason) {
       await this.shutDown(guildId);
@@ -76,7 +68,6 @@ export class RadioPlayer extends DurableObject<Env> {
     return undefined;
   }
 
-  // Returns whether the radio was playing.
   async stop() {
     const session = this.session;
     await this.shutDown(session?.guildId);
@@ -86,7 +77,6 @@ export class RadioPlayer extends DurableObject<Env> {
   async voiceEvent(packet: GatewayVoiceStateUpdateDispatch | GatewayVoiceServerUpdateDispatch) {
     if (!this.ctx.container?.running) return;
     const session = this.session;
-    // Someone may have dragged the bot to another channel.
     if (session && packet.t === GatewayDispatchEvents.VoiceStateUpdate && packet.d.channel_id) {
       this.save({ ...session, channelId: packet.d.channel_id });
     }
@@ -111,7 +101,6 @@ export class RadioPlayer extends DurableObject<Env> {
       await this.stop();
       return;
     }
-    // The container gives up on its own when it loses the voice connection or the stream.
     const status = await this.request('/status').then(
       (response) => response.json<{ active: boolean }>(),
       () => undefined,
@@ -135,7 +124,6 @@ export class RadioPlayer extends DurableObject<Env> {
 
   private async startContainer(guildId: string) {
     if (this.ctx.container!.running) return;
-    // Its own span, since a cold start is often the slowest part of /radio play.
     await tracing.enterSpan('radio.boot', () => this.launch(guildId));
   }
 
@@ -162,8 +150,8 @@ export class RadioPlayer extends DurableObject<Env> {
     }
   }
 
-  // Stops the container and leaves the guild's voice channel. Takes the guild rather than
-  // reading the session, since a failed start may have joined the channel without one.
+  // Takes the guild rather than reading the session, since a failed start may have joined
+  // the channel without one.
   private async shutDown(guildId: string | undefined) {
     // Forget the session first, so the container's exit doesn't leave a second time.
     this.ctx.storage.kv.delete('session');
@@ -184,8 +172,6 @@ export class RadioPlayer extends DurableObject<Env> {
     );
   }
 
-  // Shutting down forgets the session first, so a session here means the container stopped
-  // on its own, maybe without leaving its voice channel.
   private async containerExited(reason: unknown) {
     const session = this.session;
     if (!session) return;
@@ -222,8 +208,6 @@ export class RadioPlayer extends DurableObject<Env> {
   }
 }
 
-// Handles the requests a container makes to its callback host. Its props name the
-// container's guild, so a container can't change the bot's voice state anywhere else.
 export class RadioCallback extends WorkerEntrypoint<Env, { guildId: string }> {
   override async fetch(request: Request) {
     if (request.method !== 'POST' || new URL(request.url).pathname !== '/gateway') {

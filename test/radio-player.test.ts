@@ -18,7 +18,6 @@ const STATION = { name: '101 SMOOTH JAZZ', url: 'http://jking.cdnstream1.com/b22
 const LEAVE = { guild_id: '300', channel_id: null, self_mute: false, self_deaf: false };
 const KILLED = new Error('Container exited with unexpected exit code: 137');
 
-// Stands in for the container's HTTP server and the runtime's control of it.
 class FakeContainer {
   running = false;
   requests: { path: string; body: unknown }[] = [];
@@ -153,7 +152,6 @@ describe('RadioPlayer', () => {
       "That station isn't streaming right now.",
     );
     expect(container.destroy).toHaveBeenCalledOnce();
-    // The container may have joined the channel before the stream failed.
     expect(gatewayStub.updateVoiceState).toHaveBeenCalledExactlyOnceWith(LEAVE);
     expect(alarm).toBeNull();
   });

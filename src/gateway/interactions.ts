@@ -27,8 +27,6 @@ const DEFERRED_BUDGET_MS = 120_000;
 
 type Outcome = 'ok' | 'command_error' | 'error';
 
-// Each interaction gets a span, which groups its requests to Discord with the command's own
-// span, named like `interaction /radio play`.
 export async function handleInteraction(interaction: APIInteraction, env: Env, sql: SqlStorage) {
   if (
     interaction.type !== InteractionType.ApplicationCommand &&
@@ -135,7 +133,6 @@ async function answer(
     return edited.ok;
   };
 
-  // Deferred commands acknowledge up front. Others may defer themselves partway through.
   const respond = async (): Promise<Outcome> => {
     let deferred = false;
     const acknowledge = async () => {
@@ -171,11 +168,9 @@ async function answer(
     return 'error';
   });
   span.setAttribute('outcome', outcome);
-  // Only uses that reach the user without an error count toward the limit.
   if (outcome !== 'ok') use?.refund();
 }
 
-// Discord drops suggestions that arrive late, so a slow lookup suggests nothing.
 async function suggest(
   interaction: APIApplicationCommandAutocompleteInteraction,
   env: Env,

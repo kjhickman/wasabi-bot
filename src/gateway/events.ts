@@ -27,7 +27,6 @@ export async function handleEvent(packet: GatewayDispatchPayload, context: ChatO
   }
   if (packet.t === GatewayDispatchEvents.VoiceStateUpdate && packet.d.guild_id) {
     saveVoiceState(sql, packet.d.guild_id, packet.d);
-    // The radio's voice connection needs the bot's own voice state and server.
     if (packet.d.user_id === bot.id) {
       return env.RADIO_PLAYER.getByName(packet.d.guild_id).voiceEvent(packet);
     }

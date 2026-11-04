@@ -34,7 +34,6 @@ let ffmpeg: ChildProcess | undefined;
 const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
 
 player.on('error', (error) => console.error('Audio error:', error.message));
-// ffmpeg has given up on the stream, so the radio is done.
 player.on(AudioPlayerStatus.Idle, () => {
   if (ffmpeg) leave();
 });
@@ -66,7 +65,6 @@ function join(guildId: string, channelId: string) {
     guildId,
     channelId,
     selfDeaf: true,
-    // The bot's Gateway connection lives in a Durable Object, so voice state goes through it.
     adapterCreator: (methods) => {
       adapter = methods;
       return {
@@ -116,7 +114,6 @@ function leave() {
   connection?.destroy();
 }
 
-// Returns why the radio couldn't play, for failures the user can do something about.
 async function play({
   guildId,
   channelId,
@@ -146,7 +143,6 @@ async function play({
 
 type Route = (body: any) => unknown;
 const routes: Record<string, Route> = {
-  // The Durable Object stops the radio once the container has given up on it.
   'GET /status': () => ({ active: connection !== undefined }),
   'POST /voice': ({ t, d }) => {
     if (t === 'VOICE_STATE_UPDATE') adapter?.onVoiceStateUpdate(d);

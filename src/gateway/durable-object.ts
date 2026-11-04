@@ -27,7 +27,6 @@ const DISCOVERY_TIMEOUT_MS = 5_000;
 const COMMAND_SYNC_TIMEOUT_MS = 10_000;
 const MIN_RATE_LIMIT_WAIT_MS = 60_000;
 const SESSION_START_RESERVE = 5;
-// The first disconnect plus two failed resumes: start a fresh session instead.
 const FAILURES_BEFORE_NEW_SESSION = 3;
 const COMMANDS = JSON.stringify(
   [...commands, ...messageCommands].map((command) => command.definition),
@@ -42,7 +41,6 @@ interface Lifecycle {
   error: string | null;
 }
 
-// Durable alarms drive every reconnect so recovery survives Durable Object restarts.
 export class DiscordGateway extends DurableObject<Env> {
   protected readonly identifyCooldownMs: number = 6_000;
   protected readonly retryBaseMs: number = 1_000;
@@ -92,15 +90,12 @@ export class DiscordGateway extends DurableObject<Env> {
     return this.status();
   }
 
-  // The radio joins and leaves voice channels through this connection. Returns whether it
-  // was sent.
   updateVoiceState(data: GatewayVoiceStateUpdateData) {
     if (!this.connection?.connected) return false;
     this.connection.updateVoiceState(data);
     return true;
   }
 
-  // How many people other than the bot are in a voice channel.
   listeners(guildId: string, channelId: string) {
     const botId = this.lifecycle.session?.user.id ?? '';
     return countListeners(this.ctx.storage.sql, guildId, channelId, botId);
@@ -190,7 +185,6 @@ export class DiscordGateway extends DurableObject<Env> {
     this.ctx.waitUntil(this.armAlarm());
   }
 
-  // Runs on every check, but only calls Discord when this code's commands differ from the last sync.
   private async syncCommands(token: string) {
     if (this.ctx.storage.kv.get('commands') === COMMANDS) return;
     try {

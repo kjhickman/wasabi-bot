@@ -46,8 +46,6 @@ export const radio = {
     return stationChoices(String(typed?.value ?? '').trim(), signal);
   },
 
-  // Checks what it can within Discord's 3-second window, so mistakes get a private reply,
-  // then defers: starting a container and joining voice take longer.
   async execute(data, env, signal, { guildId, userId, defer }) {
     const [subcommand] = data.options ?? [];
     if (!guildId || !userId || subcommand?.type !== ApplicationCommandOptionType.Subcommand) {

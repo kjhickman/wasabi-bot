@@ -8,7 +8,6 @@ export const MODELS = {
   image: 'gpt-image-2.5-flare',
 } as const;
 
-// Gives each response a span with its token counts, which drive how long it takes.
 export function createResponse(
   client: OpenAI,
   body: ResponseCreateParamsNonStreaming,
