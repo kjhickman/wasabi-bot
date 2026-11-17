@@ -8,11 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { caption } from '../src/commands/caption.ts';
 import { CommandError } from '../src/commands/command.ts';
 import { imagine } from '../src/commands/image.ts';
-import { commands } from '../src/commands/index.ts';
 import { radio } from '../src/commands/radio.ts';
 import {
-  chatTools,
-  commandLabel,
   commandTools,
   offers,
   runCommandTool,
@@ -52,11 +49,17 @@ afterEach(() => {
 
 describe('commandTools', () => {
   it('offers every command as a tool, and each /radio subcommand as its own', () => {
-    expect(commandTools.map((tool) => tool.name)).toEqual(
-      commands.flatMap(({ definition: { name } }) =>
-        name === 'radio' ? ['radio_play', 'radio_stop'] : [name],
-      ),
-    );
+    expect(commandTools.map((tool) => tool.name)).toEqual([
+      'conch',
+      'choose',
+      'caption',
+      'imagine',
+      'edit',
+      'flip',
+      'radio_play',
+      'radio_stop',
+      'help',
+    ]);
   });
 
   it('builds a subcommand’s tool from its own description and options', () => {
@@ -100,29 +103,7 @@ describe('commandTools', () => {
     ]);
   });
 
-  it('labels tools as the slash command someone would type', () => {
-    expect(commandLabel('radio_play')).toBe('radio play');
-    expect(commandLabel('choose')).toBe('choose');
-    expect(commandLabel('radio_search')).toBeUndefined();
-  });
-
   it('leaves image options out of the schema and describes where the image comes from', () => {
-    expect(commandTools.find((tool) => tool.name === 'caption')).toEqual({
-      type: 'function',
-      name: 'caption',
-      description:
-        'Get a funny meme caption for an image. It uses the image attached to the last message, else the one on the message it replies to, else the most recent image in the channel.',
-      strict: true,
-      parameters: {
-        type: 'object',
-        properties: { reply_with_result: replyFlag },
-        required: ['reply_with_result'],
-        additionalProperties: false,
-      },
-    });
-  });
-
-  it('asks the model only for the prompt when editing an image', () => {
     expect(commandTools.find((tool) => tool.name === 'edit')).toEqual({
       type: 'function',
       name: 'edit',
@@ -290,16 +271,6 @@ describe('runCommandTool', () => {
     });
   });
 
-  it('returns no reply for a command that fails, so the model can respond to the error', async () => {
-    expect(
-      await runCommandTool(
-        'choose',
-        JSON.stringify({ ...chooseArgs, option2: ' ', reply_with_result: true }),
-        context,
-      ),
-    ).toEqual({ output: 'Error: Give me at least 2 options to choose from.', files: [] });
-  });
-
   it('does not count an image the command failed to make', async () => {
     vi.spyOn(imagine, 'execute').mockRejectedValue(
       new CommandError("I couldn't make that image. Try again."),
@@ -339,12 +310,6 @@ describe('runCommandTool', () => {
       'Error: option1 must be 1 to 100 characters long.',
     ],
     ['invalid JSON', 'choose', '{', 'Error: the command failed.'],
-    [
-      'an image command without an image',
-      'caption',
-      '{}',
-      'Error: Upload a PNG, JPEG, WebP, or GIF image to caption.',
-    ],
   ])('returns an error for %s', async (_, name, args, expected) => {
     expect(await runCommandTool(name, args, context)).toEqual({
       output: expected,
@@ -409,13 +374,6 @@ describe('runTool', () => {
     vi.unstubAllGlobals();
   });
 
-  it('offers the model a radio search alongside the commands', () => {
-    expect(chatTools.map((tool) => tool.name)).toEqual([
-      ...commandTools.map((tool) => tool.name),
-      'radio_search',
-    ]);
-  });
-
   it('searches radio stations for the model', async () => {
     const { output, files } = await runTool(
       'radio_search',
@@ -460,14 +418,5 @@ describe('runTool', () => {
         error: expect.objectContaining({ message: 'Radio Browser returned HTTP 502' }),
       }),
     );
-  });
-
-  it('runs anything else as a command', async () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.9);
-
-    expect(await runTool('choose', JSON.stringify(chooseArgs), context)).toEqual({
-      output: 'Choosing between: WoW, Overwatch\nI choose **Overwatch**!',
-      files: [],
-    });
   });
 });

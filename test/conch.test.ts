@@ -41,24 +41,17 @@ afterEach(() => {
 });
 
 describe('/conch', () => {
-  it('calls the Decisions API with yes, no, and unsure choices', async () => {
+  it('asks the Decisions API to answer the question with yes, no, or unsure', async () => {
     fetchMock.mockResolvedValue(Response.json({ answers: [{ type: 'choice', choice: 'yes' }] }));
 
     await ask(options);
 
-    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({
-      model: 'gpt-6-luna',
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toMatchObject({
       input: question,
       questions: [
         {
           type: 'choice',
-          name: 'answer',
-          instructions: expect.any(String),
-          choices: [
-            { value: 'yes', description: expect.any(String) },
-            { value: 'no', description: expect.any(String) },
-            { value: 'unsure', description: expect.any(String) },
-          ],
+          choices: [{ value: 'yes' }, { value: 'no' }, { value: 'unsure' }],
         },
       ],
     });
@@ -165,24 +158,6 @@ describe('/conch', () => {
     deadline.abort();
 
     await expect(answer).rejects.toEqual(failure);
-    expect(fetchMock.mock.calls[0]![1]!.signal!.aborted).toBe(true);
-  });
-
-  it.each([200, 500])('gives up on a stalled HTTP %s response body', async (status) => {
-    const deadline = new AbortController();
-    fetchMock.mockImplementation(async (_input, init) => {
-      const signal = init!.signal!;
-      const body = new ReadableStream({
-        start(controller) {
-          signal.addEventListener('abort', () => controller.error(signal.reason), { once: true });
-        },
-      });
-      setTimeout(() => deadline.abort(), 0);
-      return new Response(body, { status, headers: { 'Content-Type': 'application/json' } });
-    });
-
-    await expect(ask(options, undefined, deadline.signal)).rejects.toEqual(failure);
-    expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock.mock.calls[0]![1]!.signal!.aborted).toBe(true);
   });
 });

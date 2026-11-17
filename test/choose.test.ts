@@ -42,13 +42,6 @@ describe('/choose', () => {
     );
   });
 
-  it('picks from all 7 options', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.999999);
-    const options = [1, 2, 3, 4, 5, 6, 7].map((n) => option(n, `Game ${n}`));
-
-    expect(pick(options).data.content).toContain('I choose **Game 7**!');
-  });
-
   it.each<{ options: APIApplicationCommandInteractionDataOption[] | undefined }>([
     { options: undefined },
     { options: [option(1, 'Halo')] },

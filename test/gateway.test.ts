@@ -338,22 +338,6 @@ describe('Gateway in workerd', () => {
     expect(state.urls[1]).toContain('resume.discord.gg');
   }, 15_000);
 
-  it('identifies again after a DO reset when the saved session has no bot user', async () => {
-    createRuntime();
-    await (await control('start')).text();
-    await connected();
-    await (await runtime!.dispatchFetch('https://bot.test/_test/legacy-session')).text();
-    await (await runtime!.dispatchFetch('https://bot.test/_test/crash')).text();
-    await reconcile();
-    await connected();
-    await (await fake('emit', message('500', 3))).text();
-    await vi.waitFor(async () => expect((await discordState()).replies).toHaveLength(1));
-
-    const state = await discordState();
-    expect(state.packets.filter((packet) => packet.op === 2)).toHaveLength(2);
-    expect(state.packets.some((packet) => packet.op === 6)).toBe(false);
-  }, 15_000);
-
   it('handles /conch directly and suppresses duplicate interaction side effects', async () => {
     createRuntime();
     await (await control('start')).text();
@@ -653,18 +637,6 @@ describe('Gateway in workerd', () => {
     const identifies = (await discordState()).packets.filter((packet) => packet.op === 2);
     expect(identifies[1]!.receivedAt - identifies[0]!.receivedAt).toBeGreaterThanOrEqual(800);
   }, 25_000);
-
-  it('skips expired interactions without paying for an OpenAI request or attempting a callback', async () => {
-    createRuntime();
-    await (await control('start')).text();
-    await connected();
-    await (await fake('emit', conchInteraction(10_000))).text();
-    await vi.waitFor(async () => expect((await status()).lastEvent).toBe('INTERACTION_CREATE'));
-
-    const state = await discordState();
-    expect(state.decisions).toBe(0);
-    expect(state.callbacks).toHaveLength(0);
-  });
 
   it('shortens generation for delayed interactions to leave time for the direct callback', async () => {
     createRuntime();

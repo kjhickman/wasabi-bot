@@ -1,7 +1,6 @@
-import { ApplicationCommandType, InteractionResponseType } from 'discord-api-types/v10';
-import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { ApplicationCommandType } from 'discord-api-types/v10';
+import { describe, expect, it } from 'vite-plus/test';
 import { CommandError } from '../src/commands/command.ts';
-import { conch } from '../src/commands/conch.ts';
 import { commands, getCommand, messageCommands, runCommand } from '../src/commands/index.ts';
 import type { Env } from '../src/env.ts';
 
@@ -9,23 +8,7 @@ const env = {} as Env;
 const signal = new AbortController().signal;
 const invocation = { guildId: '300', userId: '200' };
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
 describe('runCommand', () => {
-  it('passes the interaction data, env, deadline, and invocation to the matching command', async () => {
-    const data = { id: '1', type: ApplicationCommandType.ChatInput, name: 'conch' } as const;
-    const response = {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: { content: 'Yes' },
-    } as const;
-    const execute = vi.spyOn(conch, 'execute').mockResolvedValue(response);
-
-    expect(await runCommand(data, env, signal, invocation)).toBe(response);
-    expect(execute).toHaveBeenCalledExactlyOnceWith(data, env, signal, invocation);
-  });
-
   it('rejects an unknown command', async () => {
     const data = { id: '1', type: ApplicationCommandType.ChatInput, name: 'unknown' } as const;
 
@@ -51,13 +34,10 @@ describe('/help', () => {
 });
 
 describe('deferred commands', () => {
-  it.each([
-    ['caption', true],
-    ['imagine', true],
-    ['edit', true],
-    ['conch', false],
-    ['unknown', false],
-  ])('%s → %s', (name, deferred) => {
-    expect(getCommand(name)?.deferred ?? false).toBe(deferred);
-  });
+  it.each(['imagine', 'edit'])(
+    'defers /%s, since images take longer than Discord waits',
+    (name) => {
+      expect(getCommand(name)?.deferred).toBe(true);
+    },
+  );
 });

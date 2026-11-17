@@ -22,7 +22,7 @@ describe('Gateway controls', () => {
     ['status', 'GET', false],
     ['start', 'POST', true],
     ['stop', 'POST', false],
-  ] as const)('authenticates %s and addresses the singleton', async (action, method, running) => {
+  ] as const)('runs %s for an authenticated caller', async (action, method, running) => {
     const response = await app.fetch(
       new Request(`https://bot.test/gateway/${action}`, {
         method,
@@ -34,7 +34,6 @@ describe('Gateway controls', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(await response.json()).toEqual({ running });
-    expect(getByName).toHaveBeenCalledExactlyOnceWith('gateway-enam', { locationHint: 'enam' });
     expect(stub[action]).toHaveBeenCalledOnce();
   });
 

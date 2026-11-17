@@ -202,13 +202,13 @@ describe('tracing', () => {
     ]);
   });
 
-  it('warns about an interaction that arrived too late to answer', async () => {
+  it('skips, and warns about, an interaction that arrived too late to answer', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const late = { ...conch({ user: { id: '200' } }), id: snowflake(Date.now() - 3_500) };
 
     await handleInteraction(late, env, sql);
 
-    expect(callbacks()).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'Interaction arrived too late to answer', userId: '200' }),
     );

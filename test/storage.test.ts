@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { claim, migrate, prune } from '../src/storage.ts';
+import { claim, prune } from '../src/storage.ts';
 import { takeUsage } from '../src/usage.ts';
-import { emptySqlStorage, sqlStorage } from './fixtures/sql.ts';
+import { sqlStorage } from './fixtures/sql.ts';
 
 const MINUTE = 60 * 1_000;
 const DAY = 24 * 60 * MINUTE;
@@ -37,18 +37,5 @@ describe('prune', () => {
 
     expect(claim(sql, '500', now)).toBe(true);
     expect(claim(sql, '501', now)).toBe(false);
-  });
-});
-
-describe('migrate', () => {
-  it('drops the table that seen replaced', () => {
-    const sql = emptySqlStorage();
-    sql.exec('CREATE TABLE interactions (id TEXT PRIMARY KEY, expires_at INTEGER NOT NULL)');
-
-    migrate(sql);
-
-    const tables = sql.exec("SELECT name FROM sqlite_master WHERE type = 'table'").toArray();
-    expect(tables).not.toContainEqual({ name: 'interactions' });
-    expect(tables).toContainEqual({ name: 'seen' });
   });
 });

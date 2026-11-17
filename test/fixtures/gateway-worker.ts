@@ -1,6 +1,5 @@
 import worker, { DiscordGateway } from '../../src/index.ts';
 import type { Env } from '../../src/env.ts';
-import type { Session } from '../../src/gateway/connection.ts';
 import { gateway as gatewayStub } from '../../src/gateway/stub.ts';
 
 export class TestGateway extends DiscordGateway {
@@ -29,12 +28,6 @@ export class TestGateway extends DiscordGateway {
     this.ctx.storage.sql.exec('DROP TABLE seen');
     await this.alarm();
   }
-
-  forgetSessionUser(): void {
-    const lifecycle = this.ctx.storage.kv.get<{ session: Partial<Session> }>('lifecycle')!;
-    delete lifecycle.session.user;
-    this.ctx.storage.kv.put('lifecycle', lifecycle);
-  }
 }
 
 export default {
@@ -56,10 +49,6 @@ export default {
     }
     if (path === '/_test/zombie') {
       await gateway.zombie();
-      return new Response(null, { status: 204 });
-    }
-    if (path === '/_test/legacy-session') {
-      await gateway.forgetSessionUser();
       return new Response(null, { status: 204 });
     }
     if (path === '/_test/crash') {
